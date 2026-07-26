@@ -15,8 +15,16 @@ namespace Ale.Toolkit.Editor
     /// 不提供属性系统之外的具名固定资源字段——那类字段（如某插件的图标字段）由该插件自建的专用子类
     /// 经 <see cref="EditorAddressableToolWindow{TDb}.FixedFields"/> 覆盖。</para>
     /// </summary>
+    [InitializeOnLoad]
     public class ToolkitAddressableToolWindow : EditorAddressableToolWindow<ScriptableObject>
     {
+        // 注入钩子：让 core 欢迎窗口（对 Addressables 零依赖、看不见本类型）得以打开本窗口。
+        // 仅在本程序集参与编译（ATK_ADDRESSABLE 启用）时执行，故宏关闭时欢迎窗口对应按钮自动隐藏。
+        static ToolkitAddressableToolWindow()
+        {
+            ToolkitWelcomeWindow.OpenAddressableMigration = Open;
+        }
+
         [MenuItem("Tools/Ale Toolkit/Addressable/Addressable工具窗口", priority = 100)]
         public static void Open()
         {

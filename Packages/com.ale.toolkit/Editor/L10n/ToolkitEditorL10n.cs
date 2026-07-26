@@ -70,6 +70,7 @@ namespace Ale.Toolkit.Editor
         static partial void RegisterAttributes();
         static partial void RegisterDefines();
         static partial void RegisterTagging();
+        static partial void RegisterWelcome();
 
         private static void RegisterTables()
         {
@@ -78,6 +79,7 @@ namespace Ale.Toolkit.Editor
             RegisterAttributes();
             RegisterDefines();
             RegisterTagging();
+            RegisterWelcome();
         }
 
         /// <summary>登记一条译文。<paramref name="en"/> / <paramref name="ja"/> 为空则该语言回退中文。</summary>
