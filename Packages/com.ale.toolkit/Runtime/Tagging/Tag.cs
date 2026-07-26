@@ -25,15 +25,9 @@ namespace Ale.Toolkit.Runtime
         /// <summary>描述（<see cref="EFieldType.Text"/>：纯文本 fallback + 可选本地化引用；正式配置数据，UI 显示为「描述」）。</summary>
         public AttributeValue descriptionText = new AttributeValue(EFieldType.Text);
 
-        /// <summary>标签背景 Sprite。</summary>
-        public Sprite backgroundSprite;
-
-        /// <summary>背景 Sprite 的 Addressable 授权 GUID（启用 ATK_ADDRESSABLE 且以 AssetReference 授权时用；否则空，走 <see cref="backgroundSprite"/> 直接引用）。</summary>
-        public string backgroundSpriteAddress;
-
         /// <summary>
-        /// 标签背景 Sprite（<see cref="EFieldType.Sprite"/> 对象类属性值）。纳入属性系统后由通用 Addressable 工具统一
-        /// 做 Object ↔ GUID/Addressable 迁移；将逐步取代上面的 <see cref="backgroundSprite"/> / <see cref="backgroundSpriteAddress"/>。
+        /// 标签背景 Sprite（<see cref="EFieldType.Sprite"/> 对象类属性值：直接引用或 Addressable 授权 GUID）。
+        /// 由通用 Addressable 工具统一做 Object ↔ GUID/Addressable 迁移。
         /// </summary>
         public AttributeValue backgroundSpriteValue = new AttributeValue(EFieldType.Sprite);
 
@@ -65,8 +59,6 @@ namespace Ale.Toolkit.Runtime
             {
                 displayNameText         = displayNameText != null ? displayNameText.Clone() : new AttributeValue(EFieldType.Text),
                 descriptionText         = descriptionText != null ? descriptionText.Clone() : new AttributeValue(EFieldType.Text),
-                backgroundSprite        = backgroundSprite,
-                backgroundSpriteAddress = backgroundSpriteAddress,
                 backgroundSpriteValue   = backgroundSpriteValue != null ? backgroundSpriteValue.Clone() : new AttributeValue(EFieldType.Sprite),
                 backgroundColor         = backgroundColor,
                 hideInUI                = hideInUI,
