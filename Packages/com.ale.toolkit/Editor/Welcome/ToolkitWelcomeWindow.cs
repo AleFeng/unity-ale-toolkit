@@ -3,6 +3,14 @@ using UnityEditor;
 using UnityEngine;
 using static Ale.Toolkit.Editor.ToolkitEditorL10n;
 
+#if ATK_TMP
+using TMPro;
+#endif
+
+#if ATK_TMP && ATK_LOCALIZATION
+using Ale.Toolkit.Runtime.UI;
+#endif
+
 namespace Ale.Toolkit.Editor
 {
     /// <summary>
@@ -28,6 +36,17 @@ namespace Ale.Toolkit.Editor
         private bool _pendingRecompile;
         private Vector2 _scroll;
 
+#if ATK_TMP
+        // TMP 宏方块下的向导默认字体（全局，存 ToolkitPrefabFonts）
+        private TMP_FontAsset _defaultTmpFont;
+        private bool _tmpFontFoldout;
+#endif
+#if ATK_TMP && ATK_LOCALIZATION
+        // Localization 宏方块下的向导本地化字体（全局，存 ToolkitPrefabFonts；SerializeField 供原生属性绘制器绑定）
+        [SerializeField] private LocalizedTmpFont _localizedFont = new LocalizedTmpFont();
+        private bool _localizedFontFoldout;
+#endif
+
         [MenuItem("Tools/Ale Toolkit/Welcome", priority = 0)]
         public static void Open()
         {
@@ -49,6 +68,12 @@ namespace Ale.Toolkit.Editor
             _locInstalled  = ToolkitDefines.IsLocalizationPackageInstalled();
             _addrEnabled   = ToolkitDefines.IsAddressableEnabled();
             _addrInstalled = ToolkitDefines.IsAddressablePackageInstalled();
+#if ATK_TMP
+            _defaultTmpFont = ToolkitPrefabFonts.DefaultTmpFont;
+#endif
+#if ATK_TMP && ATK_LOCALIZATION
+            _localizedFont = ToolkitPrefabFonts.LocalizedFont;
+#endif
         }
 
         private void OnGUI()
@@ -146,14 +171,16 @@ namespace Ale.Toolkit.Editor
             DrawMacroToggle("TextMeshPro", ToolkitDefines.Tmp, ToolkitDefines.PackageTmp,
                 ref _tmpEnabled, _tmpInstalled,
                 Tr("启用后，UI 脚本的文本组件使用 TMP_Text；未启用时使用 UnityEngine.UI.Text。Unity 2021+ 已内置 TextMeshPro，通常可直接启用。"),
-                Tr("TMPro 命名空间未检测到。\n请确认 TextMeshPro 已通过 Package Manager 安装。\n\n确定要继续启用吗？"));
+                Tr("TMPro 命名空间未检测到。\n请确认 TextMeshPro 已通过 Package Manager 安装。\n\n确定要继续启用吗？"),
+                DrawTmpFontField);
 
             EditorGUILayout.Space(2);
 
             DrawMacroToggle("Unity Localization", ToolkitDefines.Localization, ToolkitDefines.PackageLocalization,
                 ref _locEnabled, _locInstalled,
                 Tr("启用后，属性字段类型可选择 LocalizedString，支持 Unity Localization 多语言配置。"),
-                Tr("com.unity.localization 包尚未安装。\n启用宏后，LocalizedString 字段将出现在编辑器中，但运行时无法解析。\n\n确定要继续启用吗？"));
+                Tr("com.unity.localization 包尚未安装。\n启用宏后，LocalizedString 字段将出现在编辑器中，但运行时无法解析。\n\n确定要继续启用吗？"),
+                DrawLocalizedFontField);
 
             EditorGUILayout.Space(2);
 
@@ -170,7 +197,8 @@ namespace Ale.Toolkit.Editor
         /// 包未安装时勾选弹确认对话框。与库存版同构，但去除了向导字体等领域折叠栏。
         /// </summary>
         private void DrawMacroToggle(string titleName, string define, string package,
-            ref bool enabled, bool packageInstalled, string description, string warnDialog)
+            ref bool enabled, bool packageInstalled, string description, string warnDialog,
+            Action drawAdditionalFields = null)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
@@ -217,7 +245,62 @@ namespace Ale.Toolkit.Editor
                 if (!EditorApplication.isCompiling) _pendingRecompile = false;
             }
 
+            // 宏启用时绘制该宏方块下的额外全局配置（如向导字体）
+            if (enabled && drawAdditionalFields != null)
+            {
+                EditorGUILayout.Space(4);
+                drawAdditionalFields.Invoke();
+            }
+
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>TextMeshPro 宏方块下的向导默认字体（全局，存 <see cref="ToolkitPrefabFonts"/>）。</summary>
+        private void DrawTmpFontField()
+        {
+#if ATK_TMP
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            _tmpFontFoldout = EditorGUILayout.Foldout(_tmpFontFoldout, Tr("TextMeshPro 设置"), true);
+            if (_tmpFontFoldout)
+            {
+                EditorGUI.BeginChangeCheck();
+                var newFont = (TMP_FontAsset)EditorGUILayout.ObjectField(
+                    Tr("默认字体"), _defaultTmpFont, typeof(TMP_FontAsset), false);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _defaultTmpFont = newFont;
+                    ToolkitPrefabFonts.DefaultTmpFont = newFont;
+                }
+                EditorGUILayout.LabelField(
+                    Tr("生成测试 Prefab 时将此字体应用于所有 TMP 文本节点（留空则使用 TMP 默认字体）。"),
+                    EditorStyles.wordWrappedMiniLabel);
+            }
+            EditorGUILayout.EndVertical();
+#endif
+        }
+
+        /// <summary>Unity Localization 宏方块下的向导本地化字体（全局，存 <see cref="ToolkitPrefabFonts"/>；需同时启用 ATK_TMP）。</summary>
+        private void DrawLocalizedFontField()
+        {
+#if ATK_TMP && ATK_LOCALIZATION
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            _localizedFontFoldout = EditorGUILayout.Foldout(_localizedFontFoldout, Tr("Unity Localization 设置"), true);
+            if (_localizedFontFoldout)
+            {
+                var so   = new SerializedObject(this);
+                var prop = so.FindProperty("_localizedFont");
+                if (prop != null)
+                {
+                    EditorGUILayout.PropertyField(prop, new GUIContent("Localized Asset Reference"));
+                    if (so.ApplyModifiedProperties())
+                        ToolkitPrefabFonts.LocalizedFont = _localizedFont;
+                }
+                EditorGUILayout.LabelField(
+                    Tr("生成测试 Prefab 时赋给 LocalizedFontEvent 组件的本地化字体资源。需同时启用 ATK_TMP 才生效。"),
+                    EditorStyles.wordWrappedMiniLabel);
+            }
+            EditorGUILayout.EndVertical();
+#endif
         }
 
         private static void OpenDocumentation()
