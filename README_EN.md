@@ -38,13 +38,13 @@ Unity's Package Manager **does not support git-URL entries in `package.json` `de
 **Step 1 — install the Toolkit first:**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.2.0
 ```
 
 **Step 2 — then install the plugin that depends on it**, e.g. the inventory system:
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
 ```
 
 > If you install in the wrong order or forget this package, Unity reports compile errors like `Ale.Toolkit.* not found`. Just add this package and wait for the recompile — you do not need to reinstall the other plugin.
@@ -63,7 +63,7 @@ Minimum **Unity 2022.3** (developed and maintained on Unity 6000.3).
 | **Editor framework** | Three-column tab base, master-list panel, entity-list panel, tool-window base — all generic over the database type |
 | **Editor localization** | A Chinese / English / Japanese service keyed by the Chinese source text, falling back automatically when a translation is missing |
 | **UGUI prefab toolbox** | Domain-agnostic UGUI primitives and text / button builders (reusable by each plugin's one-click generation wizard) |
-| **Optional support layers** | Macro switches and adapters for TextMeshPro (`IS_TMP`), Unity Localization (`IS_LOCALIZATION`), Addressables (`IS_ADDRESSABLE`), including the localization and Addressable tool windows |
+| **Optional support layers** | Macro switches and adapters for TextMeshPro (`ATK_TMP`), Unity Localization (`ATK_LOCALIZATION`), Addressables (`ATK_ADDRESSABLE`), including the localization and Addressable tool windows |
 
 See [Packages/com.ale.toolkit/README_EN.md](Packages/com.ale.toolkit/README_EN.md) for full details and [CHANGELOG](Packages/com.ale.toolkit/CHANGELOG.md) for the change history.
 
@@ -75,10 +75,10 @@ See [Packages/com.ale.toolkit/README_EN.md](Packages/com.ale.toolkit/README_EN.m
 | --- | --- | --- |
 | `Ale.Toolkit.Runtime` | Attribute system, sorting, tags, asset-loading abstractions, shared serialization | — |
 | `Ale.Toolkit.Runtime.UI` | Virtual-scroll lists and general UI widgets | — |
-| `Ale.Toolkit.UI.Localization` | Unity Localization adapter components | `IS_LOCALIZATION` |
-| `Ale.Toolkit.Addressables.Runtime` | Addressables asset loading and handle management | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.UI.Localization` | Unity Localization adapter components | `ATK_LOCALIZATION` |
+| `Ale.Toolkit.Addressables.Runtime` | Addressables asset loading and handle management | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | Editor framework, attribute drawers, localization service, prefab toolbox, macro switches | — |
-| `Ale.Toolkit.Addressables.Editor` | Addressables editor resolvers / tool windows | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.Addressables.Editor` | Addressables editor resolvers / tool windows | `ATK_ADDRESSABLE` |
 
 Dependencies flow one way: host plugin → `Ale.Toolkit.*`; this package never references any host plugin.
 

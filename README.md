@@ -38,13 +38,13 @@ Unity 的 Package Manager **不支持在 `package.json` 的 `dependencies` 里�
 **第一步 —— 先装 Toolkit：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.2.0
 ```
 
 **第二步 —— 再装依赖它的插件**，例如库存系统：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
 ```
 
 > 若顺序颠倒或漏装本包，Unity 会报 `找不到 Ale.Toolkit.*` 一类的编译错误。此时补装本包并等待重新编译即可，无需重装另一个插件。
@@ -63,7 +63,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **编辑器框架** | 三列布局页签基类、主列表面板、实体列表面板、工具窗口基类，均对数据库类型泛型化 |
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
 | **UGUI 预制体工具箱** | 与领域无关的 UGUI 原语与文本 / 按钮搭建（供各插件的一键生成向导复用） |
-| **可选依赖支持层** | TextMeshPro（`IS_TMP`）、Unity Localization（`IS_LOCALIZATION`）、Addressables（`IS_ADDRESSABLE`）的宏开关与适配，含本地化工具窗口与 Addressable 工具窗口 |
+| **可选依赖支持层** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）的宏开关与适配，含本地化工具窗口与 Addressable 工具窗口 |
 
 完整说明见 [Packages/com.ale.toolkit/README.md](Packages/com.ale.toolkit/README.md)，变更历史见 [CHANGELOG](Packages/com.ale.toolkit/CHANGELOG.md)。
 
@@ -75,10 +75,10 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | --- | --- | --- |
 | `Ale.Toolkit.Runtime` | 属性系统、排序、标签、资源加载抽象、通用序列化 | — |
 | `Ale.Toolkit.Runtime.UI` | 虚拟滚动列表与通用 UI 控件 | — |
-| `Ale.Toolkit.UI.Localization` | Unity Localization 适配组件 | `IS_LOCALIZATION` |
-| `Ale.Toolkit.Addressables.Runtime` | Addressables 资源加载与句柄管理 | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.UI.Localization` | Unity Localization 适配组件 | `ATK_LOCALIZATION` |
+| `Ale.Toolkit.Addressables.Runtime` | Addressables 资源加载与句柄管理 | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | 编辑器框架、属性绘制器、多语言服务、预制体工具箱、宏开关 | — |
-| `Ale.Toolkit.Addressables.Editor` | Addressables 编辑器解析器 / 工具窗口 | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.Addressables.Editor` | Addressables 编辑器解析器 / 工具窗口 | `ATK_ADDRESSABLE` |
 
 依赖方向单向：宿主插件 → `Ale.Toolkit.*`，本包不反向引用任何宿主插件。
 

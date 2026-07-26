@@ -19,13 +19,13 @@ Unity の Package Manager は **`package.json` の `dependencies` に git URL �
 **手順 1 —— まず Toolkit をインストール：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.2.0
 ```
 
 **手順 2 —— 次に依存プラグイン**（例：インベントリシステム）をインストール：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
 ```
 
 > 順序が逆になったり本パッケージが未インストールの場合、Unity は `Ale.Toolkit.* が見つかりません` といったコンパイルエラーを出します。その際は本パッケージを追加インストールして再コンパイルを待つだけでよく、もう一方のプラグインを再インストールする必要はありません。
@@ -43,9 +43,11 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画）、タブバー、フィルターバー、ツールチップ基底クラス、ウィジェットプール |
 | **エディター基盤** | 三列レイアウトのタブ基底クラス、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底クラス。いずれもデータベース型についてジェネリック化されています |
 | **エディター多言語** | 中文 / English / 日本語 の三言語サービス。中国語原文をキーとし、訳文が無い場合は自動的にフォールバックします |
-| **オプション依存のサポート層** | TextMeshPro（`IS_TMP`）、Unity Localization（`IS_LOCALIZATION`）、Addressables（`IS_ADDRESSABLE`）のマクロ切り替えとアダプター |
+| **オプション依存のサポート層** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）のマクロ切り替えとアダプター |
+| **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：プロジェクト単位のグローバル設定（エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ）+ 汎用ツール入口。旧マクロ `IS_*` は読み込み時に `ATK_*` へ自動移行 |
+| **汎用ツールウィンドウ** | 任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理：Addressable 移行（Object ↔ GUID）とローカライズキー生成。`Tools > Ale Toolkit` 配下、上位プラグインで再利用可能 |
 
-> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
+> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
 
 ---
 
@@ -55,10 +57,10 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | --- | --- | --- |
 | `Ale.Toolkit.Runtime` | 属性システム、ソート、アセット読み込み抽象、共通シリアライズ | — |
 | `Ale.Toolkit.UI` | バーチャルスクロールリストと汎用 UI コントロール | — |
-| `Ale.Toolkit.UI.Localization` | Unity Localization 対応コンポーネント | `IS_LOCALIZATION` |
-| `Ale.Toolkit.Addressables.Runtime` | Addressables の読み込みとハンドル管理 | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.UI.Localization` | Unity Localization 対応コンポーネント | `ATK_LOCALIZATION` |
+| `Ale.Toolkit.Addressables.Runtime` | Addressables の読み込みとハンドル管理 | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | エディター基盤、属性ドロワー、多言語サービス、マクロ切り替え | — |
-| `Ale.Toolkit.Addressables.Editor` | Addressables のエディターツール | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.Addressables.Editor` | Addressables のエディターツール | `ATK_ADDRESSABLE` |
 
 依存の向きは一方向です：ホストプラグイン → `Ale.Toolkit.*`。本パッケージがホストプラグインを参照することはありません。
 

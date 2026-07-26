@@ -38,13 +38,13 @@ Unity の Package Manager は **`package.json` の `dependencies` での git URL
 **ステップ 1 —— まず Toolkit をインストール：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.2.0
 ```
 
 **ステップ 2 —— 次にそれに依存するプラグイン**（例：在庫システム）をインストール：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
 ```
 
 > 順序を逆にしたり本パッケージを入れ忘れたりすると、Unity は `Ale.Toolkit.* が見つからない` といったコンパイルエラーを出します。その場合は本パッケージを追加して再コンパイルを待つだけでよく、もう一方のプラグインを入れ直す必要はありません。
@@ -63,7 +63,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **エディタフレームワーク** | 3 カラムタブ基底、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底。いずれもデータベース型でジェネリック化 |
 | **エディタ多言語** | 中国語 / English / 日本語のサービス。中国語原文をキーとし、訳が無い場合は自動フォールバック |
 | **UGUI プレハブツールボックス** | ドメイン非依存の UGUI プリミティブとテキスト / ボタン構築（各プラグインのワンクリック生成ウィザードで再利用可能） |
-| **任意サポート層** | TextMeshPro（`IS_TMP`）、Unity Localization（`IS_LOCALIZATION`）、Addressables（`IS_ADDRESSABLE`）のマクロ切り替えとアダプタ。ローカライズ / Addressable ツールウィンドウを含む |
+| **任意サポート層** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）のマクロ切り替えとアダプタ。ローカライズ / Addressable ツールウィンドウを含む |
 
 詳細は [Packages/com.ale.toolkit/README_JA.md](Packages/com.ale.toolkit/README_JA.md)、変更履歴は [CHANGELOG](Packages/com.ale.toolkit/CHANGELOG.md) を参照してください。
 
@@ -75,10 +75,10 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | --- | --- | --- |
 | `Ale.Toolkit.Runtime` | 属性システム、ソート、タグ、アセット読み込み抽象、共通シリアライズ | — |
 | `Ale.Toolkit.Runtime.UI` | 仮想スクロールリストと汎用 UI ウィジェット | — |
-| `Ale.Toolkit.UI.Localization` | Unity Localization アダプタコンポーネント | `IS_LOCALIZATION` |
-| `Ale.Toolkit.Addressables.Runtime` | Addressables のアセット読み込みとハンドル管理 | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.UI.Localization` | Unity Localization アダプタコンポーネント | `ATK_LOCALIZATION` |
+| `Ale.Toolkit.Addressables.Runtime` | Addressables のアセット読み込みとハンドル管理 | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | エディタフレームワーク、属性ドロワー、多言語サービス、プレハブツールボックス、マクロ切り替え | — |
-| `Ale.Toolkit.Addressables.Editor` | Addressables のエディタリゾルバ / ツールウィンドウ | `IS_ADDRESSABLE` |
+| `Ale.Toolkit.Addressables.Editor` | Addressables のエディタリゾルバ / ツールウィンドウ | `ATK_ADDRESSABLE` |
 
 依存方向は一方向：ホストプラグイン → `Ale.Toolkit.*`。本パッケージがホストプラグインを逆参照することはありません。
 
