@@ -1,8 +1,10 @@
 <p align="center">
-  <img alt="Unity 2022.3+" src="https://img.shields.io/badge/Unity-2022.3%2B-black?logo=unity">
-  <img alt="Unity 6000.3+" src="https://img.shields.io/badge/Unity-6000.3%2B-black?logo=unity">
-  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-blueviolet">
   <img alt="GitHub Release" src="https://img.shields.io/github/v/release/AleFeng/unity-ale-toolkit?color=blue">
+  <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/AleFeng/unity-ale-toolkit/total?color=green">
+  <img alt="Unity Version" src="https://img.shields.io/badge/Unity-2022.3%2B-black?logo=unity">
+    <img alt="Unity Version" src="https://img.shields.io/badge/Unity-6000.3%2B-black?logo=unity">
+  <img alt="GitHub Repo License" src="https://img.shields.io/badge/license-MIT-blueviolet">
+  <img alt="GitHub Repo Issues" src="https://img.shields.io/github/issues/AleFeng/unity-ale-toolkit?color=yellow">
 </p>
 
 <p align="center">
@@ -22,8 +24,6 @@
 # Ale Toolkit
 
 面向 Unity 插件开发的**通用底层库**。不含任何具体业务领域概念，供多个插件共享同一套自定义属性系统、虚拟滚动列表、编辑器三列框架、编辑器界面多语言，以及 TextMeshPro / Localization / Addressables 的可选支持层。
-
-> 本库由库存系统插件 [`com.ale.inventory`](https://github.com/AleFeng/unity-ale-inventory-system) 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽到这里，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
 ---
 

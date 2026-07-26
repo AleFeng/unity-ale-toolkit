@@ -1,8 +1,10 @@
 <p align="center">
-  <img alt="Unity 2022.3+" src="https://img.shields.io/badge/Unity-2022.3%2B-black?logo=unity">
-  <img alt="Unity 6000.3+" src="https://img.shields.io/badge/Unity-6000.3%2B-black?logo=unity">
-  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-blueviolet">
   <img alt="GitHub Release" src="https://img.shields.io/github/v/release/AleFeng/unity-ale-toolkit?color=blue">
+  <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/AleFeng/unity-ale-toolkit/total?color=green">
+  <img alt="Unity Version" src="https://img.shields.io/badge/Unity-2022.3%2B-black?logo=unity">
+    <img alt="Unity Version" src="https://img.shields.io/badge/Unity-6000.3%2B-black?logo=unity">
+  <img alt="GitHub Repo License" src="https://img.shields.io/badge/license-MIT-blueviolet">
+  <img alt="GitHub Repo Issues" src="https://img.shields.io/github/issues/AleFeng/unity-ale-toolkit?color=yellow">
 </p>
 
 <p align="center">
@@ -22,8 +24,6 @@
 # Ale Toolkit
 
 Unity プラグイン開発向けの**共通基盤ライブラリ**です。具体的な業務ドメインの概念を一切含まず、複数のプラグインが同一のカスタム属性システム・仮想スクロールリスト・エディタ 3 カラムフレームワーク・エディタ UI の多言語対応、および TextMeshPro / Localization / Addressables の任意サポート層を共有できるようにします。
-
-> 本ライブラリは在庫システムプラグイン [`com.ale.inventory`](https://github.com/AleFeng/unity-ale-inventory-system) 1.8.0 から分離したものです。従来は在庫システム内に埋め込まれていた汎用機能をここに抽出し、より多くのプラグイン（例えば今後のキャラクターシステム）で再利用できるようにしました。分離にあたり**エクスポート形式とシリアライズ構造は変更していません**。型の名前空間が `Ale.Inventory.*` から `Ale.Toolkit.*` に変わっただけです。
 
 ---
 

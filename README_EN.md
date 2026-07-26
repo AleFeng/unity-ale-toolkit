@@ -1,8 +1,10 @@
 <p align="center">
-  <img alt="Unity 2022.3+" src="https://img.shields.io/badge/Unity-2022.3%2B-black?logo=unity">
-  <img alt="Unity 6000.3+" src="https://img.shields.io/badge/Unity-6000.3%2B-black?logo=unity">
-  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-blueviolet">
   <img alt="GitHub Release" src="https://img.shields.io/github/v/release/AleFeng/unity-ale-toolkit?color=blue">
+  <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/AleFeng/unity-ale-toolkit/total?color=green">
+  <img alt="Unity Version" src="https://img.shields.io/badge/Unity-2022.3%2B-black?logo=unity">
+    <img alt="Unity Version" src="https://img.shields.io/badge/Unity-6000.3%2B-black?logo=unity">
+  <img alt="GitHub Repo License" src="https://img.shields.io/badge/license-MIT-blueviolet">
+  <img alt="GitHub Repo Issues" src="https://img.shields.io/github/issues/AleFeng/unity-ale-toolkit?color=yellow">
 </p>
 
 <p align="center">
@@ -22,8 +24,6 @@
 # Ale Toolkit
 
 A **shared foundation library** for Unity plugin development. It contains no business-domain concepts — it lets multiple plugins share one custom attribute system, virtual-scroll lists, a three-column editor framework, a trilingual editor UI, and optional support layers for TextMeshPro / Localization / Addressables.
-
-> This library was split out of the inventory plugin [`com.ale.inventory`](https://github.com/AleFeng/unity-ale-inventory-system) 1.8.0. The general-purpose capabilities that used to live inside the inventory system were extracted here so they can be reused by more plugins (e.g. a future character system). The split **keeps export formats and serialization structures unchanged**; only the type namespaces changed from `Ale.Inventory.*` to `Ale.Toolkit.*`.
 
 ---
 
