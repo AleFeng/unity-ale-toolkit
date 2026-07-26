@@ -19,13 +19,13 @@ Unity の Package Manager は **`package.json` の `dependencies` に git URL �
 **手順 1 —— まず Toolkit をインストール：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.0.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
 ```
 
 **手順 2 —— 次に依存プラグイン**（例：インベントリシステム）をインストール：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.8.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
 ```
 
 > 順序が逆になったり本パッケージが未インストールの場合、Unity は `Ale.Toolkit.* が見つかりません` といったコンパイルエラーを出します。その際は本パッケージを追加インストールして再コンパイルを待つだけでよく、もう一方のプラグインを再インストールする必要はありません。
@@ -45,7 +45,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **エディター多言語** | 中文 / English / 日本語 の三言語サービス。中国語原文をキーとし、訳文が無い場合は自動的にフォールバックします |
 | **オプション依存のサポート層** | TextMeshPro（`IS_TMP`）、Unity Localization（`IS_LOCALIZATION`）、Addressables（`IS_ADDRESSABLE`）のマクロ切り替えとアダプター |
 
-> 各モジュールは分離作業の進行に伴って順次配置されます。本バージョンはまだ構築中です。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
+> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
 
 ---
 

@@ -19,13 +19,13 @@ Unity's Package Manager **does not support git URLs in the `dependencies` field 
 **Step 1 — install Toolkit first:**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.0.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
 ```
 
 **Step 2 — then install the dependent plugin**, for example the inventory system:
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.8.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
 ```
 
 > If the order is reversed or this package is missing, Unity reports compile errors such as `Ale.Toolkit.* not found`. Just install this package and wait for the recompile — there is no need to reinstall the other plugin.
@@ -45,7 +45,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Editor localization** | 中文 / English / 日本語 service, keyed by the Chinese source string, falling back automatically when a translation is missing |
 | **Optional dependency support** | Macro toggles and adapters for TextMeshPro (`IS_TMP`), Unity Localization (`IS_LOCALIZATION`) and Addressables (`IS_ADDRESSABLE`) |
 
-> Modules land progressively as the split proceeds; this version is still under construction. See the [CHANGELOG](CHANGELOG.md) for details.
+> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete, and the editor UI is trilingual even in a toolkit-only project. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 

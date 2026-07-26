@@ -38,13 +38,13 @@ Unity の Package Manager は **`package.json` の `dependencies` での git URL
 **ステップ 1 —— まず Toolkit をインストール：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.0.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
 ```
 
 **ステップ 2 —— 次にそれに依存するプラグイン**（例：在庫システム）をインストール：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.8.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
 ```
 
 > 順序を逆にしたり本パッケージを入れ忘れたりすると、Unity は `Ale.Toolkit.* が見つからない` といったコンパイルエラーを出します。その場合は本パッケージを追加して再コンパイルを待つだけでよく、もう一方のプラグインを入れ直す必要はありません。

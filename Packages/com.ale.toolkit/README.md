@@ -19,13 +19,13 @@ Unity 的 Package Manager **不支持在 `package.json` 的 `dependencies` 里�
 **第一步 —— 先装 Toolkit：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.0.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.1.0
 ```
 
 **第二步 —— 再装依赖它的插件**，例如库存系统：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.8.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.9.0
 ```
 
 > 若顺序颠倒或漏装本包，Unity 会报 `找不到 Ale.Toolkit.*` 一类的编译错误。此时补装本包并等待重新编译即可，无需重装另一个插件。
@@ -45,7 +45,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
 | **可选依赖支持层** | TextMeshPro（`IS_TMP`）、Unity Localization（`IS_LOCALIZATION`）、Addressables（`IS_ADDRESSABLE`）的宏开关与适配 |
 
-> 各模块随拆分步骤逐步落位，当前版本尚在构建中。完整说明见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——自 1.1.0 起，TMP / Localization / Addressables 三个可选依赖支持层齐备，纯 toolkit 环境界面亦具三语。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 
