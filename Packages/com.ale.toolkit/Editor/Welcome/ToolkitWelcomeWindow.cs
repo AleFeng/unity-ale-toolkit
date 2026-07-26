@@ -32,6 +32,12 @@ namespace Ale.Toolkit.Editor
         private bool _pendingRecompile;
         private Vector2 _scroll;
 
+        /// <summary>欢迎窗口是否在启动时自动显示（EditorPrefs，每人自定，默认 true）。</summary>
+        public const string AutoShowKey = "AleToolkit.Welcome.AutoShow";
+        /// <summary>本会话是否已自动显示过（SessionState 键，重启 Unity 后重置）。</summary>
+        public const string ShownThisSessionKey = "AleToolkit.Welcome.ShownThisSession";
+        private bool _autoShow;
+
 #if ATK_TMP
         // TMP 宏方块下的向导默认字体（缓存；实际存 ToolkitProjectSettings，经 ToolkitPrefabFonts 门面读写）
         private TMP_FontAsset _defaultTmpFont;
@@ -65,6 +71,7 @@ namespace Ale.Toolkit.Editor
             _locInstalled  = ToolkitDefines.IsLocalizationPackageInstalled();
             _addrEnabled   = ToolkitDefines.IsAddressableEnabled();
             _addrInstalled = ToolkitDefines.IsAddressablePackageInstalled();
+            _autoShow      = EditorPrefs.GetBool(AutoShowKey, true);
 #if ATK_TMP
             _defaultTmpFont = ToolkitPrefabFonts.DefaultTmpFont;
 #endif
@@ -85,6 +92,25 @@ namespace Ale.Toolkit.Editor
             DrawMacroSection();
 
             EditorGUILayout.EndScrollView();
+
+            DrawSeparator();
+            DrawFooter();
+        }
+
+        /// <summary>页脚：启动时自动显示开关（EditorPrefs，每人自定，默认 true）。</summary>
+        private void DrawFooter()
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            EditorGUI.BeginChangeCheck();
+            bool newAutoShow = EditorGUILayout.ToggleLeft(Tr("启动时自动显示"), _autoShow, GUILayout.Width(160));
+            if (EditorGUI.EndChangeCheck())
+            {
+                _autoShow = newAutoShow;
+                EditorPrefs.SetBool(AutoShowKey, _autoShow);
+            }
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space(4);
         }
 
         private static void DrawHeader()

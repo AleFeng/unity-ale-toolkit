@@ -73,6 +73,9 @@ namespace Ale.Toolkit.Editor
                 "The localized font asset assigned to the LocalizedFontEvent component when generating test prefabs. Requires ATK_TMP to also be enabled.",
                 "テスト用 Prefab の生成時に LocalizedFontEvent コンポーネントへ割り当てるローカライズフォントアセット。ATK_TMP も有効な場合にのみ機能します。");
 
+            // ── 页脚 ──────────────────────────────────────────────────────────────
+            Add("启动时自动显示", "Auto-show on startup", "起動時に自動表示");
+
             // ── 文档 ──────────────────────────────────────────────────────────────
             Add("文档未找到", "Documentation Not Found", "ドキュメントが見つかりません");
             Add("未能找到文档文件：\nPackages/com.ale.toolkit/README.md",
