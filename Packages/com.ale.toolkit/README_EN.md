@@ -19,7 +19,7 @@ Unity's Package Manager **does not support git URLs in the `dependencies` field 
 **Step 1 — install Toolkit first:**
 
 ```
-(URL to be announced: this package will be published from its own repository)
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.0.0
 ```
 
 **Step 2 — then install the dependent plugin**, for example the inventory system:

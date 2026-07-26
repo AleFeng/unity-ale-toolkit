@@ -19,7 +19,7 @@ Unity の Package Manager は **`package.json` の `dependencies` に git URL �
 **手順 1 —— まず Toolkit をインストール：**
 
 ```
-（インストール URL は未定：本パッケージは独立リポジトリから公開予定です）
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.0.0
 ```
 
 **手順 2 —— 次に依存プラグイン**（例：インベントリシステム）をインストール：
