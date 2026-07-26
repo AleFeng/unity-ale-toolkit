@@ -64,12 +64,13 @@ namespace Ale.Toolkit.Editor
             AttributeFieldDrawer.Draw(ctx, Tr("描述"), tag.descriptionText, null);
 
             // 背景图：直接模式 ObjectField / 授权模式原生 AssetReference 选择器
-            if (EditorAssetRefField.DrawSprite(Tr("背景图"), tag, "tagBg", tag.backgroundSprite, tag.backgroundSpriteAddress,
+            if (EditorAssetRefField.DrawSprite(Tr("背景图"), tag, "tagBg",
+                    tag.backgroundSpriteValue.GetObject(0) as Sprite, tag.backgroundSpriteValue.GetObjAddress(0),
                     out var newBg, out var newBgAddr))
             {
                 ctx.RecordUndo("修改功能标签背景图");
-                tag.backgroundSprite        = newBg;
-                tag.backgroundSpriteAddress = newBgAddr;
+                tag.backgroundSpriteValue.SetObject(0, newBg);
+                tag.backgroundSpriteValue.SetObjAddress(0, newBgAddr);
                 ctx.MarkDirty();
             }
 
