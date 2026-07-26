@@ -717,8 +717,9 @@ namespace Ale.Toolkit.Editor
             // rectY += lh + sp;
 
 #if ATK_LOCALIZATION
-            float ph = GetLocalizedPropHeight(value, index);
-            DrawLocalizedStringFieldRect(ctx, value, index, new Rect(rect.x, y, rect.width, ph));
+            float ph  = GetLocalizedPropHeight(value, index);
+            float lsY = rectY + lh + EditorGUIUtility.standardVerticalSpacing;
+            DrawLocalizedStringFieldRect(ctx, value, index, new Rect(rect.x, lsY, rect.width, ph));
 #endif
         }
 
