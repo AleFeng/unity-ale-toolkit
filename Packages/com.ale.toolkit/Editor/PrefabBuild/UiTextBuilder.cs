@@ -3,20 +3,20 @@ using UnityEngine.UI;
 using Ale.Toolkit.Runtime.UI;
 using static Ale.Toolkit.Editor.UiPrefabBuilder;
 
-#if IS_TMP
+#if ATK_TMP
 using TMPro;
 #endif
 
 namespace Ale.Toolkit.Editor
 {
     /// <summary>
-    /// 预制体文本构建：IS_TMP 感知的文本组件创建（TMP / 原生 Text 二选一）与带标签按钮。
-    /// IS_TMP &amp;&amp; IS_LOCALIZATION 下为每个 TMP 文本挂 <see cref="LocalizedTextEvent"/> 以联动本地化。
+    /// 预制体文本构建：ATK_TMP 感知的文本组件创建（TMP / 原生 Text 二选一）与带标签按钮。
+    /// ATK_TMP &amp;&amp; ATK_LOCALIZATION 下为每个 TMP 文本挂 <see cref="LocalizedTextEvent"/> 以联动本地化。
     /// 默认字体来源由宿主经 <see cref="DefaultTmpFont"/> 注入（向导侧读其字体偏好）。
     /// </summary>
     public static class UiTextBuilder
     {
-#if IS_TMP
+#if ATK_TMP
         /// <summary>由宿主注入：新建 TMP 文本时套用的默认字体（返回 null 则用 TMP 内置默认字体）。</summary>
         public static System.Func<TMP_FontAsset> DefaultTmpFont;
 #endif
@@ -24,7 +24,7 @@ namespace Ale.Toolkit.Editor
         /// <summary>
         /// 向 <paramref name="go"/> 添加文本组件并设置基础属性。
         /// <list type="bullet">
-        ///   <item>IS_TMP 宏启用时：使用 <c>TMPro.TextMeshProUGUI</c>，对齐经 <see cref="AnchorToTmp"/> 转换，
+        ///   <item>ATK_TMP 宏启用时：使用 <c>TMPro.TextMeshProUGUI</c>，对齐经 <see cref="AnchorToTmp"/> 转换，
         ///         字体样式映射为 <c>TMPro.FontStyles</c>，并关闭自动换行。</item>
         ///   <item>未启用时：使用 <c>UnityEngine.UI.Text</c>，直接赋值原生属性。</item>
         /// </list>
@@ -38,7 +38,7 @@ namespace Ale.Toolkit.Editor
             TextAnchor anchor    = TextAnchor.MiddleCenter,
             FontStyle  fontStyle = FontStyle.Normal)
         {
-#if IS_TMP
+#if ATK_TMP
             var t = go.AddComponent<TextMeshProUGUI>();
             t.text               = text;
             t.fontSize           = fontSize;
@@ -57,7 +57,7 @@ namespace Ale.Toolkit.Editor
             var defaultFont = DefaultTmpFont?.Invoke();
             if (defaultFont) t.font = defaultFont;
 
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
             // 为每个 TMP 文本节点添加 LocalizedTextEvent，
             // 开发者可在生成后为各节点配置本地化字符串引用。
             go.AddComponent<LocalizedTextEvent>();
@@ -75,7 +75,7 @@ namespace Ale.Toolkit.Editor
 #endif
         }
 
-#if IS_TMP
+#if ATK_TMP
         /// <summary>
         /// 将 <see cref="TextAnchor"/> 九宫格枚举转换为等价的 <see cref="TMPro.TextAlignmentOptions"/> 值。
         /// </summary>

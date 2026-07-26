@@ -77,7 +77,7 @@ namespace Ale.Toolkit.Runtime.Serialization
                 guids = new string[raw.Count];
                 for (int i = 0; i < raw.Count; i++)
                     // 有实时引用（直接模式）→ 经解析器转 GUID 并登记进分组；
-                    // 无实时引用（IS_ADDRESSABLE 下 AssetReference 授权，objRefs 槽为 null）→ 直接用授权 GUID。
+                    // 无实时引用（ATK_ADDRESSABLE 下 AssetReference 授权，objRefs 槽为 null）→ 直接用授权 GUID。
                     guids[i] = raw[i] != null ? resolver.ToGuid(raw[i]) : v.GetObjAddress(i);
             }
 

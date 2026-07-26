@@ -7,7 +7,7 @@ namespace Ale.Toolkit.Editor
     /// 配置类<b>固定资源字段</b>（具名字段，如 <c>Skill.icon</c> / <c>Tag.backgroundSprite</c>）的编辑器绘制辅助。
     /// 与属性系统对象字段一致：
     /// <list type="bullet">
-    ///   <item>未注入（IS_ADDRESSABLE 关 / 包未装）：绘制普通 <c>ObjectField</c>，写实时引用、地址置空。</item>
+    ///   <item>未注入（ATK_ADDRESSABLE 关 / 包未装）：绘制普通 <c>ObjectField</c>，写实时引用、地址置空。</item>
     ///   <item>已注入：经 <see cref="AttributeFieldDrawer.AddressableFieldDrawer"/> 绘制原生 AssetReference 可搜索选择器，
     ///   写授权 GUID、实时引用置空（配置不再硬引用资源）。</item>
     /// </list>

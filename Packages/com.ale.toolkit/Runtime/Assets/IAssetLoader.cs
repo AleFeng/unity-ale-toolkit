@@ -8,7 +8,7 @@ namespace Ale.Toolkit.Runtime
     /// 资源取用加载器抽象。<see cref="ToolkitAssets"/> 门面把所有取用请求委派给当前激活的加载器。
     ///
     /// 默认实现为 <see cref="DirectAssetLoader"/>（同步返回 SO 里的实时引用，供编辑器/直接模式）；
-    /// 启用 IS_ADDRESSABLE 宏时，受约束的 Addressable 程序集会在运行时把激活加载器替换为
+    /// 启用 ATK_ADDRESSABLE 宏时，受约束的 Addressable 程序集会在运行时把激活加载器替换为
     /// 基于 Addressables 的异步实现（按地址加载 + 引用计数自动卸载）。core 程序集对 Addressables 零依赖。
     /// </summary>
     public interface IAssetLoader

@@ -1,4 +1,4 @@
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
 using System;
 using System.Collections.Generic;
 using UnityEditor;
@@ -10,7 +10,7 @@ using UnityEngine.Localization.Tables;
 namespace Ale.Toolkit.Editor
 {
     /// <summary>
-    /// 本地化工具窗口（泛型基类，仅 IS_LOCALIZATION 编译）。为指定数据库：
+    /// 本地化工具窗口（泛型基类，仅 ATK_LOCALIZATION 编译）。为指定数据库：
     /// ① 按当前 Localization 设置生成 / 关联一个 String Table 集合（表名 <c>{前缀}_{数据库名}</c>，1:1 对应关系以
     /// SharedTableData GUID 记录在数据库上——经 <see cref="TableCollectionGuid"/> 存取）；
     /// ② 遍历库内所有 Text 字段（由子类经 <see cref="CollectTextFields"/> 提供），自动生成唯一中文 Key、

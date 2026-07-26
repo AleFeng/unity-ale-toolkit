@@ -13,7 +13,7 @@ namespace Ale.Toolkit.Editor
     /// <b>不会自动修改 AddressableAssetSettings</b>（既不建分组、也不建条目）：资源是否标记为 Addressable
     /// 由用户自行在 Addressables Groups 窗口中管理，遇到未标记的资源仅打警告提醒。
     ///
-    /// 仅在启用 IS_ADDRESSABLE 宏时编译；[InitializeOnLoad] 时把自己注入 core 的
+    /// 仅在启用 ATK_ADDRESSABLE 宏时编译；[InitializeOnLoad] 时把自己注入 core 的
     /// <see cref="EditorExportResolver.AddressableProvider"/> 钩子。
     /// </summary>
     [InitializeOnLoad]
@@ -23,7 +23,7 @@ namespace Ale.Toolkit.Editor
 
         static AddressableAssetRefResolver()
         {
-            // 注入钩子：core 导出流程在 IS_ADDRESSABLE 启用时会取用此解析器。
+            // 注入钩子：core 导出流程在 ATK_ADDRESSABLE 启用时会取用此解析器。
             EditorExportResolver.AddressableProvider = () => Instance;
         }
 

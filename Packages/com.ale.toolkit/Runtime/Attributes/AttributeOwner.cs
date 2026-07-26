@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
 using UnityEngine.Localization;
 #endif
 
@@ -80,7 +80,7 @@ namespace Ale.Toolkit.Runtime
         /// <c>Vector2/3/4</c>、<c>Color</c>、<c>Vector2Int/3Int</c>、<c>AnimationCurve</c>，
         /// 以及任意 <see cref="UnityEngine.Object"/> 子类（<c>Sprite</c>、<c>Texture</c> 等）。</para>
         /// <para><c>int</c> 同时适用于 <see cref="EFieldType.Enum"/>（返回枚举整数值）。</para>
-        /// <para><c>string</c>：对 <see cref="EFieldType.Text"/> 条目，启用 IS_LOCALIZATION 且本地化引用可解析出非空文本时
+        /// <para><c>string</c>：对 <see cref="EFieldType.Text"/> 条目，启用 ATK_LOCALIZATION 且本地化引用可解析出非空文本时
         /// 返回本地化文本，否则返回纯文本 fallback；<see cref="EFieldType.String"/> 直接返回原始值。</para>
         /// </summary>
         public T GetAttributeValue<T>(string attrId, T fallback = default)
@@ -96,8 +96,8 @@ namespace Ale.Toolkit.Runtime
             {
                 if (av.Type == EFieldType.Text)
                 {
-                    // Text：本地化优先（IS_LOCALIZATION 且引用能解析出非空文本），否则回退纯文本 fallback。
-#if IS_LOCALIZATION
+                    // Text：本地化优先（ATK_LOCALIZATION 且引用能解析出非空文本），否则回退纯文本 fallback。
+#if ATK_LOCALIZATION
                     var (tableRef, entryKey) = av.GetLocalizedStringRef();
                     if (!string.IsNullOrEmpty(tableRef) || !string.IsNullOrEmpty(entryKey))
                     {

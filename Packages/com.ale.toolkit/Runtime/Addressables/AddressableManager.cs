@@ -11,7 +11,7 @@ namespace Ale.Toolkit.Runtime.AddressableSupport
     /// Addressable 资源加载/卸载与内存管理核心。按「地址」做引用计数去重加载，
     /// 按「宿主 GameObject」记录其占用的地址，宿主销毁时自动递减计数、归零即释放句柄。
     ///
-    /// 仅在启用 IS_ADDRESSABLE 宏时编译（所属程序集受 defineConstraints 约束）。
+    /// 仅在启用 ATK_ADDRESSABLE 宏时编译（所属程序集受 defineConstraints 约束）。
     /// </summary>
     public static class AddressableManager
     {

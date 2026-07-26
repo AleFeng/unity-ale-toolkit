@@ -9,7 +9,7 @@ namespace Ale.Toolkit.Runtime
     /// 仅承载基础信息，不携带自定义属性字段；各系统按自身用途以 1 主分组 + 若干副分组的形式引用。
     ///
     /// <para>名称 / 描述采用 <see cref="EFieldType.Text"/> 类型的 <see cref="AttributeValue"/>：其内部始终携带纯文本
-    /// fallback，并在启用 IS_LOCALIZATION 时额外携带 Unity Localization 引用（表 + 条目），
+    /// fallback，并在启用 ATK_LOCALIZATION 时额外携带 Unity Localization 引用（表 + 条目），
     /// 因此无需再单独声明 LocalizedString 字段。运行时显示用 <see cref="ResolveDisplayName"/>（本地化优先），
     /// 编辑器列表 / 下拉用 <see cref="PlainName"/>（纯文本，编辑期稳定、不依赖运行时语言环境）。</para>
     /// </summary>
@@ -40,7 +40,7 @@ namespace Ale.Toolkit.Runtime
         }
 
         /// <summary>
-        /// 解析用于 UI 显示的名称：启用 IS_LOCALIZATION 且本地化引用可解析出非空文本时取本地化文本，
+        /// 解析用于 UI 显示的名称：启用 ATK_LOCALIZATION 且本地化引用可解析出非空文本时取本地化文本，
         /// 否则取纯文本 fallback；均为空时回退 <see cref="id"/>。供运行时显示使用。
         /// </summary>
         public string ResolveDisplayName() => ResolveTextOr(displayName, id);

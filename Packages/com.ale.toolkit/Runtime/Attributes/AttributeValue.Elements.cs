@@ -168,7 +168,7 @@ namespace Ale.Toolkit.Runtime
 
         /// <summary>
         /// 设置指定元素的 Addressable 地址 / 授权 GUID（扩容以容纳该槽，前面缺口补空串）。
-        /// 供 IS_ADDRESSABLE 编辑器授权（AssetReference 选择器）与迁移工具写入。
+        /// 供 ATK_ADDRESSABLE 编辑器授权（AssetReference 选择器）与迁移工具写入。
         /// </summary>
         public void SetObjAddress(int element, string guid)
         {

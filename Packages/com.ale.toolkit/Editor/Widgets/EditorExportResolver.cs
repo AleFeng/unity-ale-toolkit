@@ -5,7 +5,7 @@ namespace Ale.Toolkit.Editor
 {
     /// <summary>
     /// 导出资源解析器选择钩子。core 编辑器程序集对 Addressables 零依赖：
-    /// 当启用 IS_ADDRESSABLE 宏时，受约束的 Addressable 编辑器程序集会通过
+    /// 当启用 ATK_ADDRESSABLE 宏时，受约束的 Addressable 编辑器程序集会通过
     /// <see cref="AddressableProvider"/> 注入自己的解析器（导出时把资源登记进 Addressable 分组并返回地址作 key）；
     /// 未启用时回退到默认的 <see cref="EditorAssetGuidResolver"/>（GUID:localFileId）。
     /// </summary>

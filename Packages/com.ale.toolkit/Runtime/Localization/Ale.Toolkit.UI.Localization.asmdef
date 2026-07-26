@@ -15,7 +15,7 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
-        "IS_LOCALIZATION"
+        "ATK_LOCALIZATION"
     ],
     "versionDefines": [],
     "noEngineReferences": false

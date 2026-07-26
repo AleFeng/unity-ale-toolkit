@@ -14,7 +14,7 @@ namespace Ale.Toolkit.Runtime
     /// 宿主 GameObject 销毁时自动释放对应句柄。
     ///
     /// core 程序集对 Addressables 零依赖：默认 <see cref="Loader"/> 为 <see cref="DirectAssetLoader"/>，
-    /// 启用 IS_ADDRESSABLE 后由 Addressable 运行时程序集在启动时替换为异步加载器。
+    /// 启用 ATK_ADDRESSABLE 后由 Addressable 运行时程序集在启动时替换为异步加载器。
     /// </summary>
     public static class ToolkitAssets
     {

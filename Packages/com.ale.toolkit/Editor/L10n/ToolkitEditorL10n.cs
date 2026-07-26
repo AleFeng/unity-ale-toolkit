@@ -18,7 +18,7 @@ namespace Ale.Toolkit.Editor
 
     /// <summary>
     /// 编辑器 UI 三语（中 / 英 / 日）本地化服务。仅作用于各编辑器窗口 / 绘制器 / 面板的界面文本，
-    /// 与运行时内容本地化（<c>IS_LOCALIZATION</c> / Unity Localization）完全无关。
+    /// 与运行时内容本地化（<c>ATK_LOCALIZATION</c> / Unity Localization）完全无关。
     ///
     /// <para><b>以中文原文为键：</b>调用点直接传入中文字面量（如 <c>Tr("快捷操作")</c>）。
     /// 当前语言为中文时原样返回；英 / 日语言查各自译表，缺条目则回退中文——

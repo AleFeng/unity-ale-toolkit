@@ -1,4 +1,4 @@
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
 using System.Collections.Generic;
 using Ale.Toolkit.Runtime;
 

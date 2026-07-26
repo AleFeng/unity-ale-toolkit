@@ -163,7 +163,7 @@ namespace Ale.Toolkit.Editor
 
         // ─────────────────────────────────────────────────────────────────────
         // 创建带完整模板的标准 UI Dropdown。
-        // Dropdown.captionText / itemText 必须是 UnityEngine.UI.Text（与 IS_TMP 无关），
+        // Dropdown.captionText / itemText 必须是 UnityEngine.UI.Text（与 ATK_TMP 无关），
         // 因为 UiwSortToolbar.sortDropdown 使用的是 UnityEngine.UI.Dropdown。
         // ─────────────────────────────────────────────────────────────────────
         public static Dropdown MakeDropdown(string goName, Transform parent)
@@ -256,7 +256,7 @@ namespace Ale.Toolkit.Editor
             return dropdown;
         }
 
-        // 通过 SerializedObject 设置 objectReference 字段（兼容 IS_TMP 类型差异）
+        // 通过 SerializedObject 设置 objectReference 字段（兼容 ATK_TMP 类型差异）
         public static void SetSerializedRef(Component comp, string fieldName, Object value)
         {
             var so = new SerializedObject(comp);

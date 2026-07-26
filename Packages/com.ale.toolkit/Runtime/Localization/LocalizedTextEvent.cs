@@ -1,4 +1,4 @@
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,7 +6,7 @@ using UnityEngine.Localization.Components;
 using UnityEngine.Localization.Settings;
 using UnityEngine.Localization.Tables;
 
-#if IS_TMP
+#if ATK_TMP
 using TMPro;
 #endif
 
@@ -18,13 +18,13 @@ namespace Ale.Toolkit.Runtime.UI
     /// 实现先换字体再填充文本的顺序，避免缺字和 Warning。
     ///
     /// <para>参考 Fs.GameFramework.Common.LocalizationSystem.LocalizeTmpTextEvent，
-    /// 针对 IS_TMP / IS_LOCALIZATION 宏改写。</para>
+    /// 针对 ATK_TMP / ATK_LOCALIZATION 宏改写。</para>
     /// </summary>
     [AddComponentMenu("Ale Toolkit/Localization/Localized Text Event")]
     [DisallowMultipleComponent]
     public class LocalizedTextEvent : LocalizeStringEvent
     {
-#if IS_TMP
+#if ATK_TMP
         [SerializeField, Tooltip("驱动的 TextMeshPro 文本组件。")]
         private TMP_Text _text;
 
@@ -72,7 +72,7 @@ namespace Ale.Toolkit.Runtime.UI
         {
             base.OnEnable();
 
-#if IS_TMP
+#if ATK_TMP
             if (_text && (string.IsNullOrEmpty(_text.text) || LocaleCodeMarkChange))
             {
                 UpdateStringSelf(string.Empty);
@@ -110,7 +110,7 @@ namespace Ale.Toolkit.Runtime.UI
 
         private void UpdateStringSelf(string value)
         {
-#if IS_TMP
+#if ATK_TMP
             // 先确保本文本的字体已就绪（仅作用于自身，不影响兄弟文本）。
             _fontEvent?.ApplyFontTo(_text);
             if (_text) _text.text = value;
@@ -143,7 +143,7 @@ namespace Ale.Toolkit.Runtime.UI
 
         private bool GetComponents()
         {
-#if IS_TMP
+#if ATK_TMP
             bool dirty = false;
 
             if (!_text)

@@ -8,7 +8,7 @@ namespace Ale.Toolkit.Runtime.UI
     /// 一个 <see cref="Image"/> 的异步图片绑定槽。封装「释放旧句柄 → 自增代次 → 经
     /// <see cref="InventoryAssets"/> 取图 → 回调中丢弃过期结果」这一固定流程。
     ///
-    /// <para><b>为什么需要代次守卫：</b>启用 IS_ADDRESSABLE 时取图是异步的，而承载它的格子
+    /// <para><b>为什么需要代次守卫：</b>启用 ATK_ADDRESSABLE 时取图是异步的，而承载它的格子
     /// 往往是对象池复用的 —— 上一次绑定的加载可能在格子已改绑别的道具之后才回来，
     /// 直接赋值就会串图。每次绑定自增代次、回调里比对，过期结果直接丢弃。</para>
     ///

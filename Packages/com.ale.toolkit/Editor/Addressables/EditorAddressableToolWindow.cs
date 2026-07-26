@@ -28,7 +28,7 @@ namespace Ale.Toolkit.Editor
     }
 
     /// <summary>
-    /// Addressable 资源引用迁移工具窗口（泛型基类，仅 IS_ADDRESSABLE 编译）。
+    /// Addressable 资源引用迁移工具窗口（泛型基类，仅 ATK_ADDRESSABLE 编译）。
     /// 在「直接 Object 引用」与「AssetReference 授权（GUID）」两种存储之间批量互转某数据库的<b>全部</b>资源字段：
     /// 属性系统对象值（经 <see cref="AttributeValueWalker"/> 反射遍历全库）+ 固定资源字段（由子类经 <see cref="FixedFields"/> 提供）。
     ///

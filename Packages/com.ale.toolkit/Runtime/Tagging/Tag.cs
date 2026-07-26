@@ -28,7 +28,7 @@ namespace Ale.Toolkit.Runtime
         /// <summary>标签背景 Sprite。</summary>
         public Sprite backgroundSprite;
 
-        /// <summary>背景 Sprite 的 Addressable 授权 GUID（启用 IS_ADDRESSABLE 且以 AssetReference 授权时用；否则空，走 <see cref="backgroundSprite"/> 直接引用）。</summary>
+        /// <summary>背景 Sprite 的 Addressable 授权 GUID（启用 ATK_ADDRESSABLE 且以 AssetReference 授权时用；否则空，走 <see cref="backgroundSprite"/> 直接引用）。</summary>
         public string backgroundSpriteAddress;
 
         /// <summary>标签背景颜色，默认纯白。</summary>

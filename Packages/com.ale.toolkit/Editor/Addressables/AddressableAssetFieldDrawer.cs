@@ -9,7 +9,7 @@ using Ale.Toolkit.Runtime;
 namespace Ale.Toolkit.Editor
 {
     /// <summary>
-    /// AssetReference 授权字段绘制器（原生可搜索选择器）。启用 IS_ADDRESSABLE 时经
+    /// AssetReference 授权字段绘制器（原生可搜索选择器）。启用 ATK_ADDRESSABLE 时经
     /// <c>[InitializeOnLoad]</c> 注入 core 的 <see cref="AttributeFieldDrawer.AddressableFieldDrawer"/>，
     /// 同时服务两类字段：属性系统对象值（按 AttributeValue+index）与配置类固定资源字段（按 cacheKey+fieldKey）。
     ///

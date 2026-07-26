@@ -37,10 +37,10 @@ namespace Ale.Toolkit.Runtime
 
         // 对象类字段的 Addressable 地址 / 授权 GUID（与 objRefs 平行，步长 1）。两种来源：
         //   ① 运行时从导出数据导入后于内存中填充；
-        //   ② 启用 IS_ADDRESSABLE 时，编辑器以 AssetReference 授权，GUID 直接存入此列表，
+        //   ② 启用 ATK_ADDRESSABLE 时，编辑器以 AssetReference 授权，GUID 直接存入此列表，
         //      对应的 objRefs 槽留空（不硬引用资源，避免加载数据库即把资源一并拉进内存）。
         // 纯字符串存储，core 程序集对 Addressables 零依赖；取用门面优先用 objRefs 实时引用，无引用时回退此地址走异步加载。
-        // IS_ADDRESSABLE 未启用（直接模式）时此列表保持为空。
+        // ATK_ADDRESSABLE 未启用（直接模式）时此列表保持为空。
         [SerializeField] private List<string> objAddresses = new List<string>();
 
         #region 构造

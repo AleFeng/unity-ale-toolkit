@@ -32,7 +32,7 @@ namespace Ale.Toolkit.Runtime
 
         /// <summary>
         /// 获取指定 <see cref="EFieldType.Text"/> 元素的本地化引用（tableRef + entryKey，存于后两槽 [element*3+1]/[element*3+2]）。
-        /// 纯字符串读取，无需本地化包；启用 IS_LOCALIZATION 时由上层据此构建 LocalizedString 取文本。
+        /// 纯字符串读取，无需本地化包；启用 ATK_LOCALIZATION 时由上层据此构建 LocalizedString 取文本。
         /// </summary>
         public (string tableRef, string entryKey) GetLocalizedStringRef(int element = 0)
         {
@@ -52,12 +52,12 @@ namespace Ale.Toolkit.Runtime
         }
 
         /// <summary>
-        /// 解析本 <see cref="EFieldType.Text"/> 值的显示文本：启用 IS_LOCALIZATION 且本地化引用可解析出非空文本时
+        /// 解析本 <see cref="EFieldType.Text"/> 值的显示文本：启用 ATK_LOCALIZATION 且本地化引用可解析出非空文本时
         /// 返回本地化文本，否则返回纯文本 fallback；均为空时返回空串。<paramref name="element"/> 为逻辑索引（标量传 0）。
         /// </summary>
         public string ResolveText(int element = 0)
         {
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
             var (tableRef, entryKey) = GetLocalizedStringRef(element);
             if (!string.IsNullOrEmpty(tableRef) || !string.IsNullOrEmpty(entryKey))
             {
@@ -71,7 +71,7 @@ namespace Ale.Toolkit.Runtime
 
         // Text 刻意以扁平字符串（纯文本 + tableRef + entryKey）承载，
         // 以兼容原生序列化 / Undo 与 JSON / 二进制导出管线（区别于各配置类的固定本地化字段，后者直接用 LocalizedString）。
-        // 如需构建 LocalizedString 对象（IS_LOCALIZATION 启用时）：
+        // 如需构建 LocalizedString 对象（ATK_LOCALIZATION 启用时）：
         //   var (tableRef, entryKey) = attrValue.GetLocalizedStringRef(element);
         //   var ls = new UnityEngine.Localization.LocalizedString(tableRef, entryKey);
 

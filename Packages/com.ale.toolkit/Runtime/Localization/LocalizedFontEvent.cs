@@ -1,8 +1,8 @@
 // 本组件是 TMP 专用的字体本地化事件：基类 LocalizedAssetEvent<> 与两个 LocalizedAsset<> 子类
 // 都直接依赖 TMPro + Unity Localization，无法在缺任一包时提供退化实现，故整文件受双宏门控
-// （与 LocalizedTextEvent 的整文件 #if IS_LOCALIZATION 同一写法）。
-// 引用方 LocalizedTextEvent 与宿主向导对本文件类型的引用亦均在 IS_TMP 块内。
-#if IS_TMP && IS_LOCALIZATION
+// （与 LocalizedTextEvent 的整文件 #if ATK_LOCALIZATION 同一写法）。
+// 引用方 LocalizedTextEvent 与宿主向导对本文件类型的引用亦均在 ATK_TMP 块内。
+#if ATK_TMP && ATK_LOCALIZATION
 
 using System;
 using System.Collections.Generic;

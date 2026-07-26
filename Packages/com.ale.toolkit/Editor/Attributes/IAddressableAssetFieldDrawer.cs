@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Ale.Toolkit.Editor
 {
     /// <summary>
-    /// AssetReference 授权字段绘制器抽象。启用 IS_ADDRESSABLE 时，受约束的 Addressable 编辑器程序集
+    /// AssetReference 授权字段绘制器抽象。启用 ATK_ADDRESSABLE 时，受约束的 Addressable 编辑器程序集
     /// 在 <c>[InitializeOnLoad]</c> 时把实现注入 <see cref="AttributeFieldDrawer.AddressableFieldDrawer"/>；
     /// 未注入（宏未启用 / 包未装）时，对象引用字段回退为普通 <c>ObjectField</c>。
     ///

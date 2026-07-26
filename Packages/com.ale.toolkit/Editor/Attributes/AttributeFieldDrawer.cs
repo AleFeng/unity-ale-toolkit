@@ -19,18 +19,18 @@ namespace Ale.Toolkit.Editor
     public static class AttributeFieldDrawer
     {
         // ─────────────────────────────────────────────────────────────────────
-        // AssetReference 授权注入点（IS_ADDRESSABLE）
+        // AssetReference 授权注入点（ATK_ADDRESSABLE）
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// AssetReference 授权字段绘制器。由受 IS_ADDRESSABLE 约束的 Addressable 编辑器程序集在
+        /// AssetReference 授权字段绘制器。由受 ATK_ADDRESSABLE 约束的 Addressable 编辑器程序集在
         /// <c>[InitializeOnLoad]</c> 时注入；为 null（宏未启用 / 包未装）时对象字段回退为普通 ObjectField。
         /// core 编辑器程序集对 Addressables 零依赖——此处仅持有一个纯接口引用，与
         /// <see cref="EditorExportResolver.AddressableProvider"/> 同构。
         /// </summary>
         public static IAddressableAssetFieldDrawer AddressableFieldDrawer;
 
-        /// <summary>是否已注入 AssetReference 授权绘制器（IS_ADDRESSABLE 启用且包可用）。</summary>
+        /// <summary>是否已注入 AssetReference 授权绘制器（ATK_ADDRESSABLE 启用且包可用）。</summary>
         public static bool HasAddressableDrawer => AddressableFieldDrawer != null;
 
         #region 对象类型与行高
@@ -631,7 +631,7 @@ namespace Ale.Toolkit.Editor
             }
         }
 
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
         /// <summary>
         /// Text 本地化引用在 rect 模式下的降级实现（仅单行 Entry Key 文本），
         /// 仅当 Unity.Localization 原生属性路径与当前包版本不匹配时使用。
@@ -692,7 +692,7 @@ namespace Ale.Toolkit.Editor
             EditorGUI.BeginChangeCheck();
             string plain = EditorGUILayout.TextField(Tr("文本"), value.GetTextValue(index));
             if (EditorGUI.EndChangeCheck()) Apply(ctx, () => value.SetTextValue(index, plain));
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
             DrawLocalizedStringField(ctx, value, index);
 #endif
         }
@@ -716,7 +716,7 @@ namespace Ale.Toolkit.Editor
             if (EditorGUI.EndChangeCheck()) Apply(ctx, () => value.SetTextValue(index, plain));
             // rectY += lh + sp;
 
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
             float ph = GetLocalizedPropHeight(value, index);
             DrawLocalizedStringFieldRect(ctx, value, index, new Rect(rect.x, y, rect.width, ph));
 #endif
@@ -726,13 +726,13 @@ namespace Ale.Toolkit.Editor
         public static float GetTextRowHeight(AttributeValue value, int index)
         {
             float h = EditorGUIUtility.singleLineHeight;
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
             h += EditorGUIUtility.standardVerticalSpacing + GetLocalizedPropHeight(value, index);
 #endif
             return h;
         }
 
-#if IS_LOCALIZATION
+#if ATK_LOCALIZATION
         // 每个 (AttributeValue 实例, 元素索引) 对应一套独立的 SO，避免多字段共享时状态互相污染。
         // key = (RuntimeHelpers.GetHashCode(value) << 16) | (uint)index，在会话内稳定唯一。
         private static readonly Dictionary<long, LocalizedStringHolder> _lsHolders =

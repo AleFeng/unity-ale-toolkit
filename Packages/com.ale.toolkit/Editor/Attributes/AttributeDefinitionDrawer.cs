@@ -29,7 +29,7 @@ namespace Ale.Toolkit.Editor
                 ctx.MarkDirty();
             }
 
-            // 类型 + 是否数组（LocalizedString 仅在 IS_LOCALIZATION 启用时可选）
+            // 类型 + 是否数组（LocalizedString 仅在 ATK_LOCALIZATION 启用时可选）
             EditorGUILayout.BeginHorizontal();
             EditorGUI.BeginChangeCheck();
             var type = DrawFieldTypePopup(Tr("类型"), def.type);
@@ -152,7 +152,7 @@ namespace Ale.Toolkit.Editor
         
         /// <summary>
         /// Rect-based 字段类型弹窗。Text 始终可选：纯文本 fallback 恒在，
-        /// 启用 IS_LOCALIZATION 宏时额外提供本地化（表 / 条目）选择器。
+        /// 启用 ATK_LOCALIZATION 宏时额外提供本地化（表 / 条目）选择器。
         /// </summary>
         private static EFieldType DrawFieldTypePopupRect(Rect rect, string label, EFieldType current)
         {

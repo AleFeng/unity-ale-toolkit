@@ -20,7 +20,7 @@ namespace Ale.Toolkit.Editor
         /// 向所有有效的 <see cref="BuildTargetGroup"/> 添加或移除指定的脚本宏定义。
         /// </summary>
         /// <param name="add"><c>true</c> 添加；<c>false</c> 移除。</param>
-        /// <param name="define">宏名称（例如 "IS_TMP"）。</param>
+        /// <param name="define">宏名称（例如 "ATK_TMP"）。</param>
         public static void ApplyDefine(bool add, string define)
         {
             foreach (BuildTargetGroup group in Enum.GetValues(typeof(BuildTargetGroup)))

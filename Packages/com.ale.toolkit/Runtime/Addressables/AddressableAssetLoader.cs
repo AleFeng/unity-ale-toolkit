@@ -9,7 +9,7 @@ namespace Ale.Toolkit.Runtime.AddressableSupport
     /// 基于 Addressables 的资源加载器。优先使用属性值里的实时引用（兼容直接打包 SO 的场景），
     /// 无实时引用时回退到地址走 Addressable 异步加载（运行时从导出数据加载的常态）。
     ///
-    /// 启动时（IS_ADDRESSABLE 启用）自动注册为 <see cref="ToolkitAssets.Loader"/>，替换默认的 DirectAssetLoader。
+    /// 启动时（ATK_ADDRESSABLE 启用）自动注册为 <see cref="ToolkitAssets.Loader"/>，替换默认的 DirectAssetLoader。
     /// </summary>
     public sealed class AddressableAssetLoader : IAssetLoader
     {
@@ -44,7 +44,7 @@ namespace Ale.Toolkit.Runtime.AddressableSupport
         {
             // 1) 有实时引用（编辑器内 / 直接打包 SO）→ 同步返回
             if (liveRef) { onLoaded?.Invoke(liveRef as T); return; }
-            // 2) 仅有授权地址（IS_ADDRESSABLE 授权 / 运行时）→ Addressable 异步加载
+            // 2) 仅有授权地址（ATK_ADDRESSABLE 授权 / 运行时）→ Addressable 异步加载
             if (string.IsNullOrEmpty(address)) { onLoaded?.Invoke(null); return; }
             AddressableManager.LoadAsync(address, owner, onLoaded);
         }

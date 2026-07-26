@@ -28,10 +28,10 @@ namespace Ale.Toolkit.Runtime
         Sprite = 9,
         /// <summary>
         /// 文本类型。区别于 <see cref="String"/>（后者用于数据 / 标记，不一定用于展示文本）：
-        /// <c>Text</c> 专用于展示文本，<b>始终</b>携带一个纯文本值作 fallback；启用 IS_LOCALIZATION 宏时额外携带
+        /// <c>Text</c> 专用于展示文本，<b>始终</b>携带一个纯文本值作 fallback；启用 ATK_LOCALIZATION 宏时额外携带
         /// Unity Localization 引用（表 + 条目），运行时优先取本地化文本、取不到再回退纯文本。
         /// 以字符串后备列表承载，每个逻辑元素占 3 个槽：[i*3]=纯文本、[i*3+1]=tableRef、[i*3+2]=entryKey。
-        /// 枚举值固定为 10，无论 IS_LOCALIZATION 是否启用均保持稳定，防止数据损坏。
+        /// 枚举值固定为 10，无论 ATK_LOCALIZATION 是否启用均保持稳定，防止数据损坏。
         /// </summary>
         Text = 10,
         /// <summary>Unity GameObject 预制件引用（存储于对象后备列表；导出时转为 GUID）。</summary>
