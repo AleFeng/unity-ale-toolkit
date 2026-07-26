@@ -5,8 +5,6 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 using static Ale.Toolkit.Editor.ToolkitEditorL10n;
 
-using Ale.Toolkit.Editor;
-
 namespace Ale.Toolkit.Editor
 {
     /// <summary>
@@ -736,28 +734,28 @@ namespace Ale.Toolkit.Editor
 #if ATK_LOCALIZATION
         // 每个 (AttributeValue 实例, 元素索引) 对应一套独立的 SO，避免多字段共享时状态互相污染。
         // key = (RuntimeHelpers.GetHashCode(value) << 16) | (uint)index，在会话内稳定唯一。
-        private static readonly Dictionary<long, LocalizedStringHolder> _lsHolders =
+        private static readonly Dictionary<long, LocalizedStringHolder> LsHolders =
             new Dictionary<long, LocalizedStringHolder>();
-        private static readonly Dictionary<long, SerializedObject> _lsSOs =
+        private static readonly Dictionary<long, SerializedObject> LsSOs =
             new Dictionary<long, SerializedObject>();
 
-        private static long LSKey(AttributeValue v, int idx) =>
+        private static long LsKey(AttributeValue v, int idx) =>
             ((long)System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(v) << 16) | (uint)idx;
 
         /// <summary>懒建 (holder, SerializedObject)。</summary>
         private static (LocalizedStringHolder holder, SerializedObject so) EnsureLsHolder(AttributeValue value, int index)
         {
-            long key = LSKey(value, index);
-            if (!_lsHolders.TryGetValue(key, out var holder) || holder == null)
+            long key = LsKey(value, index);
+            if (!LsHolders.TryGetValue(key, out var holder) || !holder)
             {
                 holder = ScriptableObject.CreateInstance<LocalizedStringHolder>();
                 holder.hideFlags = HideFlags.DontSave | HideFlags.HideInHierarchy | HideFlags.HideInInspector;
-                _lsHolders[key] = holder;
-                _lsSOs[key]     = new SerializedObject(holder);
+                LsHolders[key] = holder;
+                LsSOs[key]     = new SerializedObject(holder);
             }
-            var so = _lsSOs.TryGetValue(key, out var cached) && cached != null && cached.targetObject != null
+            var so = LsSOs.TryGetValue(key, out var cached) && cached != null && cached.targetObject != null
                 ? cached
-                : (_lsSOs[key] = new SerializedObject(holder));
+                : (LsSOs[key] = new SerializedObject(holder));
             return (holder, so);
         }
 

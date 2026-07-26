@@ -20,7 +20,7 @@ namespace Ale.Toolkit.Editor
     /// </summary>
     public class ToolkitWelcomeWindow : EditorWindow
     {
-        private static readonly Vector2 MinWindowSize = new Vector2(460f, 560f);
+        private static readonly Vector2 MinWindowSize = new Vector2(460f, 600f);
 
         /// <summary>
         /// 打开「通用 Addressable 迁移窗口」的注入钩子。由受 ATK_ADDRESSABLE 约束的 Addressable 编辑器程序集
@@ -43,7 +43,7 @@ namespace Ale.Toolkit.Editor
 #endif
 #if ATK_TMP && ATK_LOCALIZATION
         // Localization 宏方块下的向导本地化字体（全局，存 ToolkitPrefabFonts；SerializeField 供原生属性绘制器绑定）
-        [SerializeField] private LocalizedTmpFont _localizedFont = new LocalizedTmpFont();
+        [SerializeField] private LocalizedTmpFont localizedFont = new LocalizedTmpFont();
         private bool _localizedFontFoldout;
 #endif
 
@@ -72,7 +72,7 @@ namespace Ale.Toolkit.Editor
             _defaultTmpFont = ToolkitPrefabFonts.DefaultTmpFont;
 #endif
 #if ATK_TMP && ATK_LOCALIZATION
-            _localizedFont = ToolkitPrefabFonts.LocalizedFont;
+            localizedFont = ToolkitPrefabFonts.LocalizedFont;
 #endif
         }
 
@@ -288,12 +288,23 @@ namespace Ale.Toolkit.Editor
             if (_localizedFontFoldout)
             {
                 var so   = new SerializedObject(this);
-                var prop = so.FindProperty("_localizedFont");
+                var prop = so.FindProperty(nameof(localizedFont));
                 if (prop != null)
                 {
+                    so.Update();
                     EditorGUILayout.PropertyField(prop, new GUIContent("Localized Asset Reference"));
-                    if (so.ApplyModifiedProperties())
-                        ToolkitPrefabFonts.LocalizedFont = _localizedFont;
+                    so.ApplyModifiedProperties();
+
+                    // 直接读取本地化引用的原始序列化字段（"GUID:..." / keyId / key）后按需持久化。
+                    // 不依赖 ApplyModifiedProperties 的返回值（Localization 绘制器可能自行提交或经
+                    // delayCall 延迟写入，返回值不可靠），也不经 JsonUtility（其不会触发嵌套结构体的
+                    // ISerializationCallbackReceiver → ReferenceType 丢失 → 读回为空）。
+                    var tableProp = prop.FindPropertyRelative("m_TableReference.m_TableCollectionName");
+                    var keyIdProp = prop.FindPropertyRelative("m_TableEntryReference.m_KeyId");
+                    var keyProp   = prop.FindPropertyRelative("m_TableEntryReference.m_Key");
+                    if (tableProp != null && keyIdProp != null && keyProp != null)
+                        ToolkitPrefabFonts.SaveLocalizedFont(
+                            tableProp.stringValue, keyIdProp.longValue, keyProp.stringValue);
                 }
                 EditorGUILayout.LabelField(
                     Tr("生成测试 Prefab 时赋给 LocalizedFontEvent 组件的本地化字体资源。需同时启用 ATK_TMP 才生效。"),

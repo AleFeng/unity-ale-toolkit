@@ -11,7 +11,7 @@ namespace Ale.Toolkit.Runtime
     /// <summary>
     /// 拥有属性字段集合的对象基类。
     /// 封装懒加载 O(1) 字典缓存、以及属性值的泛型 Get / Set 便捷 API，
-    /// 供 <see cref="Item"/> 与 <see cref="EnumItem"/> 共用，避免重复实现。
+    /// 供 Item 与 <see cref="EnumItem"/> 共用，避免重复实现。
     ///
     /// <para>子类须实现 <see cref="AttributeEntries"/> 抽象属性，返回自身序列化存储的
     /// <see cref="AttributeEntry"/> 列表；修改该列表后须调用 <see cref="InvalidateEntryCache"/>
