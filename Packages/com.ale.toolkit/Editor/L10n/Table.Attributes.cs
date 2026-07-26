@@ -67,6 +67,14 @@ namespace Ale.Toolkit.Editor
                 "⚠ Duplicate name; references will match the first config with this name.",
                 "⚠ 名称が重複しています。参照は最初の同名設定に一致します。");
             Add("语言与规则", "Languages & Rules", "言語とルール");
+
+            // ── 属性定义 / 枚举面板绘制器（AttributeDefinitionDrawer / EditorEnumTypePanel）─
+            Add("类型",     "Type",       "タイプ");
+            Add("枚举类型", "Enum Types", "列挙型");
+            Add("文本",     "Text",       "テキスト");
+            Add("新枚举",   "New Enum",   "新規列挙型");
+            Add("新项",     "New Item",   "新規項目");
+            Add("属性字段", "Attribute Fields", "属性フィールド");
         }
     }
 }

@@ -87,8 +87,8 @@ namespace Ale.Toolkit.Editor
             EditorGUILayout.Space(6);
 
             // ── 属性字段 schema ───────────────────────────────────────────────────
-            _attrDefsDrawer.Draw(ctx, src, tag.attributes, Tr("道具属性字段"));
-            EditorGUILayout.HelpBox(Tr("附加到道具后，会自动添加至道具的「属性字段」列表中"), MessageType.None);
+            _attrDefsDrawer.Draw(ctx, src, tag.attributes, Tr("属性字段"));
+            EditorGUILayout.HelpBox(Tr("附加后会自动添加至目标的「属性字段」列表中"), MessageType.None);
         }
     }
 }

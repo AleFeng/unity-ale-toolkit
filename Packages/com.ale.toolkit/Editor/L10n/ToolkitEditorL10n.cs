@@ -69,6 +69,7 @@ namespace Ale.Toolkit.Editor
         static partial void RegisterDrawers();
         static partial void RegisterAttributes();
         static partial void RegisterDefines();
+        static partial void RegisterTagging();
 
         private static void RegisterTables()
         {
@@ -76,6 +77,7 @@ namespace Ale.Toolkit.Editor
             RegisterDrawers();
             RegisterAttributes();
             RegisterDefines();
+            RegisterTagging();
         }
 
         /// <summary>登记一条译文。<paramref name="en"/> / <paramref name="ja"/> 为空则该语言回退中文。</summary>
