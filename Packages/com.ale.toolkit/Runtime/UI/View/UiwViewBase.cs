@@ -4,7 +4,6 @@ using InventoryText = TMPro.TMP_Text;
 using InventoryText = UnityEngine.UI.Text;
 #endif
 
-using Ale.Toolkit.Runtime;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -42,6 +41,28 @@ namespace Ale.Toolkit.Runtime.UI
 
         #region 打开与关闭
         /// <summary>
+        /// 当前视图是否处于打开状态：<see cref="Open"/> 置 true、<see cref="Close"/> 置 false。
+        /// 供外部查询，也用于 <see cref="Start"/> 判断是否已被先行打开（避免重复构建）。
+        /// </summary>
+        public bool IsOpen { get; private set; }
+
+        /// <summary>
+        /// 初始化时按自身 <see cref="GameObject.activeInHierarchy"/> 决定初始状态：
+        /// <list type="bullet">
+        ///   <item>面板在场景中**初始即激活**时，说明期望「开机即显示」，但通常没有谁替它调 <see cref="Open"/>
+        ///         （<c>Open</c> 一般由管理器在展示时调用）；此处补一次自打开，构建其内容（如道具列表）。</item>
+        ///   <item>面板**初始未激活**时，Unity 不会执行本 <c>Start</c>，视图自然保持关闭（Close），无需处理。</item>
+        /// </list>
+        /// 若已被外部（管理器）先行 <see cref="Open"/>（<see cref="IsOpen"/> 为 true），则跳过以免重复构建。
+        /// <para>放在 <c>Start</c>（而非 Awake）：各视图的接线 / 视图模式在子类 <c>Start</c> 中配置，
+        /// 自打开须在其之后。子类覆写本方法时应在**末尾**调用 <c>base.Start()</c>。</para>
+        /// </summary>
+        protected virtual void Start()
+        {
+            if (!IsOpen && gameObject.activeInHierarchy) Open();
+        }
+
+        /// <summary>
         /// 打开视图（模板方法）。基类实现做各视图共有的两步——**先反订阅、再激活面板**；
         /// 子类覆写本方法：先调用 <c>base.Open()</c>，再执行本视图特定的构建 / 订阅 / 刷新。
         /// 带参数的 <c>Open(...)</c> 重载应先把参数缓存到字段，再调用本无参方法。
@@ -52,6 +73,7 @@ namespace Ale.Toolkit.Runtime.UI
         /// </summary>
         public virtual void Open()
         {
+            IsOpen = true;
             Unsubscribe();
             gameObject.SetActive(true);
         }
@@ -59,6 +81,7 @@ namespace Ale.Toolkit.Runtime.UI
         /// <summary>关闭视图：取消事件订阅并停用面板。</summary>
         public void Close()
         {
+            IsOpen = false;
             Unsubscribe();
             gameObject.SetActive(false);
         }
