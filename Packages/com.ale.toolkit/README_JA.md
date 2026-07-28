@@ -67,6 +67,124 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 
 ---
 
+## 使い方と主要 API
+
+> ランタイム型は `Ale.Toolkit.Runtime` / `Ale.Toolkit.Runtime.UI`、エディター型は `Ale.Toolkit.Editor` にあります。以下はモジュールごとの典型的な使い方と主要な入口です。完全なシグネチャはソースの XML コメントを参照してください。
+
+### 属性システム
+
+`AttributeValue` は「型付きの 1 つの値」を保持します（スカラーは `[0]`、配列は `[0..n]`）。型は `EFieldType`（Int / Float / String / Bool / Enum / Vector2~4 / Color / Sprite / Text / Prefab / AudioClip / StringIntPair / EnumIntPair など 24 種）。フィールドのスキーマは `AttributeDefinition` が記述し、エンティティは `AttributeOwner` からフィールド id で値を取得します。
+
+```csharp
+var v = new AttributeValue(EFieldType.Int);
+v.SetInt(0, 10);
+int hp      = v.GetInt(0);
+string show = v.ToDisplayString();     // 表示文字列（配列は区切り文字で連結）
+double key  = v.ToComparableNumber();  // ソート用の数値
+
+// エンティティ（AttributeOwner）からフィールド id で取得
+AttributeValue atk = owner.GetAttributeValue("attack");
+```
+
+- `AttributeValue`：`Type` / `IsArray` / `Count`；`GetInt/SetInt`、`GetFloat/SetFloat`、`GetString/SetString`、`GetObject/SetObject`、`GetColor/SetColor`、`GetVector2~4`、`GetTextValue/SetTextValue/ResolveText`、`SetStringIntPair/SetEnumIntPair`；配列 `AddElement/RemoveElement/ReorderElements`；`ToDisplayString()`、`ToComparableNumber()`、`ChangeType()`、`Clone()`。
+- `AttributeDefinition.CreateValue()`；`AttributeOwner.GetEntry(id)` / `GetAttributeValue(id)`；`AttributeSync.Sync(...)` はスキーマに従ってエンティティの値集合を同期。
+- `ConfigTemplateBase`（`name` / `color` / `List<AttributeDefinition> attributes`）；`EnumType`（`AddItem` / `GetItemByValue` / `GetDisplayName`）+ `EnumItem`；`NumberFormatConfig.Format(long, langCode)`。
+
+### ソート
+
+自分のデータ型に対して `ISortContext<TData>` を一度実装（または `SortContextBase<TData>` / `TagSortContextBase<TData>` を継承）すれば、ドメイン非依存の `AttributeSortService` を再利用できます：`SortPriority`（フィールド + 昇降順）を順に評価し、非ゼロになるまで比較します。
+
+```csharp
+class MySortCtx : SortContextBase<MyData> { /* OwnerOf / FindDefinition / OptionOf / TryCompareSpecial をオーバーライド */ }
+
+AttributeSortService.Sort(list, priorities, new MySortCtx());
+int cmp = AttributeSortService.Compare(a, b, priorities, ctx);
+```
+
+- `AttributeSortService.Sort<TData>(list, priorities, ctx)` / `Compare(...)` / `CompareByField(...)`。
+- `ISortContext<TData>`：`OwnerOf` / `FindDefinition` / `OptionOf` / `TryCompareSpecial`。
+- `SortPriority`（フィールド + 方向）、`SortOption`（フィールド別の無視リスト）、`SortFieldKeys`、`ISortId`、`SortOptionSync`。
+
+### UI
+
+`Ale.Toolkit.Runtime.UI` 配下の再利用可能なランタイムコントロール（すべてジェネリック）。
+
+- **バーチャルスクロールリスト** `UiwVirtualGridList<TData,TCell>`（グリッド）/ `UiwVirtualOrderList<TData,TCell>`（順次）：継承して `BindCell` / `ClearCell` を実装し、Inspector で `cellPrefab` / `scrollRect` / `content` を接続、データを渡すと可視領域のみ描画・フレームごとに生成をレート制限。主なメソッド：`SetItems` / `UpdateItems` / `RefreshItemsData` / `SetSourceItems`、`ConfigureFilter` / `SetExtraFilter`、`ConfigureSort`、`ScrollToStart`。
+- **タブバー** `UiwTabStrip<TTab,TValue>`（純 C#）：`Configure(prefab, container, bind, onSelect)` → `SetTabs(values, labels, …)` → `Select` / `SelectValue`；行を作り直さず差分再利用。フィルタータブバー `UiwFilterTabBar`（MonoBehaviour）：`SetFilters(tagNames)` / `Clear`。
+- **ホバーツールチップ** `UiwTooltipBase<TPayload>`：サブクラスが `ApplyContent` / `ClearContent` を実装し、独自の `Show`（内部で `ShowTooltip` を呼ぶ）を公開；`Hide()`。
+- **ウィジェットプール** `UiwWidgetPool<T>`（カーソル式の再利用）：`Configure` → `Begin` → `Next(out created)` → `End`。
+- その他：`UiwViewBase`（`Open`/`Close`/`ToggleOpenClose`）、`UiwSortToolbar`（`SetOptions`/`SetSortPriorities`）、`UiwNumberCounter`（`Configure`/`SetRange`/`SetValue`）、`UiwTextLabel`、`SpriteSlot.Bind(image, value)`。
+
+### オブジェクトプール
+
+Lean.Pool 等のサードパーティ製プールを置き換え。GameObject / プレハブプールと純 C# クラスプールの 2 種（`Ale.Toolkit.Runtime`）。
+
+```csharp
+// 静的ファサード：プレハブごとに自動でプール生成。Instantiate / Destroy を置き換え
+var go = ToolkitPool.Spawn(prefab, pos, Quaternion.identity, parent);
+ToolkitPool.Despawn(go);            // 所有テーブル経由で返却。Despawn(go, delay) も可
+
+// またはプールコンポーネントを明示的に保持
+var pool = host.AddComponent<ToolkitGameObjectPool>();
+pool.Prefab = prefab; pool.Preload = 3;
+var clone = pool.Spawn(pos, rot, parent);
+
+// 純 C# オブジェクトで GC 削減（空なら null を返す）
+var ctx = ToolkitClassPool<Ctx>.Spawn() ?? new Ctx();
+ToolkitClassPool<Ctx>.Despawn(ctx, c => c.Reset());
+```
+
+- `ToolkitGameObjectPool`：`Prefab` / `Preload` / `Capacity` / `Recycle` / `Persist` / `Notification`；`Spawn(...)` / `Despawn(clone, delay)` / `DespawnAll` / `Clear`。
+- `IPoolable`（`OnSpawn` / `OnDespawn`）；`ToolkitPool.Spawn/Despawn/DespawnAll/Detach`、所有テーブル `Links`；`ToolkitClassPool<T>.Spawn(...)/Despawn(...)`。
+
+### エディター基盤
+
+`Ale.Toolkit.Editor`。すべてデータベース型についてジェネリックで、継承して少数の抽象メンバーをオーバーライドするだけでエディターを構築できます。
+
+- **三列タブ** `EditorThreeColumnTab<TDb,TEntity>`：左列サブタブ + マスターリスト、中列エンティティリスト、右列コンテキストインスペクター。`LeftPanels` / `EntityNoun` / `EntityList` / `DrawEntityList` / `DrawEntityInspector` などをオーバーライド。
+- **マスターリストパネル** `EditorMasterListPanel<TDb,T>`（+ `IEditorMasterListPanel<TDb>`）、**エンティティリストパネル** `EditorEntityListPanel<TDb,TEntity,TTemplate>`。
+- **ツールウィンドウ基底** `EditorToolWindowBase<TDb>`：「データベース選択 + フレームごとの時間予算ステップ + プログレスバー + ログ + キャンセル + 完了処理」を内蔵。`DrawOperations`（`RunSteps` でフレームごとのステップを開始）/ `OnRunComplete` / `OnRunFinished` をオーバーライド。
+- コンテキスト `IEditorContext` / `IEditorDbContext<TDb>`；補助コントロール `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles`。
+
+### エディター多言語
+
+エディター UI テキストの三言語（中 / 英 / 日）サービス。中国語原文をキーとし、未翻訳時は中国語にフォールバック。ランタイムのコンテンツ多言語化とは無関係。
+
+```csharp
+using static Ale.Toolkit.Editor.ToolkitEditorL10n;
+EditorGUILayout.LabelField(Tr("快捷操作"));       // 現在の言語のテキストを返す
+string name = TrEnum(EFieldType.Sprite);          // 列挙の表示名
+
+// ホストプラグインは [InitializeOnLoad] でドメイン訳表を登録
+ToolkitEditorL10n.Add("道具", "Item", "アイテム");
+ToolkitEditorL10n.AddEnum(MyEnum.Foo, "Foo", "フー");
+```
+
+- `ToolkitEditorL10n.Tr(zh)` / `TrEnum(enumValue)`；`Current`（`EditorLanguage`）/ `TranslateEnums`；`Add(zh, en, ja)` / `AddEnum(value, en, ja, zh = null)`。
+
+### オプション依存のサポート層
+
+TextMeshPro / Unity Localization / Addressables のマクロ切り替えとランタイムアダプター。マクロはプロジェクト単位のグローバル設定（`ATK_TMP` / `ATK_LOCALIZATION` / `ATK_ADDRESSABLE`）で、ウェルカムウィンドウから切り替え。旧マクロ `IS_*` は読み込み時に自動移行。
+
+- `ToolkitDefines`：マクロ名定数 `Tmp` / `Localization` / `Addressable`；`IsTmpEnabled()` / `IsLocalizationEnabled()` / `IsAddressableEnabled()`。
+- `DefineUtils`：`ApplyDefine(...)`（PlayerSettings のスクリプト定義を増減）、`HasNamespace(...)` / `HasClass(...)`（パッケージがインストール済みか検出）。これらで独自のマクロ切り替えパネルを構築可能。
+- ランタイム資源ファサード `ToolkitAssets`（コアは Addressables 非依存）：`Bind<T>(value, owner, set)` / `Bind<T>(liveRef, address, owner, set)`（ホスト破棄時に自動解放）、`Load<T>` / `Release`；インターフェース `IAssetLoader`；`ATK_ADDRESSABLE` 有効時は `AddressableManager` がアドレス単位で参照カウントによるロード / アンロード。
+
+### エディタ入口とグローバル設定
+
+- `ToolkitWelcomeWindow`（メニュー **Tools > Ale Toolkit > Welcome**）：UI 言語 / 列挙翻訳の切り替え / 3 つのオプション依存マクロ / ウィザードのデフォルト・ローカライズフォント / 汎用ツール入口 / 起動時自動表示。
+- `ToolkitProjectSettings`（`ScriptableSingleton`、`ProjectSettings/AleToolkitSettings.asset` に保存、リポジトリと共有、資源は GUID 参照）：`SaveSettings()`；ウィザードフォントはファサード `ToolkitPrefabFonts` 経由で読み書き。
+
+### 汎用ツールウィンドウ
+
+任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理。上位プラグインで再利用可能。
+
+- `ToolkitAddressableToolWindow`（メニュー **Tools > Ale Toolkit > Addressable**）：データベースの全資源フィールドを「Object 参照 ↔ AssetReference(GUID)」間で一括変換。ホストは `EditorAddressableToolWindow<TDb>` を継承し、属性システム外の名前付き Sprite フィールドを `FixedFields` で提供可能。
+- `ToolkitLocalizationToolWindow`（メニュー **Tools > Ale Toolkit > Localization**）：ローカライズ Key を一括生成；基底クラス `EditorLocalizationToolWindow<TDb>`。
+- リフレクション補助：`AttributeValueWalker`（DB 内の全属性オブジェクト値を走査）、`TextFieldWalker` / `TextFieldCollector`（テキスト値・id 対応 Key を走査）。
+
+---
+
 ## ライセンス
 
 [MIT](LICENSE.md)
