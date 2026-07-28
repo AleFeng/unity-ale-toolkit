@@ -19,7 +19,7 @@ Unity's Package Manager **does not support git URLs in the `dependencies` field 
 **Step 1 — install Toolkit first:**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.2.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.3.0
 ```
 
 **Step 2 — then install the dependent plugin**, for example the inventory system:
@@ -41,13 +41,14 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Attribute system** | `AttributeValue` with 20+ field types, attribute definitions (schema), custom enum types, number-format configs. Use it wherever configurable attribute entries are needed |
 | **Sorting** | An element-type-agnostic sort engine: the host implements `ISortContext<TData>` to supply what comparison needs, the engine handles multi-level priorities and tiebreakers |
 | **UI** | Virtual scrolling lists (grid / sequential, object pool + visible-region-only rendering), tab strips, filter bars, tooltip base classes, widget pools |
+| **Object pool** | A general-purpose GameObject/prefab pool (`Spawn`/`Despawn` + `IPoolable` callbacks; preload / capacity-recycle / delayed despawn / cross-scene) plus a plain-C# reference-type pool `ToolkitClassPool<T>` (lower GC) — a drop-in replacement for third-party pools like Lean.Pool |
 | **Editor framework** | Three-column tab base class, master list panel, entity list panel and tool window base — all generic over the database type |
 | **Editor localization** | 中文 / English / 日本語 service, keyed by the Chinese source string, falling back automatically when a translation is missing |
 | **Optional dependency support** | Macro toggles and adapters for TextMeshPro (`ATK_TMP`), Unity Localization (`ATK_LOCALIZATION`) and Addressables (`ATK_ADDRESSABLE`) |
 | **Editor entry & global settings** | The Ale Toolkit Welcome Window (`Tools > Ale Toolkit > Welcome`): editor UI language / enum translation / the three optional feature macros / wizard default & localized fonts + general-tool entries + an "auto-show on startup" toggle; project-level settings such as the wizard fonts are saved to `ProjectSettings/AleToolkitSettings.asset` (committed with the repo, asset references stored by GUID), while language / auto-show are per-user (EditorPrefs); legacy `IS_*` macros are auto-migrated to `ATK_*` on load |
 | **General tool windows** | Walk every `AttributeValue` of any data asset (`ScriptableObject`) for batch processing: Addressable migration (Object ↔ GUID) and localization key generation, under `Tools > Ale Toolkit`, reusable by upper-layer plugins |
 
-> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**. See the [CHANGELOG](CHANGELOG.md) for details.
+> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool)**. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 
@@ -55,7 +56,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 
 | Assembly Definition | Purpose | Macro constraint |
 | --- | --- | --- |
-| `Ale.Toolkit.Runtime` | Attribute system, sorting, asset-loading abstraction, shared serialization | — |
+| `Ale.Toolkit.Runtime` | Attribute system, sorting, asset-loading abstraction, shared serialization, object pool | — |
 | `Ale.Toolkit.UI` | Virtual scrolling lists and general UI widgets | — |
 | `Ale.Toolkit.UI.Localization` | Unity Localization adapter components | `ATK_LOCALIZATION` |
 | `Ale.Toolkit.Addressables.Runtime` | Addressables loading and handle management | `ATK_ADDRESSABLE` |
