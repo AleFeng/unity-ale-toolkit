@@ -42,13 +42,14 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Sorting** | An element-type-agnostic sort engine: the host implements `ISortContext<TData>` to supply what comparison needs, the engine handles multi-level priorities and tiebreakers |
 | **UI** | Virtual scrolling lists (grid / sequential, object pool + visible-region-only rendering), tab strips, filter bars, tooltip base classes, widget pools |
 | **Object pool** | A general-purpose GameObject/prefab pool (`Spawn`/`Despawn` + `IPoolable` callbacks; preload / capacity-recycle / delayed despawn / cross-scene) plus a plain-C# reference-type pool `ToolkitClassPool<T>` (lower GC) — a drop-in replacement for third-party pools like Lean.Pool |
+| **Tween** | A lightweight central tween (DOTween-style single-Update polling, pooled jobs, near-zero GC): `ToolkitTween.FadeCanvasGroup` fades a `CanvasGroup`, returning a killable value-type handle; minimal easing set `EToolkitEase` |
 | **Editor framework** | Three-column tab base class, master list panel, entity list panel and tool window base — all generic over the database type |
 | **Editor localization** | 中文 / English / 日本語 service, keyed by the Chinese source string, falling back automatically when a translation is missing |
 | **Optional dependency support** | Macro toggles and adapters for TextMeshPro (`ATK_TMP`), Unity Localization (`ATK_LOCALIZATION`) and Addressables (`ATK_ADDRESSABLE`) |
 | **Editor entry & global settings** | The Ale Toolkit Welcome Window (`Tools > Ale Toolkit > Welcome`): editor UI language / enum translation / the three optional feature macros / wizard default & localized fonts + general-tool entries + an "auto-show on startup" toggle; project-level settings such as the wizard fonts are saved to `ProjectSettings/AleToolkitSettings.asset` (committed with the repo, asset references stored by GUID), while language / auto-show are per-user (EditorPrefs); legacy `IS_*` macros are auto-migrated to `ATK_*` on load |
 | **General tool windows** | Walk every `AttributeValue` of any data asset (`ScriptableObject`) for batch processing: Addressable migration (Object ↔ GUID) and localization key generation, under `Tools > Ale Toolkit`, reusable by upper-layer plugins |
 
-> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool)**. See the [CHANGELOG](CHANGELOG.md) for details.
+> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 
@@ -56,7 +57,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 
 | Assembly Definition | Purpose | Macro constraint |
 | --- | --- | --- |
-| `Ale.Toolkit.Runtime` | Attribute system, sorting, asset-loading abstraction, shared serialization, object pool | — |
+| `Ale.Toolkit.Runtime` | Attribute system, sorting, asset-loading abstraction, shared serialization, object pool, central tween | — |
 | `Ale.Toolkit.UI` | Virtual scrolling lists and general UI widgets | — |
 | `Ale.Toolkit.UI.Localization` | Unity Localization adapter components | `ATK_LOCALIZATION` |
 | `Ale.Toolkit.Addressables.Runtime` | Addressables loading and handle management | `ATK_ADDRESSABLE` |
@@ -113,7 +114,7 @@ Reusable runtime widgets under `Ale.Toolkit.Runtime.UI`, all generic.
 - **Tab strip** `UiwTabStrip<TTab,TValue>` (plain C#): `Configure(prefab, container, bind, onSelect)` → `SetTabs(values, labels, …)` → `Select` / `SelectValue`; reuses instances instead of rebuilding the row. Filter tab bar `UiwFilterTabBar` (MonoBehaviour): `SetFilters(tagNames)` / `Clear`.
 - **Hover tooltip** `UiwTooltipBase<TPayload>`: subclass implements `ApplyContent` / `ClearContent` and exposes its own `Show` (forwarding to `ShowTooltip`); `Hide()`.
 - **Widget pool** `UiwWidgetPool<T>` (cursor-style reuse): `Configure` → `Begin` → `Next(out created)` → `End`.
-- Others: `UiwViewBase` (`Open`/`Close`/`ToggleOpenClose`), `UiwSortToolbar` (`SetOptions`/`SetSortPriorities`), `UiwNumberCounter` (`Configure`/`SetRange`/`SetValue`), `UiwTextLabel`, `SpriteSlot.Bind(image, value)`.
+- Others: `UiwViewBase` (`Open`/`Close`/`ToggleOpenClose`; an `IsOpen` state + `Start` auto-opens when `activeInHierarchy`, subclasses overriding `Start` must call `base.Start()` last), `UiwSortToolbar` (`SetOptions`/`SetSortPriorities`), `UiwNumberCounter` (`Configure`/`SetRange`/`SetValue`), `UiwTextLabel`, `SpriteSlot.Bind(image, value)`.
 
 ### Object pool
 
@@ -136,6 +137,22 @@ ToolkitClassPool<Ctx>.Despawn(ctx, c => c.Reset());
 
 - `ToolkitGameObjectPool`: `Prefab` / `Preload` / `Capacity` / `Recycle` / `Persist` / `Notification`; `Spawn(...)` / `Despawn(clone, delay)` / `DespawnAll` / `Clear`.
 - `IPoolable` (`OnSpawn` / `OnDespawn`); `ToolkitPool.Spawn/Despawn/DespawnAll/Detach`, ownership table `Links`; `ToolkitClassPool<T>.Spawn(...)/Despawn(...)`.
+
+### Tween
+
+A lightweight central tween facade (DOTween-style "single-Update polling job list", `Ale.Toolkit.Runtime`). It currently fades a `CanvasGroup`; jobs are pooled via `ToolkitClassPool` and driven by a persistent runner in a single `LateUpdate`, with near-zero GC. It does not reproduce DOTween's sequences / chaining / full easing set — extend incrementally as needed.
+
+```csharp
+// fade a CanvasGroup to alpha=1 over 0.2s; returns a killable handle
+var h = ToolkitTween.FadeCanvasGroup(canvasGroup, 1f, 0.2f, EToolkitEase.OutQuad,
+                                     unscaled: true, onComplete: () => { /* done */ });
+h.Kill(complete: true);    // interrupt, snap to the end value and fire onComplete; Kill(false) interrupts without the callback
+bool running = h.IsActive;
+```
+
+- `ToolkitTween.FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`: with `duration ≤ 0` or a null target it snaps into place and returns an empty handle.
+- `ToolkitTweenHandle` (value type, zero-alloc): `IsActive` / `Kill(complete = false)`; `default` is an invalid handle whose `Kill` is a safe no-op.
+- `ToolkitEase.Evaluate(EToolkitEase ease, float t)`; easing types `EToolkitEase`: `Linear` / `InQuad` / `OutQuad` / `InOutQuad`.
 
 ### Editor framework
 

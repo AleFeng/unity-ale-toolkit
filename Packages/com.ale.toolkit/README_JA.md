@@ -42,13 +42,14 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **ソート** | 要素の型に依存しないソートエンジン。ホスト側が `ISortContext<TData>` を実装して比較に必要な情報を提供し、エンジンが多段優先度とタイブレークを処理します |
 | **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画）、タブバー、フィルターバー、ツールチップ基底クラス、ウィジェットプール |
 | **オブジェクトプール** | 汎用の GameObject / プレハブプール（`Spawn`/`Despawn` + `IPoolable` コールバック、プリロード / 容量リサイクル / 遅延デスポーン / シーン跨ぎ）と、純 C# 参照型プール `ToolkitClassPool<T>`（GC 削減）。Lean.Pool 等のサードパーティ製プールを置き換え可能 |
+| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`ToolkitTween.FadeCanvasGroup` が `CanvasGroup` をフェードし、中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
 | **エディター基盤** | 三列レイアウトのタブ基底クラス、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底クラス。いずれもデータベース型についてジェネリック化されています |
 | **エディター多言語** | 中文 / English / 日本語 の三言語サービス。中国語原文をキーとし、訳文が無い場合は自動的にフォールバックします |
 | **オプション依存のサポート層** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）のマクロ切り替えとアダプター |
 | **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ / ウィザードのデフォルト・ローカライズフォント + 汎用ツール入口 +「起動時に自動表示」トグル。ウィザードフォントなどのプロジェクト単位の設定は `ProjectSettings/AleToolkitSettings.asset` に保存（リポジトリと共にコミット、アセット参照は GUID で保持）、言語 / 自動表示はユーザーごと（EditorPrefs）。旧マクロ `IS_*` は読み込み時に `ATK_*` へ自動移行 |
 | **汎用ツールウィンドウ** | 任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理：Addressable 移行（Object ↔ GUID）とローカライズキー生成。`Tools > Ale Toolkit` 配下、上位プラグインで再利用可能 |
 
-> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）を追加します**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
+> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
 
 ---
 
@@ -56,7 +57,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 
 | Assembly Definition | 役割 | マクロ制約 |
 | --- | --- | --- |
-| `Ale.Toolkit.Runtime` | 属性システム、ソート、アセット読み込み抽象、共通シリアライズ、オブジェクトプール | — |
+| `Ale.Toolkit.Runtime` | 属性システム、ソート、アセット読み込み抽象、共通シリアライズ、オブジェクトプール、中央 Tween | — |
 | `Ale.Toolkit.UI` | バーチャルスクロールリストと汎用 UI コントロール | — |
 | `Ale.Toolkit.UI.Localization` | Unity Localization 対応コンポーネント | `ATK_LOCALIZATION` |
 | `Ale.Toolkit.Addressables.Runtime` | Addressables の読み込みとハンドル管理 | `ATK_ADDRESSABLE` |
@@ -113,7 +114,7 @@ int cmp = AttributeSortService.Compare(a, b, priorities, ctx);
 - **タブバー** `UiwTabStrip<TTab,TValue>`（純 C#）：`Configure(prefab, container, bind, onSelect)` → `SetTabs(values, labels, …)` → `Select` / `SelectValue`；行を作り直さず差分再利用。フィルタータブバー `UiwFilterTabBar`（MonoBehaviour）：`SetFilters(tagNames)` / `Clear`。
 - **ホバーツールチップ** `UiwTooltipBase<TPayload>`：サブクラスが `ApplyContent` / `ClearContent` を実装し、独自の `Show`（内部で `ShowTooltip` を呼ぶ）を公開；`Hide()`。
 - **ウィジェットプール** `UiwWidgetPool<T>`（カーソル式の再利用）：`Configure` → `Begin` → `Next(out created)` → `End`。
-- その他：`UiwViewBase`（`Open`/`Close`/`ToggleOpenClose`）、`UiwSortToolbar`（`SetOptions`/`SetSortPriorities`）、`UiwNumberCounter`（`Configure`/`SetRange`/`SetValue`）、`UiwTextLabel`、`SpriteSlot.Bind(image, value)`。
+- その他：`UiwViewBase`（`Open`/`Close`/`ToggleOpenClose`；`IsOpen` 状態 + `Start` 時に `activeInHierarchy` なら自動オープン、`Start` をオーバーライドするサブクラスは末尾で `base.Start()` を呼ぶこと）、`UiwSortToolbar`（`SetOptions`/`SetSortPriorities`）、`UiwNumberCounter`（`Configure`/`SetRange`/`SetValue`）、`UiwTextLabel`、`SpriteSlot.Bind(image, value)`。
 
 ### オブジェクトプール
 
@@ -136,6 +137,22 @@ ToolkitClassPool<Ctx>.Despawn(ctx, c => c.Reset());
 
 - `ToolkitGameObjectPool`：`Prefab` / `Preload` / `Capacity` / `Recycle` / `Persist` / `Notification`；`Spawn(...)` / `Despawn(clone, delay)` / `DespawnAll` / `Clear`。
 - `IPoolable`（`OnSpawn` / `OnDespawn`）；`ToolkitPool.Spawn/Despawn/DespawnAll/Detach`、所有テーブル `Links`；`ToolkitClassPool<T>.Spawn(...)/Despawn(...)`。
+
+### Tween（中央イージング）
+
+軽量な中央 Tween ファサード（DOTween 風の「単一 Update ポーリングのジョブ表」、`Ale.Toolkit.Runtime`）。現状は `CanvasGroup` のフェードを提供し、ジョブは `ToolkitClassPool` でプール化、常駐ランナーが単一 `LateUpdate` で推進、GC ほぼゼロ。DOTween の Sequence / チェーン / 全イージングは再現せず、必要に応じて増分拡張します。
+
+```csharp
+// CanvasGroup を 0.2 秒で alpha=1 へフェード；中断可能なハンドルを返す
+var h = ToolkitTween.FadeCanvasGroup(canvasGroup, 1f, 0.2f, EToolkitEase.OutQuad,
+                                     unscaled: true, onComplete: () => { /* 完了 */ });
+h.Kill(complete: true);    // 中断して終端値へ即時設定 + onComplete 発火；Kill(false) は中断のみ（コールバックなし）
+bool running = h.IsActive;
+```
+
+- `ToolkitTween.FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`：`duration ≤ 0` またはターゲットが空なら即座に終端へ設定し、空ハンドルを返す。
+- `ToolkitTweenHandle`（値型、ゼロアロケーション）：`IsActive` / `Kill(complete = false)`；`default` は無効ハンドルで `Kill` は安全な no-op。
+- `ToolkitEase.Evaluate(EToolkitEase ease, float t)`；イージング種別 `EToolkitEase`：`Linear` / `InQuad` / `OutQuad` / `InOutQuad`。
 
 ### エディター基盤
 
