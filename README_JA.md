@@ -38,7 +38,7 @@ Unity の Package Manager は **`package.json` の `dependencies` での git URL
 **ステップ 1 —— まず Toolkit をインストール：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.2.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.3.0
 ```
 
 **ステップ 2 —— 次にそれに依存するプラグイン**（例：在庫システム）をインストール：
@@ -60,6 +60,8 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **属性システム** | `AttributeValue` と 20 種以上のフィールド型、属性定義（スキーマ）、カスタム列挙型、数値フォーマット設定、タグシステム（`Tag`）。「属性項目を設定する」あらゆる場面で使用 |
 | **ソート** | 要素の型に依存しないソートエンジン。ホストが `ISortContext<TData>` を実装して比較に必要な情報を提供し、エンジンが多段優先度とタイブレークを処理。主キー / タグ順ソートは標準対応 |
 | **UI** | 仮想スクロールリスト（グリッド / 順次、プール + 可視領域のみ描画）、タブバー、フィルターバー、Tooltip 基底、アイテムプールなどの汎用ウィジェット |
+| **オブジェクトプール** | 汎用 GameObject / プレハブプール + 純 C# 参照型プール `ToolkitClassPool<T>`（`Spawn`/`Despawn`、`IPoolable` コールバック、プリロード / 容量リサイクル / シーン跨ぎ、GC 削減）。Lean.Pool 等を置き換え可能 |
+| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`ToolkitTween.FadeCanvasGroup` が `CanvasGroup` をフェードし、中断可能な値型ハンドルを返す |
 | **エディタフレームワーク** | 3 カラムタブ基底、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底。いずれもデータベース型でジェネリック化 |
 | **エディタ多言語** | 中国語 / English / 日本語のサービス。中国語原文をキーとし、訳が無い場合は自動フォールバック |
 | **UGUI プレハブツールボックス** | ドメイン非依存の UGUI プリミティブとテキスト / ボタン構築（各プラグインのワンクリック生成ウィザードで再利用可能） |
@@ -73,7 +75,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 
 | Assembly Definition | 説明 | マクロゲート |
 | --- | --- | --- |
-| `Ale.Toolkit.Runtime` | 属性システム、ソート、タグ、アセット読み込み抽象、共通シリアライズ | — |
+| `Ale.Toolkit.Runtime` | 属性システム、ソート、タグ、アセット読み込み抽象、共通シリアライズ、オブジェクトプール、中央 Tween | — |
 | `Ale.Toolkit.Runtime.UI` | 仮想スクロールリストと汎用 UI ウィジェット | — |
 | `Ale.Toolkit.UI.Localization` | Unity Localization アダプタコンポーネント | `ATK_LOCALIZATION` |
 | `Ale.Toolkit.Addressables.Runtime` | Addressables のアセット読み込みとハンドル管理 | `ATK_ADDRESSABLE` |
