@@ -158,7 +158,7 @@ namespace Ale.Toolkit.Tests
             r.AutoRegisterFromAssemblies();
             Assert.IsTrue(r.TryGet("Condition.AlwaysTrue", out _));
             Assert.IsTrue(r.TryGet("Condition.HasFlag", out _));
-            Assert.IsTrue(r.TryGet("Condition.NumberAtLeast", out _));
+            Assert.IsTrue(r.TryGet("Condition.NumberCompare", out _));
         }
 
         // ── 内置判定器：HasFlag / NumberAtLeast ──
@@ -189,21 +189,29 @@ namespace Ale.Toolkit.Tests
             Assert.IsFalse(ConditionEngine.Evaluate(e, new TestContext(), r).Passed); // 无服务 → 不通过
         }
 
-        [Test] public void BuiltIn_NumberAtLeast()
+        [Test] public void BuiltIn_NumberCompare()
         {
-            var r = new ConditionRegistry(); r.Register(new NumberAtLeastEvaluator());
+            var r = new ConditionRegistry(); r.Register(new NumberCompareEvaluator());
             var ctx = new TestContext(new NumberSource(new Dictionary<string, double> { { "gold", 100d } }));
 
-            var it = new ConditionItem("Condition.NumberAtLeast");
-            var pid = new ConditionParam("id", ConditionParamType.String); pid.SetString("gold");
-            var pamt = new ConditionParam("amount", ConditionParamType.Float); pamt.SetFloat(50d);
-            it.parameters.Add(pid); it.parameters.Add(pamt);
-            var e = Expr(ConditionLogicOp.And, Group(ConditionLogicOp.And, false, it));
+            ConditionExpression Make(int op, double amount)
+            {
+                var it = new ConditionItem("Condition.NumberCompare");
+                var pid  = new ConditionParam("id",     ConditionParamType.String); pid.SetString("gold");
+                var pop  = new ConditionParam("op",     ConditionParamType.Int);    pop.SetInt(op);
+                var pamt = new ConditionParam("amount", ConditionParamType.Float);  pamt.SetFloat(amount);
+                it.parameters.Add(pid); it.parameters.Add(pop); it.parameters.Add(pamt);
+                return Expr(ConditionLogicOp.And, Group(ConditionLogicOp.And, false, it));
+            }
 
-            Assert.IsTrue(ConditionEngine.Evaluate(e, ctx, r).Passed);
-
-            pamt.SetFloat(200d);
-            Assert.IsFalse(ConditionEngine.Evaluate(e, ctx, r).Passed);
+            // gold = 100
+            Assert.IsTrue (ConditionEngine.Evaluate(Make(NumberCompareEvaluator.GreaterOrEqual, 50d),  ctx, r).Passed);
+            Assert.IsTrue (ConditionEngine.Evaluate(Make(NumberCompareEvaluator.Greater,        50d),  ctx, r).Passed);
+            Assert.IsFalse(ConditionEngine.Evaluate(Make(NumberCompareEvaluator.Greater,        100d), ctx, r).Passed);
+            Assert.IsTrue (ConditionEngine.Evaluate(Make(NumberCompareEvaluator.Equal,          100d), ctx, r).Passed);
+            Assert.IsTrue (ConditionEngine.Evaluate(Make(NumberCompareEvaluator.LessOrEqual,    100d), ctx, r).Passed);
+            Assert.IsTrue (ConditionEngine.Evaluate(Make(NumberCompareEvaluator.Less,           200d), ctx, r).Passed);
+            Assert.IsFalse(ConditionEngine.Evaluate(Make(NumberCompareEvaluator.Less,           100d), ctx, r).Passed);
         }
     }
 }

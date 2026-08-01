@@ -129,8 +129,13 @@ namespace Ale.Condition.Editor
                     if (GUI.Button(new Rect(ih.xMax - 56f, ih.y, 56f, LH), "删除", EditorStyles.miniButton))
                     { delItemGroup = gi; delItemIndex = ii; }
 
+                    var schema = ConditionEvaluatorCatalog.Get(keyProp.stringValue)?.ParamSchema;
                     for (int pi = 0; pi < ps.arraySize; pi++)
-                        DrawParam(ps.GetArrayElementAtIndex(pi), ix + Indent, row);
+                    {
+                        var pProp = ps.GetArrayElementAtIndex(pi);
+                        var def   = FindDef(schema, pProp.FindPropertyRelative("id").stringValue);
+                        DrawParam(pProp, def, ix + Indent, row);
+                    }
                 }
             }
 
@@ -149,24 +154,37 @@ namespace Ale.Condition.Editor
         }
 
         // ── 参数 ──────────────────────────────────────────────────────────────────
-        private static void DrawParam(SerializedProperty pProp, float x, Func<float, Rect> row)
+        private static void DrawParam(SerializedProperty pProp, ConditionParamDef def, float x, Func<float, Rect> row)
         {
             var    type    = (ConditionParamType)pProp.FindPropertyRelative("type").enumValueIndex;
             bool   isArray = pProp.FindPropertyRelative("isArray").boolValue;
-            string id      = pProp.FindPropertyRelative("id").stringValue;
+            string label   = def != null ? def.label : pProp.FindPropertyRelative("id").stringValue;
             const float labelW = 92f;
+
+            // 选项下拉：标量 Int/Enum + schema 提供了 choices（如「比较方式」）
+            if (!isArray && def?.choices != null && def.choices.Length > 0
+                && (type == ConditionParamType.Int || type == ConditionParamType.Enum))
+            {
+                var rc = row(x);
+                EditorGUI.LabelField(new Rect(rc.x, rc.y, labelW, LH), label);
+                var arr = pProp.FindPropertyRelative("ints"); Ensure(arr, 1);
+                var el = arr.GetArrayElementAtIndex(0);
+                int cur = Mathf.Clamp((int)el.longValue, 0, def.choices.Length - 1);
+                el.longValue = EditorGUI.Popup(new Rect(rc.x + labelW, rc.y, rc.width - labelW, LH), cur, def.choices);
+                return;
+            }
 
             if (!isArray)
             {
                 var r = row(x);
-                EditorGUI.LabelField(new Rect(r.x, r.y, labelW, LH), id);
+                EditorGUI.LabelField(new Rect(r.x, r.y, labelW, LH), label);
                 DrawScalarField(new Rect(r.x + labelW, r.y, r.width - labelW, LH), pProp, type, 0);
             }
             else
             {
                 var backing = BackingArray(pProp, type);
                 var r = row(x);
-                EditorGUI.LabelField(new Rect(r.x, r.y, labelW, LH), id + " []");
+                EditorGUI.LabelField(new Rect(r.x, r.y, labelW, LH), label + " []");
                 int size    = backing.arraySize;
                 int newSize = Mathf.Max(0, EditorGUI.DelayedIntField(new Rect(r.x + labelW, r.y, 90f, LH), size));
                 if (newSize != size) backing.arraySize = newSize;
@@ -227,6 +245,14 @@ namespace Ale.Condition.Editor
         }
 
         private static void Ensure(SerializedProperty arr, int size) { if (arr.arraySize < size) arr.arraySize = size; }
+
+        private static ConditionParamDef FindDef(System.Collections.Generic.IReadOnlyList<ConditionParamDef> schema, string id)
+        {
+            if (schema == null) return null;
+            for (int i = 0; i < schema.Count; i++)
+                if (schema[i].id == id) return schema[i];
+            return null;
+        }
 
         private static int TotalItems(SerializedProperty groups)
         {

@@ -20,14 +20,21 @@ namespace Ale.Condition
         /// <summary>Enum 类型引用（当 <see cref="type"/> 为 Enum；供编辑器下拉）。</summary>
         public readonly string enumTypeRef;
 
+        /// <summary>
+        /// 可选：固定选项标签。当非空且参数为 <see cref="ConditionParamType.Int"/> / <see cref="ConditionParamType.Enum"/> 标量时，
+        /// 编辑器渲染为下拉，存所选<b>索引</b>（0 起）。用于「比较方式」这类固定枚举选项。
+        /// </summary>
+        public readonly string[] choices;
+
         public ConditionParamDef(string id, ConditionParamType type, bool isArray = false,
-            string label = null, string enumTypeRef = null)
+            string label = null, string enumTypeRef = null, string[] choices = null)
         {
             this.id          = id;
             this.type        = type;
             this.isArray     = isArray;
             this.label       = string.IsNullOrEmpty(label) ? id : label;
             this.enumTypeRef = enumTypeRef;
+            this.choices     = choices;
         }
     }
 }
