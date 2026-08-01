@@ -1,0 +1,16 @@
+{
+    "name": "Ale.Condition.Runtime",
+    "rootNamespace": "Ale.Condition",
+    "references": [
+        "Ale.Condition.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

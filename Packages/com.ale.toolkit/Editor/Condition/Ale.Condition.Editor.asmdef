@@ -1,0 +1,19 @@
+{
+    "name": "Ale.Condition.Editor",
+    "rootNamespace": "Ale.Condition.Editor",
+    "references": [
+        "Ale.Condition.Core",
+        "Ale.Condition.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
