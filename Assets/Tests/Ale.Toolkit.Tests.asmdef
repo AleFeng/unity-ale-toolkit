@@ -3,6 +3,7 @@
     "rootNamespace": "Ale.Toolkit.Tests",
     "references": [
         "Ale.Toolkit.Runtime",
+        "Ale.Condition.Core",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
