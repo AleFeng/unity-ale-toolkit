@@ -4,6 +4,7 @@
     "references": [
         "Ale.Toolkit.Runtime",
         "Ale.Condition.Core",
+        "Ale.Effect.Core",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
