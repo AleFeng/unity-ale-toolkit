@@ -18,7 +18,7 @@ namespace Ale.Toolkit.Editor
     /// </summary>
     /// <typeparam name="TDb">宿主数据库类型。</typeparam>
     /// <typeparam name="TEntity">中列实体类型。</typeparam>
-    public abstract class EditorThreeColumnTab<TDb, TEntity>
+    public abstract class EditorThreeColumnTab<TDb, TEntity> : IEditorSystemTab<TDb>
         where TDb : ScriptableObject where TEntity : class
     {
         // 三列宽度。
