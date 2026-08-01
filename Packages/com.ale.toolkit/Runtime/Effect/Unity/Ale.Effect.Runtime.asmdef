@@ -1,0 +1,17 @@
+{
+    "name": "Ale.Effect.Runtime",
+    "rootNamespace": "Ale.Effect",
+    "references": [
+        "Ale.Effect.Core",
+        "Ale.Condition.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

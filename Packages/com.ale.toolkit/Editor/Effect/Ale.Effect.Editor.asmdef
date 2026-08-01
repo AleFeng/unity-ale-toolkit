@@ -1,0 +1,20 @@
+{
+    "name": "Ale.Effect.Editor",
+    "rootNamespace": "Ale.Effect.Editor",
+    "references": [
+        "Ale.Effect.Core",
+        "Ale.Effect.Runtime",
+        "Ale.Condition.Core"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
