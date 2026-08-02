@@ -1,7 +1,7 @@
 #if ATK_TMP
-using InventoryText = TMPro.TMP_Text;
+using UiText = TMPro.TMP_Text;
 #else
-using InventoryText = UnityEngine.UI.Text;
+using UiText = UnityEngine.UI.Text;
 #endif
 
 using System;
@@ -24,7 +24,7 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("升序/降序切换按钮。")]
         public Button        sortDirectionButton;
         [Tooltip("升序/降序按钮上的文本组件。")]
-        public InventoryText sortDirectionLabel;
+        public UiText sortDirectionLabel;
         [Tooltip("自动整理按钮。")]
         public Button        autoSortButton;
         [Tooltip("升序显示文本。")]

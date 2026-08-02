@@ -1,7 +1,7 @@
 #if ATK_TMP
-using InventoryText = TMPro.TMP_Text;
+using UiText = TMPro.TMP_Text;
 #else
-using InventoryText = UnityEngine.UI.Text;
+using UiText = UnityEngine.UI.Text;
 #endif
 
 using System;
@@ -29,7 +29,7 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("增加按钮。")]
         public Button plusButton;
         [Tooltip("当前值文本。可空。")]
-        public InventoryText valueText;
+        public UiText valueText;
         [Tooltip("当前值输入框（允许键入）。可空。")]
         public InputField valueInput;
 

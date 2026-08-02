@@ -1,7 +1,7 @@
 #if ATK_TMP
-using InventoryText = TMPro.TMP_Text;
+using UiText = TMPro.TMP_Text;
 #else
-using InventoryText = UnityEngine.UI.Text;
+using UiText = UnityEngine.UI.Text;
 #endif
 
 using System;
@@ -12,7 +12,7 @@ namespace Ale.Toolkit.Runtime.UI
 {
     /// <summary>
     /// 功能标签 UI 组件。
-    /// 由一个背景图（<see cref="Image"/>）和一个文本（<see cref="InventoryText"/>）组成，
+    /// 由一个背景图（<see cref="Image"/>）和一个文本（<see cref="UiText"/>）组成，
     /// 用于在道具详情格子中显示道具所属的功能标签。
     /// </summary>
     public class UiwTextLabel : MonoBehaviour
@@ -21,7 +21,7 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("背景图片组件。")]
         [SerializeField] private Image backgroundImage;
         [Tooltip("标签文本组件。")]
-        [SerializeField] private InventoryText labelText;
+        [SerializeField] private UiText labelText;
 
         /// <summary>
         /// 是否 已完成初始化。

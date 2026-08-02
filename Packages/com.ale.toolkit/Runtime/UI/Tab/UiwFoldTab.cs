@@ -1,7 +1,7 @@
 #if ATK_TMP
-using InventoryText = TMPro.TMP_Text;
+using UiText = TMPro.TMP_Text;
 #else
-using InventoryText = UnityEngine.UI.Text;
+using UiText = UnityEngine.UI.Text;
 #endif
 
 using System;
@@ -25,7 +25,7 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("左侧图标（折叠状态或自定义图标；无图标时其节点自动隐藏）。")]
         public Image         icon;
         [Tooltip("右侧文本（页签名称）。")]
-        public InventoryText label;
+        public UiText label;
 
         /// <summary>设置右侧文本。</summary>
         public void SetLabel(string text)

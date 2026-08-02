@@ -1,7 +1,7 @@
 #if ATK_TMP
-using InventoryText = TMPro.TMP_Text;
+using UiText = TMPro.TMP_Text;
 #else
-using InventoryText = UnityEngine.UI.Text;
+using UiText = UnityEngine.UI.Text;
 #endif
 
 using System;
@@ -90,7 +90,7 @@ namespace Ale.Toolkit.Runtime.UI
         // 写入按钮文本与选中高亮（normalColor）。
         private void BindButton(Button btn, string tagName, string display, bool selected)
         {
-            var txt = btn.GetComponentInChildren<InventoryText>();
+            var txt = btn.GetComponentInChildren<UiText>();
             if (txt) txt.text = display;
 
             var colors = btn.colors;

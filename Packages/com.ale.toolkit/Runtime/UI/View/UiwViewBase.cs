@@ -1,7 +1,7 @@
 #if ATK_TMP
-using InventoryText = TMPro.TMP_Text;
+using UiText = TMPro.TMP_Text;
 #else
-using InventoryText = UnityEngine.UI.Text;
+using UiText = UnityEngine.UI.Text;
 #endif
 
 using UnityEngine;
@@ -25,7 +25,7 @@ namespace Ale.Toolkit.Runtime.UI
         #region 标题
         [Header("标题")]
         [Tooltip("标题文本：显示当前视图名称（仓库 / 商店 / 模板名等）。为空时各视图自行回退。")]
-        public InventoryText titleLabel;
+        public UiText titleLabel;
 
         /// <summary>
         /// 组合标题文本（各视图刷新标题时复用）：取显示名 <paramref name="displayName"/>
@@ -118,7 +118,7 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("顺序列表 ↔ 网格 切换按钮。为空时固定使用可用的那个列表，不提供切换。")]
         public Button viewModeToggleButton;
         [Tooltip("切换按钮上的文本：显示**当前**所处的模式名。可空。")]
-        public InventoryText viewModeToggleLabel;
+        public UiText viewModeToggleLabel;
         [Tooltip("处于顺序列表模式时，切换按钮显示的文本。")]
         public string orderModeLabel = "列表";
         [Tooltip("处于网格模式时，切换按钮显示的文本。")]
