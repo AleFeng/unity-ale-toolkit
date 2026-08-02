@@ -38,7 +38,7 @@ Unity 的 Package Manager **不支持在 `package.json` 的 `dependencies` 里�
 **第一步 —— 先装 Toolkit：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.4.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.0
 ```
 
 **第二步 —— 再装依赖它的插件**，例如库存系统：
@@ -57,7 +57,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 
 | 模块 | 内容 |
 | --- | --- |
-| **属性系统** | `AttributeValue` 与 20+ 字段类型、属性定义（schema）、自定义枚举类型、数字格式配置、标签系统（`Tag`）。任何需要「配置属性条目」的场合都用它 |
+| **属性系统** | `AttributeValue` 与 20+ 字段类型、属性定义（schema）、自定义枚举类型、数字格式配置、标签系统（`Tag`）、轻量展示文本 `TextValue`（fallback + 可选原生本地化）。任何需要「配置属性条目」的场合都用它 |
 | **排序** | 与元素类型无关的排序引擎：宿主实现 `ISortContext<TData>` 提供比较所需信息，引擎负责多级优先级与降级比较；主键 / 标签序号排序开箱即用 |
 | **UI** | 虚拟滚动列表（网格 / 顺序，对象池 + 仅渲染可见区）、页签栏、过滤栏、Tooltip 基类、子项实例池等通用控件 |
 | **对象池** | 通用 GameObject 预制体池 + 纯 C# 引用类型池 `ToolkitClassPool<T>`（`Spawn`/`Despawn`、`IPoolable` 回调、预热 / 容量回收 / 跨场景、降 GC），可替代 Lean.Pool 一类第三方池 |

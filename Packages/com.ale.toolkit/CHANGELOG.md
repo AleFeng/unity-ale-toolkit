@@ -6,6 +6,21 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.5.0] - 2026-08-02
+
+新增轻量「展示文本」值类型 **`TextValue`**（纯文本 fallback + 可选原生 `LocalizedString`），作为 `AttributeValue` 的 `EFieldType.Text` 的**独立轻量版**——每实例仅一个 string（启用本地化时 +1 个 `LocalizedString`），无 `AttributeValue` 预分配六个类型后备列表的开销；且**直接内嵌 Unity 原生 `LocalizedString`**，Inspector 用原生表/条目选择器、选择即由原生序列化正确保存。另把 UI 组件里承载展示文本的 TMP/UGUI 文本类型别名 `InventoryText` 统一更名为 `UiText`（去领域化）。**导出格式与通用序列化结构不变、纯加量；仅 `UiwViewBase` 两个模式切换标签由 `string` 升级为 `TextValue`（见「变更」）。**
+
+### 新增
+
+- **`TextValue`（`Ale.Toolkit.Runtime`）**：轻量展示文本值。始终携带纯文本 fallback；启用 `ATK_LOCALIZATION` 时额外内嵌一个 Unity `LocalizedString`。`ResolveText()` 本地化优先、取不到回退 fallback；另有 `Fallback` / `Localized`（本地化宏下）/ `IsEmpty` / `Clone()`（深拷贝，本地化引用另建一份复制表/条目引用）。相比用 `AttributeValue` 的 `EFieldType.Text` 承载展示文本更省——无预分配的多类型后备列表，适合「在组件 / 配置上直接声明一个可本地化文本字段」的场合。
+- **`TextValueDrawer`（`Ale.Toolkit.Editor`，`[CustomPropertyDrawer(typeof(TextValue))]`）**：一行纯文本 fallback + 启用本地化时内嵌 `LocalizedString` 的 **Unity 原生表/条目可搜索选择器**；由原生绘制器负责编辑与序列化，**选择即正确保存**。绘制器不含 `#if`——靠 `localized` 子属性是否存在判断本地化是否被编译进来（未启用时仅画 fallback）。
+- **测试**：`Assets/Tests/TextValueTests.cs` 覆盖 fallback 取值 / 空判定 / 深拷贝 / `ResolveText` 回退等。
+
+### 变更
+
+- **`InventoryText` → `UiText`**：UI 组件顶部承载「TMP 或 UGUI 文本」的 `using` 类型别名（`ATK_TMP` 下为 `TMPro.TMP_Text`、否则 `UnityEngine.UI.Text`）由 `InventoryText` 更名为 `UiText`——toolkit 已通用化，别名不再沿用库存时代的 `Inventory` 前缀。涉及 `UiwTextLabel` / `UiwFilterTabBar` / `UiwFoldTab` / `UiwTabButton` / `UiwNumberCounter` / `UiwSortToolbar` / `UiwViewBase` 共 7 个文件，**纯别名改名，无行为变化**。
+- **`UiwViewBase` 模式切换标签改用 `TextValue`**：顺序 ↔ 网格切换按钮的两个标签 `orderModeLabel` / `gridModeLabel` 由 `string` 升级为 `TextValue`（默认值仍为「列表」/「网格」），使其可本地化；`ApplyViewMode` 改经 `ResolveText()` 取文本。**注意**：字段类型由 `string` 变为 `TextValue`，Unity 不会迁移旧序列化值——预制体 / 场景上此前**自定义过**这两个标签文本的会回退到默认「列表」/「网格」，需重新填写（未改过的无影响）。
+
 ## [1.4.0] - 2026-08-01
 
 四个面向「数据驱动配置」的通用运行时能力落位：**属性修饰器求值**（GAS 式分组结算 + 来源明细）、**数据库编辑器窗口外壳基类**，以及两个对称的独立子系统——**条件系统（Condition System）** 与 **效果系统（Effect System）**。两个子系统均为「引擎无关 Core（可上服务端）+ Unity 桥（启动自动注册）+ 真·内联 `[CustomPropertyDrawer]`（声明字段即在 Inspector 配置）」三层结构，通过 `[Attribute]` 反射 / TypeCache 自动发现上层实现，供任意上层插件（角色 / 战斗 / 技能…）扩展自己的判定与效果。**新增 6 个程序集**（`Ale.Condition.Core/.Runtime/.Editor` + `Ale.Effect.Core/.Runtime/.Editor`）；修饰器与窗口基类落在既有 `Ale.Toolkit.Runtime` / `Ale.Toolkit.Editor`。**导出格式与序列化结构不变、纯加量、无破坏性改动。**
