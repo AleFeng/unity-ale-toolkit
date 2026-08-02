@@ -119,10 +119,10 @@ namespace Ale.Toolkit.Runtime.UI
         public Button viewModeToggleButton;
         [Tooltip("切换按钮上的文本：显示**当前**所处的模式名。可空。")]
         public UiText viewModeToggleLabel;
-        [Tooltip("处于顺序列表模式时，切换按钮显示的文本。")]
-        public string orderModeLabel = "列表";
-        [Tooltip("处于网格模式时，切换按钮显示的文本。")]
-        public string gridModeLabel = "网格";
+        [Tooltip("处于顺序列表模式时，切换按钮显示的文本（纯文本 fallback + 可选本地化）。")]
+        public TextValue orderModeLabel = new TextValue("列表");
+        [Tooltip("处于网格模式时，切换按钮显示的文本（纯文本 fallback + 可选本地化）。")]
+        public TextValue gridModeLabel = new TextValue("网格");
 
         /// <summary>当前是否为网格模式（false = 顺序列表）。</summary>
         protected bool GridMode { get; private set; }
@@ -156,7 +156,11 @@ namespace Ale.Toolkit.Runtime.UI
         /// <summary>把当前模式应用到按钮文本与两个列表组件的显隐。</summary>
         protected void ApplyViewMode()
         {
-            if (viewModeToggleLabel) viewModeToggleLabel.text = GridMode ? gridModeLabel : orderModeLabel;
+            if (viewModeToggleLabel)
+            {
+                var mode = GridMode ? gridModeLabel : orderModeLabel;
+                viewModeToggleLabel.text = mode != null ? mode.ResolveText() : string.Empty;
+            }
             OnApplyViewMode(GridMode);
         }
 

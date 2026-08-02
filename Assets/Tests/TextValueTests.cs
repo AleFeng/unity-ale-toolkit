@@ -4,8 +4,9 @@ using Ale.Toolkit.Runtime;
 namespace Ale.Toolkit.Tests
 {
     /// <summary>
-    /// TextValue 门槛：默认空、fallback 解析、本地化引用读写、Clone 独立。
-    /// 本地化解析分支依赖运行时本地化设置（表/条目），不在纯单测覆盖；此处仅验证「无本地化引用时 ResolveText 回退 fallback」。
+    /// TextValue 门槛：默认空、fallback 解析与读写、Clone 独立。
+    /// 本地化引用由内嵌的 Unity LocalizedString 承载（原生序列化 / 绘制器），其解析依赖运行时本地化设置，
+    /// 不在纯单测覆盖；此处验证「无本地化引用时 ResolveText 回退 fallback」。
     /// </summary>
     public class TextValueTests
     {
@@ -37,30 +38,14 @@ namespace Ale.Toolkit.Tests
         }
 
         [Test]
-        public void LocalizedRef_Roundtrip()
-        {
-            var t = new TextValue();
-            t.SetLocalizedRef("UI表", "list_key");
-            var (table, entry) = t.GetLocalizedRef();
-            Assert.AreEqual("UI表", table);
-            Assert.AreEqual("list_key", entry);
-            Assert.IsFalse(t.IsEmpty);   // 有本地化引用即非空
-        }
-
-        [Test]
-        public void Clone_IsIndependent()
+        public void Clone_CopiesFallback_Independent()
         {
             var src = new TextValue("网格");
-            src.SetLocalizedRef("T", "E");
             var dst = src.Clone();
-
             Assert.AreEqual("网格", dst.Fallback);
-            Assert.AreEqual(("T", "E"), dst.GetLocalizedRef());
 
             dst.Fallback = "改了";
-            dst.SetLocalizedRef("T2", "E2");
-            Assert.AreEqual("网格", src.Fallback);                 // 源不受克隆改动影响
-            Assert.AreEqual(("T", "E"), src.GetLocalizedRef());
+            Assert.AreEqual("网格", src.Fallback);   // 源不受克隆改动影响
         }
     }
 }
