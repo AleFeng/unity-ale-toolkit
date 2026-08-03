@@ -17,7 +17,7 @@
 <p align="center">
   📥
   <a href="#-安装请先读这一段">安装</a> |
-  <a href="#-包含的模块">模块</a> |
+  <a href="#包含的模块">模块</a> |
   <a href="Packages/com.ale.toolkit/README.md">详细文档</a>
 </p>
 
