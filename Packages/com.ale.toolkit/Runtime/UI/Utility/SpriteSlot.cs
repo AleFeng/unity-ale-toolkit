@@ -33,22 +33,28 @@ namespace Ale.Toolkit.Runtime.UI
         /// true = 由本槽按取图结果开关 <see cref="Behaviour.enabled"/>（无图则隐藏）；
         /// false = 不碰 enabled，由调用方自行控制（如品质背景框需要常驻显示底框）。
         /// </param>
-        public void Bind(Image image, AttributeValue value, int index = 0, bool toggleEnabled = true)
+        /// <param name="onApplied">
+        /// 图片最终应用完成时回调（参数 = 是否有 Sprite）：直接模式即时触发，Addressable 异步模式加载完成后触发；
+        /// 无图源 / 加载空结果以 false 触发。供调用方在图片就位后再做淡入等。过期的异步结果（代次不符）不触发。
+        /// </param>
+        public void Bind(Image image, AttributeValue value, int index = 0, bool toggleEnabled = true,
+            System.Action<bool> onApplied = null)
         {
-            if (!BeginBind(image, toggleEnabled, value != null, out int gen)) return;
-            ToolkitAssets.Bind<Sprite>(value, image.gameObject, s => Apply(image, s, gen, toggleEnabled), index);
+            if (!BeginBind(image, toggleEnabled, value != null, onApplied, out int gen)) return;
+            ToolkitAssets.Bind<Sprite>(value, image.gameObject, s => Apply(image, s, gen, toggleEnabled, onApplied), index);
         }
 
         /// <summary>
         /// 从「直接引用 + Addressable 授权 GUID」绑定图片（技能图标等不走属性值的字段）。
         /// 两者皆空时等同 <see cref="Clear"/>。
         /// </summary>
-        public void Bind(Image image, Object liveRef, string address, bool toggleEnabled = true)
+        public void Bind(Image image, Object liveRef, string address, bool toggleEnabled = true,
+            System.Action<bool> onApplied = null)
         {
             bool hasSource = liveRef || !string.IsNullOrEmpty(address);
-            if (!BeginBind(image, toggleEnabled, hasSource, out int gen)) return;
+            if (!BeginBind(image, toggleEnabled, hasSource, onApplied, out int gen)) return;
             ToolkitAssets.Bind<Sprite>(liveRef, address, image.gameObject,
-                s => Apply(image, s, gen, toggleEnabled));
+                s => Apply(image, s, gen, toggleEnabled, onApplied));
         }
 
         /// <summary>清空图片显示：释放句柄、作废未完成的加载回调。</summary>
@@ -66,27 +72,30 @@ namespace Ale.Toolkit.Runtime.UI
         public void Invalidate() => _gen++;
 
         // 绑定前置：释放旧句柄、自增代次；无图源时就地清空并返回 false。
-        private bool BeginBind(Image image, bool toggleEnabled, bool hasSource, out int gen)
+        private bool BeginBind(Image image, bool toggleEnabled, bool hasSource, System.Action<bool> onApplied, out int gen)
         {
             gen = 0;
-            if (!image) return false;
+            if (!image) return false;   // 无目标图片：无可应用对象，不回调
 
             ToolkitAssets.Release(image.gameObject);
             gen = ++_gen;
 
             if (hasSource) return true;
 
+            // 无图源：就地清空，并以"无图"（false）视为已应用，供调用方复位 / 隐藏。
             image.sprite = null;
             if (toggleEnabled) image.enabled = false;
+            onApplied?.Invoke(false);
             return false;
         }
 
-        // 取图回调：代次过期 / Image 已销毁则丢弃。
-        private void Apply(Image image, Sprite sprite, int gen, bool toggleEnabled)
+        // 取图回调：代次过期 / Image 已销毁则丢弃（过期结果不触发 onApplied）。
+        private void Apply(Image image, Sprite sprite, int gen, bool toggleEnabled, System.Action<bool> onApplied)
         {
             if (gen != _gen || !image) return;
             image.sprite = sprite;
             if (toggleEnabled) image.enabled = sprite;
+            onApplied?.Invoke(sprite);
         }
     }
 }
