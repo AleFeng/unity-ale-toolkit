@@ -64,6 +64,9 @@ namespace Ale.Toolkit.Runtime.UI
         private readonly Dictionary<int, TCell> _idxToInstance = new Dictionary<int, TCell>();
         // 未分配给任何数据索引的空闲实例。
         private readonly List<TCell> _freeInstances = new List<TCell>();
+        // 正在播放"回收淡出"动画的实例（limbo）：已移出可见映射、尚未归还空闲池，动画完成或被打断后才归还 / 销毁。
+        // 仅当子类经 TryPlayRecycleAnim 接管回收动画时才会用到；默认（不接管）恒为空。
+        private readonly List<TCell> _recyclingInstances = new List<TCell>();
         // 上次计算出的首个可见数据索引；未变化时提前退出，避免无谓遍历。
         private int _lastFirstIndex = -1;
         // 临时缓冲，收集待回收的 key，避免遍历字典时修改字典。
@@ -443,9 +446,9 @@ namespace Ale.Toolkit.Runtime.UI
                     _tempRecycleIndices.Add(kv.Key);
             foreach (int idx in _tempRecycleIndices)
             {
-                ClearCell(_idxToInstance[idx]);
-                _freeInstances.Add(_idxToInstance[idx]);
+                var inst = _idxToInstance[idx];
                 _idxToInstance.Remove(idx);
+                RecycleInstance(inst);
             }
 
             // Step 2：标记窗口内待填充。限速由 LateUpdate 的 TickSpawn 逐帧消费预算填充；不限速则本帧填满。
@@ -502,7 +505,9 @@ namespace Ale.Toolkit.Runtime.UI
 
             if (_instances == null) _instances = new List<TCell>();
             if (!cellPrefab || !content) return null;
-            if (_poolTarget > 0 && _instances.Count >= _poolTarget) return null;   // 已达目标池上限，不再新建
+            // limbo（正在回收淡出的实例）不计入目标额度：否则快速滚动时大量在途淡出会挡住新格生成、造成露白。
+            // 池会临时略增、待淡出完成归还后自回落。
+            if (_poolTarget > 0 && (_instances.Count - _recyclingInstances.Count) >= _poolTarget) return null;   // 已达目标池上限，不再新建
 
             var created = Instantiate(cellPrefab, content);
             SetupInstanceRect(created);
@@ -512,10 +517,54 @@ namespace Ale.Toolkit.Runtime.UI
             return created;
         }
 
+        // 回收一个实例：子类若提供回收动画（TryPlayRecycleAnim 返回 true），先入 limbo 保持存活播放，
+        // 动画完成回调 FinishRecycleAnim 再清空归还；否则即时清空归还（默认，与旧逻辑等效）。
+        private void RecycleInstance(TCell inst)
+        {
+            if (!inst) return;
+            // [B1] 必须先入 limbo 再播放：FadeCanvasGroup 在 duration<=0 时会"同步"触发 onComplete，
+            // 若先播放，同步的 FinishRecycleAnim 会在 Add 之前执行、Remove 落空 → 实例永久卡在 limbo。
+            _recyclingInstances.Add(inst);
+            if (!TryPlayRecycleAnim(inst, () => FinishRecycleAnim(inst)))
+            {
+                _recyclingInstances.Remove(inst);   // 未接管：撤销 limbo，即时清空归还
+                ClearCell(inst);
+                _freeInstances.Add(inst);
+            }
+        }
+
+        // 回收动画完成：移出 limbo、清空并归还空闲池。幂等守卫——若已被 Flush 提前处理则忽略，避免重复归还。
+        private void FinishRecycleAnim(TCell inst)
+        {
+            if (!_recyclingInstances.Remove(inst)) return;
+            if (!inst) return;
+            ClearCell(inst);
+            _freeInstances.Add(inst);
+        }
+
+        // 清空 limbo（正在回收淡出的实例）：打断动画（不触发完成回调）并即时清空。
+        // returnToFree=true 归还空闲池（数据重建）；false 留给 DestroyAllInstances 随 _instances 统一销毁。
+        private void FlushRecycling(bool returnToFree)
+        {
+            if (_recyclingInstances.Count == 0) return;
+            // [B2] 必须 Kill(false)（在 CancelRecycleAnim 内）——回调被清空、不再触发；先遍历后 Clear，
+            // 避免遍历中因回调修改 _recyclingInstances 抛 InvalidOperationException / 重复归还。
+            for (int i = 0; i < _recyclingInstances.Count; i++)
+            {
+                var inst = _recyclingInstances[i];
+                if (!inst) continue;
+                CancelRecycleAnim(inst);
+                ClearCell(inst);
+                if (returnToFree) _freeInstances.Add(inst);
+            }
+            _recyclingInstances.Clear();
+        }
+
         /// <summary>销毁所有实例，清空对象池与映射。</summary>
         private void DestroyAllInstances()
         {
             if (_instances == null) return;
+            FlushRecycling(returnToFree: false);   // 打断在途回收动画（实例随 _instances 一并销毁）
             foreach (var inst in _instances)
                 if (inst) Destroy(inst.gameObject);
             _instances.Clear();
@@ -533,6 +582,7 @@ namespace Ale.Toolkit.Runtime.UI
         /// </summary>
         protected void RegainAllInstances()
         {
+            FlushRecycling(returnToFree: true);   // 先收回正在回收淡出的 limbo 实例（打断动画、归还空闲池）
             foreach (var kv in _idxToInstance)
             {
                 ClearCell(kv.Value);
@@ -650,6 +700,16 @@ namespace Ale.Toolkit.Runtime.UI
 
         /// <summary>实例被分配给某数据索引、完成绑定后的钩子（如配置拖拽 handler 的动态索引、刷新选中高亮）。默认空实现。</summary>
         protected virtual void OnCellAssigned(TCell cell, int dataIndex) { }
+
+        /// <summary>
+        /// 回收时的淡出动画钩子（opt-in）：默认返回 <c>false</c> = 不接管，基类即时 <see cref="ClearCell"/> 并归还空闲池（与旧逻辑一致）。
+        /// 子类返回 <c>true</c> 表示已接管——须保持格子存活播放淡出，并在结束时调用 <paramref name="onComplete"/>
+        /// （由基类完成清空 / 归还）。要求动画时长 &gt; 0；<paramref name="onComplete"/> 只应触发一次。
+        /// </summary>
+        protected virtual bool TryPlayRecycleAnim(TCell cell, Action onComplete) => false;
+
+        /// <summary>打断某实例正在进行的回收淡出动画（<b>不</b>触发其完成回调）。与 <see cref="TryPlayRecycleAnim"/> 配套；默认空实现。</summary>
+        protected virtual void CancelRecycleAnim(TCell cell) { }
 
         /// <summary>
         /// 增量差异刷新（<see cref="RefreshItemsData"/>）时判断某活跃格是否需要重绑：
