@@ -482,6 +482,7 @@ namespace Ale.Toolkit.Runtime.UI
                 ((RectTransform)inst.transform).anchoredPosition = PositionOf(idx);
                 BindCell(inst, Items[idx]);
                 OnCellAssigned(inst, idx);
+                if (inst is IUiwRecycleFadeCell fade) fade.PlayShowFade();   // 通用淡入（仅生成路径，不在就地刷新触发）
                 _idxToInstance[idx] = inst;
                 processed++;
             }
@@ -662,6 +663,20 @@ namespace Ale.Toolkit.Runtime.UI
         #region 布局策略（子类实现：一维纵向 / 二维网格，纵向 / 横向）
 
 
+        /// <summary>
+        /// 读取 <see cref="cellPrefab"/> 根 RectTransform 的尺寸（供子类 <see cref="MeasureCell"/> 复用，
+        /// 消除各布局重复的「取 RectTransform → rect」样板）。无 prefab / 非 RectTransform 时返回 false。
+        /// </summary>
+        protected bool TryGetCellPrefabSize(out float width, out float height)
+        {
+            width = 0f; height = 0f;
+            if (!cellPrefab) return false;
+            if (!(cellPrefab.transform is RectTransform rt)) return false;
+            var r = rt.rect;
+            width = r.width; height = r.height;
+            return true;
+        }
+
         /// <summary>测量格子尺寸（从 <see cref="cellPrefab"/> 的 RectTransform 读取行高 / 列宽）。</summary>
         protected abstract void MeasureCell();
 
@@ -702,21 +717,34 @@ namespace Ale.Toolkit.Runtime.UI
         protected virtual void OnCellAssigned(TCell cell, int dataIndex) { }
 
         /// <summary>
-        /// 回收时的淡出动画钩子（opt-in）：默认返回 <c>false</c> = 不接管，基类即时 <see cref="ClearCell"/> 并归还空闲池（与旧逻辑一致）。
-        /// 子类返回 <c>true</c> 表示已接管——须保持格子存活播放淡出，并在结束时调用 <paramref name="onComplete"/>
-        /// （由基类完成清空 / 归还）。要求动画时长 &gt; 0；<paramref name="onComplete"/> 只应触发一次。
+        /// 回收时的淡出动画钩子：<b>默认</b>驱动实现了 <see cref="IUiwRecycleFadeCell"/> 的格子淡出
+        /// （格子存活时调其 <c>FadeOutAndHide</c>，由基类在完成回调里清空 / 归还）；未实现该接口或格子已停用
+        /// 则返回 <c>false</c>，走即时回收（与旧逻辑一致）。子类可覆写以自定义回收动画。
+        /// 返回 <c>true</c> 表示已接管——须保持格子存活播放淡出、结束时调用 <paramref name="onComplete"/>（只触发一次）。
         /// </summary>
-        protected virtual bool TryPlayRecycleAnim(TCell cell, Action onComplete) => false;
+        protected virtual bool TryPlayRecycleAnim(TCell cell, Action onComplete)
+        {
+            if (cell is IUiwRecycleFadeCell fade && cell.gameObject.activeSelf)
+            {
+                fade.FadeOutAndHide(onComplete);
+                return true;
+            }
+            return false;
+        }
 
-        /// <summary>打断某实例正在进行的回收淡出动画（<b>不</b>触发其完成回调）。与 <see cref="TryPlayRecycleAnim"/> 配套；默认空实现。</summary>
-        protected virtual void CancelRecycleAnim(TCell cell) { }
+        /// <summary>打断某实例正在进行的回收淡出动画（<b>不</b>触发其完成回调）。默认打断实现了 <see cref="IUiwRecycleFadeCell"/> 的格子。</summary>
+        protected virtual void CancelRecycleAnim(TCell cell)
+        {
+            if (cell is IUiwRecycleFadeCell fade) fade.CancelRootFade();
+        }
 
         /// <summary>
-        /// 增量差异刷新（<see cref="RefreshItemsData"/>）时判断某活跃格是否需要重绑：
-        /// 返回 false 则跳过该格（其当前显示与新数据一致）。<b>默认恒 true</b>（即全部重绑，行为同旧逻辑）；
-        /// 叶子可覆写，比较"格子当前显示内容"与新数据以跳过未变格（避免图标异步重载闪烁）。
+        /// 增量差异刷新（<see cref="RefreshItemsData"/>）时判断某活跃格是否需要重绑：返回 false 则跳过该格。
+        /// <b>默认</b>：格子实现了 <see cref="IUiwDiffCell{TData}"/> 时用其 <c>MatchesSlot</c> 比较（一致则跳过，
+        /// 避免图标异步重载闪烁与无谓开销）；未实现则恒 true（全部重绑，行为同旧逻辑）。子类可覆写。
         /// </summary>
-        protected virtual bool NeedsRebind(TCell cell, TData data) => true;
+        protected virtual bool NeedsRebind(TCell cell, TData data)
+            => !(cell is IUiwDiffCell<TData> diff) || !diff.MatchesSlot(data);
 
         /// <summary>
         /// 需在滚动回收时"钉住"（不回收 / 不停用）的数据索引，-1 表示无。默认 -1。
