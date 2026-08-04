@@ -32,13 +32,13 @@ Unity の Package Manager は **`package.json` の `dependencies` に git URL �
 **手順 1 —— まず Toolkit をインストール：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.1
 ```
 
 **手順 2 —— 次に依存プラグイン**（例：インベントリシステム）をインストール：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.11.1
 ```
 
 > 順序が逆になったり本パッケージが未インストールの場合、Unity は `Ale.Toolkit.* が見つかりません` といったコンパイルエラーを出します。その際は本パッケージを追加インストールして再コンパイルを待つだけでよく、もう一方のプラグインを再インストールする必要はありません。
@@ -53,9 +53,9 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | --- | --- |
 | **属性システム** | 20 種類以上のフィールドタイプを持つ `AttributeValue`、属性定義（スキーマ）、カスタム列挙型、数値フォーマット設定、軽量な表示テキスト `TextValue`（fallback + オプションのネイティブローカライズ）。「属性項目を設定する」場面ではすべてこれを使用します |
 | **ソート** | 要素の型に依存しないソートエンジン。ホスト側が `ISortContext<TData>` を実装して比較に必要な情報を提供し、エンジンが多段優先度とタイブレークを処理します |
-| **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画）、タブバー、フィルターバー、ツールチップ基底クラス、ウィジェットプール |
+| **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画；セルの割り当て / 回収時のフェードイン・アウトを `UiwListFadeCell` + エンジン既定フックで汎用駆動）、タブバー、フィルターバー、ツールチップ基底クラス、ウィジェットプール |
 | **オブジェクトプール** | 汎用の GameObject / プレハブプール（`Spawn`/`Despawn` + `IPoolable` コールバック、プリロード / 容量リサイクル / 遅延デスポーン / シーン跨ぎ）と、純 C# 参照型プール `ToolkitClassPool<T>`（GC 削減）。Lean.Pool 等のサードパーティ製プールを置き換え可能 |
-| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`ToolkitTween.FadeCanvasGroup` が `CanvasGroup` をフェードし、中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
+| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`ToolkitTween.FadeCanvasGroup` / `FadeGraphic` で `CanvasGroup` / `Graphic`（Image / テキスト）の alpha をフェードし、中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
 | **属性モディファイア** | GAS 風のモディファイア評価：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース明細）。「基礎値 + 一連の加算 → 現在値」という数値集約はすべてこれを使用します |
 | **条件システム（Condition System）** | データ駆動の二段 AND/OR 条件：`ConditionExpression` フィールドを宣言するだけで Inspector 内にインラインで設定；上位が実装する `[ConditionEvaluator]` 判定器が自動的に発見されます。エンジン非依存の Core はサーバーサイドでも動作可能 |
 | **効果システム（Effect System）** | 条件システムの書き込み側ミラー：データ駆動の離散トリガー式ミューテーション（フェーズグループ + 各項目にオプションの条件ゲート）；上位が実装する `[EffectExecutor]` 実行器が自動的に発見されます。エンジン非依存の Core |
@@ -65,7 +65,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ / ウィザードのデフォルト・ローカライズフォント + 汎用ツール入口 +「起動時に自動表示」トグル。ウィザードフォントなどのプロジェクト単位の設定は `ProjectSettings/AleToolkitSettings.asset` に保存（リポジトリと共にコミット、アセット参照は GUID で保持）、言語 / 自動表示はユーザーごと（EditorPrefs）。旧マクロ `IS_*` は読み込み時に `ATK_*` へ自動移行 |
 | **汎用ツールウィンドウ** | 任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理：Addressable 移行（Object ↔ GUID）とローカライズキー生成。`Tools > Ale Toolkit` 配下、上位プラグインで再利用可能 |
 
-> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
+> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
 
 ---
 

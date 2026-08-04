@@ -6,6 +6,24 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.5.1] - 2026-08-04
+
+为「虚拟滚动列表」补上一套**通用的单元格淡入淡出**：新增列表单元格契约接口与淡入淡出基类，`UiwVirtualListBase` 的默认 hook 自动驱动——任何继承的单元格白得「分配（滚入）淡入 / 回收（滚出）淡出」，各列表无需 override。`ToolkitTween` 扩展出 `Graphic` 淡入以支撑逐图片淡入。**默认无实现者时行为不变；导出格式与序列化结构不变、纯加量。**
+
+### 新增
+
+- **`UiwListFadeCell`（`Ale.Toolkit.Runtime.UI`）**：列表单元格「根 CanvasGroup 淡入淡出」通用基类（继承 `UiwHoverTooltipSource`、实现 `IUiwRecycleFadeCell`）。`PlayShowFade`（分配淡入）/ `FadeOutAndHide`（回收淡出，完成回调）/ `CancelRootFade` / `ResetRootVisible`；根 CanvasGroup 惰性获取 / 补挂；序列化时长 `rootFadeInDuration` / `rootFadeOutDuration`；安全阀 `RecycleFadeEnabled`（默认 true，可 override 退出，如根 CanvasGroup 另作它用时）。业务单元格继承即白得对称淡入淡出。
+- **单元格契约接口（`Ale.Toolkit.Runtime.UI`）**：`IUiwRecycleFadeCell`（`PlayShowFade` / `FadeOutAndHide` / `CancelRootFade`）与 `IUiwDiffCell<TData>`（`MatchesSlot`，增量差异刷新跳过重绑）。供 `UiwVirtualListBase` 默认 hook 驱动。
+- **`ToolkitTween.FadeGraphic(Graphic, …)`**：`Image` / 文本等 `Graphic` 的 alpha 淡入淡出。内部 `TweenJob` 泛化为「CanvasGroup 或 Graphic」双目标（互斥、近零 GC）；`FadeCanvasGroup` 行为不变。
+- **`SpriteSlot.Bind(…, onApplied)`**：可选「图片就位」回调（有图 / 无图各触发一次，代次过期不触发），供调用方在 Sprite 就位后再淡入等；默认 null，现有调用零变化。
+- **`UiwVirtualListBase.TryGetCellPrefabSize`**：读取 `cellPrefab` RectTransform 尺寸的 protected helper，供布局子类复用。
+
+### 变更
+
+- **`UiwVirtualListBase` 默认 hook 改为驱动接口**：`TryPlayRecycleAnim`（回收淡出）/ `CancelRecycleAnim` / `NeedsRebind`（增量差异）默认检测单元格是否实现对应接口并驱动之——**未实现时行为与旧逻辑等效**（即时回收 / 恒重绑）；`FillWindow` 生成后统一调 `PlayShowFade`（仅生成路径，不在就地刷新触发）。子类不再需要为「淡入淡出 / 差异刷新」逐个 override。回收淡出经内建 limbo 记账保持格子存活播放淡出、完成后再清空归还（不接管的列表零影响）。
+- **`UiwVirtualGridList` / `UiwVirtualOrderList` 去重**：两者 `MeasureCell` 改用 `TryGetCellPrefabSize`，去除重复的 RectTransform 读取样板（行为等价，各自保留默认尺寸）。
+- **虚拟列表脚本命名规范化**：若干列表 / 基类脚本命名统一（`.meta` GUID 保留，预制体引用不受影响）。
+
 ## [1.5.0] - 2026-08-02
 
 新增轻量「展示文本」值类型 **`TextValue`**（纯文本 fallback + 可选原生 `LocalizedString`），作为 `AttributeValue` 的 `EFieldType.Text` 的**独立轻量版**——每实例仅一个 string（启用本地化时 +1 个 `LocalizedString`），无 `AttributeValue` 预分配六个类型后备列表的开销；且**直接内嵌 Unity 原生 `LocalizedString`**，Inspector 用原生表/条目选择器、选择即由原生序列化正确保存。另把 UI 组件里承载展示文本的 TMP/UGUI 文本类型别名 `InventoryText` 统一更名为 `UiText`（去领域化）。**导出格式与通用序列化结构不变、纯加量；仅 `UiwViewBase` 两个模式切换标签由 `string` 升级为 `TextValue`（见「变更」）。**

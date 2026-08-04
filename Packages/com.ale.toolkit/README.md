@@ -32,13 +32,13 @@ Unity 的 Package Manager **不支持在 `package.json` 的 `dependencies` 里�
 **第一步 —— 先装 Toolkit：**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.1
 ```
 
 **第二步 —— 再装依赖它的插件**，例如库存系统：
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.11.1
 ```
 
 > 若顺序颠倒或漏装本包，Unity 会报 `找不到 Ale.Toolkit.*` 一类的编译错误。此时补装本包并等待重新编译即可，无需重装另一个插件。
@@ -53,9 +53,9 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | --- | --- |
 | **属性系统** | `AttributeValue` 与 20+ 字段类型、属性定义（schema）、自定义枚举类型、数字格式配置、轻量展示文本 `TextValue`（fallback + 可选原生本地化）。任何需要「配置属性条目」的场合都用它 |
 | **排序** | 与元素类型无关的排序引擎：宿主实现 `ISortContext<TData>` 提供比较所需信息，引擎负责多级优先级与降级比较 |
-| **UI** | 虚拟滚动列表（网格 / 顺序，对象池 + 仅渲染可见区）、页签栏、过滤栏、Tooltip 基类、子项实例池等通用控件 |
+| **UI** | 虚拟滚动列表（网格 / 顺序，对象池 + 仅渲染可见区；单元格分配 / 回收淡入淡出经 `UiwListFadeCell` + 引擎默认 hook 通用驱动）、页签栏、过滤栏、Tooltip 基类、子项实例池等通用控件 |
 | **对象池** | 通用 GameObject 预制体池（`Spawn`/`Despawn` + `IPoolable` 回调、预热 / 容量回收 / 延迟归还 / 跨场景）与纯 C# 引用类型池 `ToolkitClassPool<T>`（降 GC），可替代 Lean.Pool 一类第三方池 |
-| **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`ToolkitTween.FadeCanvasGroup` 对 `CanvasGroup` 淡入淡出，返回值类型可打断句柄；缓动最小集 `EToolkitEase` |
+| **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`ToolkitTween.FadeCanvasGroup` / `FadeGraphic` 对 `CanvasGroup` / `Graphic`（Image / 文本）alpha 淡入淡出，返回值类型可打断句柄；缓动最小集 `EToolkitEase` |
 | **属性修饰器** | GAS 式修饰器求值：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。任何「基础值 + 一叠加成 → 当前值」的数值汇流都用它 |
 | **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现。引擎无关 Core 可上服务端 |
 | **效果系统（Effect System）** | 条件系统的写侧镜像：数据驱动的离散触发式突变（阶段组 + 每项可选条件门控）；上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core |
@@ -65,7 +65,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；旧宏 `IS_*` 加载时自动迁移为 `ATK_*` |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
-> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 

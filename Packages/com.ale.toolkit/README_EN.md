@@ -32,13 +32,13 @@ Unity's Package Manager **does not support git URLs in the `dependencies` field 
 **Step 1 — install Toolkit first:**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.1
 ```
 
 **Step 2 — then install the dependent plugin**, for example the inventory system:
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.11.1
 ```
 
 > If the order is reversed or this package is missing, Unity reports compile errors such as `Ale.Toolkit.* not found`. Just install this package and wait for the recompile — there is no need to reinstall the other plugin.
@@ -53,9 +53,9 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | --- | --- |
 | **Attribute system** | `AttributeValue` with 20+ field types, attribute definitions (schema), custom enum types, number-format configs, and the lightweight display text `TextValue` (fallback + optional native localization). Use it wherever configurable attribute entries are needed |
 | **Sorting** | An element-type-agnostic sort engine: the host implements `ISortContext<TData>` to supply what comparison needs, the engine handles multi-level priorities and tiebreakers |
-| **UI** | Virtual scrolling lists (grid / sequential, object pool + visible-region-only rendering), tab strips, filter bars, tooltip base classes, widget pools |
+| **UI** | Virtual scrolling lists (grid / sequential, object pool + visible-region-only rendering; cell assign / recycle fade-in-out driven generically by `UiwListFadeCell` + the engine's default hooks), tab strips, filter bars, tooltip base classes, widget pools |
 | **Object pool** | A general-purpose GameObject/prefab pool (`Spawn`/`Despawn` + `IPoolable` callbacks; preload / capacity-recycle / delayed despawn / cross-scene) plus a plain-C# reference-type pool `ToolkitClassPool<T>` (lower GC) — a drop-in replacement for third-party pools like Lean.Pool |
-| **Tween** | A lightweight central tween (DOTween-style single-Update polling, pooled jobs, near-zero GC): `ToolkitTween.FadeCanvasGroup` fades a `CanvasGroup`, returning a killable value-type handle; minimal easing set `EToolkitEase` |
+| **Tween** | A lightweight central tween (DOTween-style single-Update polling, pooled jobs, near-zero GC): `ToolkitTween.FadeCanvasGroup` / `FadeGraphic` fade a `CanvasGroup` / `Graphic` (Image / text) alpha, returning a killable value-type handle; minimal easing set `EToolkitEase` |
 | **Attribute modifier** | GAS-style modifier evaluation: `ModifierDefinition` + `ModifierStackEvaluator` settle by group (Add→PercentAdd→Multiply→Override + clamp + source breakdown). Use it for any "base value + a stack of bonuses → current value" numeric convergence |
 | **Condition System** | Data-driven two-level AND/OR conditions: declare a `ConditionExpression` field to configure it inline in the Inspector; upper layers implement `[ConditionEvaluator]` evaluators that are auto-discovered. The engine-agnostic Core is server-side ready |
 | **Effect System** | The write-side mirror of the Condition System: data-driven discrete trigger-style mutations (phase groups + an optional per-item condition gate); upper layers implement `[EffectExecutor]` executors that are auto-discovered. Engine-agnostic Core |
@@ -65,7 +65,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Editor entry & global settings** | The Ale Toolkit Welcome Window (`Tools > Ale Toolkit > Welcome`): editor UI language / enum translation / the three optional feature macros / wizard default & localized fonts + general-tool entries + an "auto-show on startup" toggle; project-level settings such as the wizard fonts are saved to `ProjectSettings/AleToolkitSettings.asset` (committed with the repo, asset references stored by GUID), while language / auto-show are per-user (EditorPrefs); legacy `IS_*` macros are auto-migrated to `ATK_*` on load |
 | **General tool windows** | Walk every `AttributeValue` of any data asset (`ScriptableObject`) for batch processing: Addressable migration (Object ↔ GUID) and localization key generation, under `Tools > Ale Toolkit`, reusable by upper-layer plugins |
 
-> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**. See the [CHANGELOG](CHANGELOG.md) for details.
+> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**; **since 1.5.1 it adds generic cell fade-in/out for the virtual-scroll list (`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`, driven by `UiwVirtualListBase`'s default hooks) plus `ToolkitTween.FadeGraphic`**. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 
