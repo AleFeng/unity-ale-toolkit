@@ -27,7 +27,7 @@ namespace Ale.Toolkit.Runtime.UI
     /// <para>各系统按需继承本类、闭合泛型并实现 <see cref="UiwVirtualListBase{TData,TCell}.BindCell"/> /
     /// <see cref="UiwVirtualListBase{TData,TCell}.ClearCell"/>（如仓库网格 <c>UiwInventoryItemGridList</c>）。</para>
     /// </summary>
-    public abstract class UiwVirtualGridList<TData, TCell> : UiwVirtualListBase<TData, TCell>
+    public abstract class UiwVirtualItemList<TData, TCell> : UiwVirtualListBase<TData, TCell>
         where TCell : Component
     {
         [Header("网格布局")]

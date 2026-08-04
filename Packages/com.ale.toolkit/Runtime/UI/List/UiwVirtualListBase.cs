@@ -12,7 +12,7 @@ namespace Ale.Toolkit.Runtime.UI
     ///
     /// <para>本基类只持有"虚拟滚动引擎"（对象池 + 视口尺寸监听 + 回收 / 复用循环），
     /// 具体的<b>布局策略</b>（一维纵向 / 二维网格、纵向 / 横向滚动、条目定位）由子类
-    /// <see cref="UiwVirtualOrderList{TData,TCell}"/> / <see cref="UiwVirtualGridList{TData,TCell}"/> 实现；
+    /// <see cref="UiwVirtualOrderList{TData,TCell}"/> / <see cref="UiwVirtualItemList{TData,TCell}"/> 实现；
     /// 具体的<b>格子绑定</b>（把某条数据显示到一个格子 / 清空格子）由各系统的叶子类实现。</para>
     ///
     /// <para>数据类型 <typeparamref name="TData"/> 与格子类型 <typeparamref name="TCell"/> 均为泛型，
