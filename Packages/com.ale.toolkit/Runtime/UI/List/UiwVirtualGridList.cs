@@ -50,10 +50,9 @@ namespace Ale.Toolkit.Runtime.UI
 
         protected override void MeasureCell()
         {
-            if (!cellPrefab) return;
-            var rect = cellPrefab.GetComponent<RectTransform>().rect;
-            if (rect.width  > 0f) _cellWidth  = rect.width;
-            if (rect.height > 0f) _cellHeight = rect.height;
+            if (!TryGetCellPrefabSize(out float w, out float h)) return;
+            if (w > 0f) _cellWidth  = w;
+            if (h > 0f) _cellHeight = h;
         }
 
         protected override void RecomputeLayout(Rect viewport)

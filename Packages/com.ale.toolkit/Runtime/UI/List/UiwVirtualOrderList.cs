@@ -21,11 +21,8 @@ namespace Ale.Toolkit.Runtime.UI
         /// </summary>
         protected override void MeasureCell()
         {
-            if (cellPrefab)
-            {
-                float h = cellPrefab.GetComponent<RectTransform>().rect.height;
-                if (h > 0f) _cellHeight = h;
-            }
+            if (TryGetCellPrefabSize(out _, out float h) && h > 0f)
+                _cellHeight = h;
         }
 
         /// <summary>
