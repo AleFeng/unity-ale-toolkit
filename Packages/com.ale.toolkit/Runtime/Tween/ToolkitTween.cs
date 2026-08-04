@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Ale.Toolkit.Runtime
 {
     /// <summary>
-    /// 轻量中央 Tween 门面（DOTween 式「单 Update 轮询作业表」）。当前提供 <see cref="CanvasGroup"/> 淡入淡出，
-    /// 作业经 <see cref="ToolkitClassPool{T}"/> 池化、由 <see cref="ToolkitTweenRunner"/> 统一推进，近零 GC。
+    /// 轻量中央 Tween 门面（DOTween 式「单 Update 轮询作业表」）。当前提供 <see cref="CanvasGroup"/> 与
+    /// <see cref="Graphic"/>（<see cref="Image"/> / 文本）的 alpha 淡入淡出，作业经 <see cref="ToolkitClassPool{T}"/>
+    /// 池化、由 <see cref="ToolkitTweenRunner"/> 统一推进，近零 GC。
     ///
     /// <para><b>作用域为轻量：</b>不复刻 DOTween 的 Sequence / 泛型链式 / 全套 Ease，按需增量扩展。</para>
     /// </summary>
@@ -46,8 +48,55 @@ namespace Ale.Toolkit.Runtime
             var job = ToolkitClassPool<TweenJob>.Spawn() ?? new TweenJob();
             job.Id         = _nextId++;
             job.Alive      = true;
-            job.Target     = target;
+            job.Cg         = target;
+            job.Gr         = null;
             job.From       = target.alpha;
+            job.To         = endAlpha;
+            job.Duration   = duration;
+            job.Elapsed    = 0f;
+            job.Ease       = ease;
+            job.Unscaled   = unscaled;
+            job.OnComplete = onComplete;
+
+            runner.Add(job);
+            return new ToolkitTweenHandle(job, job.Id);
+        }
+
+        /// <summary>
+        /// 对 <paramref name="target"/> 的 <see cref="Graphic.color"/> 的 alpha 做淡入 / 淡出
+        /// （<see cref="Image"/> / 文本等均为 <see cref="Graphic"/>）。返回可用于打断的句柄；
+        /// <paramref name="duration"/> ≤ 0 或目标为空时立即到位并返回空句柄。语义同 <see cref="FadeCanvasGroup"/>。
+        /// </summary>
+        /// <param name="target">目标 Graphic（Image / 文本等）。</param>
+        /// <param name="endAlpha">目标 alpha。</param>
+        /// <param name="duration">时长（秒）。</param>
+        /// <param name="ease">缓动类型（默认 OutQuad）。</param>
+        /// <param name="unscaled">是否用 <see cref="Time.unscaledDeltaTime"/>（默认 true，暂停时仍推进）。</param>
+        /// <param name="onComplete">正常完成（非打断）时回调。</param>
+        public static ToolkitTweenHandle FadeGraphic(
+            Graphic target, float endAlpha, float duration,
+            EToolkitEase ease = EToolkitEase.OutQuad, bool unscaled = true,
+            Action onComplete = null)
+        {
+            if (!target) return default;
+
+            // 时长非正：瞬置到终值并直接完成，不进入 runner。
+            if (duration <= 0f)
+            {
+                var c = target.color; c.a = endAlpha; target.color = c;
+                onComplete?.Invoke();
+                return default;
+            }
+
+            var runner = EnsureRunner();
+            if (!runner) return default; // 退出播放等极端情形
+
+            var job = ToolkitClassPool<TweenJob>.Spawn() ?? new TweenJob();
+            job.Id         = _nextId++;
+            job.Alive      = true;
+            job.Gr         = target;
+            job.Cg         = null;
+            job.From       = target.color.a;
             job.To         = endAlpha;
             job.Duration   = duration;
             job.Elapsed    = 0f;
@@ -102,7 +151,8 @@ namespace Ale.Toolkit.Runtime
     {
         public long         Id;
         public bool         Alive;
-        public CanvasGroup  Target;
+        public CanvasGroup  Cg;   // 目标二选一：CanvasGroup（与 Gr 互斥，仅一个非空）
+        public Graphic      Gr;   // 目标二选一：Graphic（Image / 文本）
         public float        From;
         public float        To;
         public float        Duration;
@@ -110,6 +160,16 @@ namespace Ale.Toolkit.Runtime
         public EToolkitEase Ease;
         public bool         Unscaled;
         public Action       OnComplete;
+
+        /// <summary>作业是否仍有存活目标（两目标皆空 = 目标已被销毁 / 未设置）。</summary>
+        public bool HasTarget => Cg || Gr;
+
+        /// <summary>把 alpha 写入当前激活目标（各自带 Unity null 守卫）。</summary>
+        public void SetAlpha(float a)
+        {
+            if (Cg) Cg.alpha = a;
+            else if (Gr) { var c = Gr.color; c.a = a; Gr.color = c; }
+        }
 
         /// <summary>
         /// 打断 / 完成作业：<paramref name="complete"/>=true 时瞬置终值并触发回调；否则打断且不回调。
@@ -124,16 +184,17 @@ namespace Ale.Toolkit.Runtime
             OnComplete = null; // 无论是否 complete 都清空，避免 runner 回收时重复触发
             if (complete)
             {
-                if (Target) Target.alpha = To;
+                SetAlpha(To);
                 cb?.Invoke();
             }
         }
 
-        /// <summary>归还池前清理引用（避免保活 Target / 回调）。</summary>
+        /// <summary>归还池前清理引用（避免保活 Target / 回调）。两个目标字段都要清空，防止池复用时串写。</summary>
         public void Reset()
         {
             Alive      = false;
-            Target     = null;
+            Cg         = null;
+            Gr         = null;
             OnComplete = null;
         }
     }
@@ -152,8 +213,8 @@ namespace Ale.Toolkit.Runtime
             {
                 var job = _jobs[i];
 
-                // 已被 Kill 或目标被销毁：移除并回收（不触发完成回调）。
-                if (!job.Alive || !job.Target)
+                // 已被 Kill 或目标被销毁（两目标皆空）：移除并回收（不触发完成回调）。
+                if (!job.Alive || !job.HasTarget)
                 {
                     _jobs.RemoveAt(i);
                     Recycle(job);
@@ -163,11 +224,11 @@ namespace Ale.Toolkit.Runtime
                 job.Elapsed += job.Unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
                 float t = job.Duration > 0f ? job.Elapsed / job.Duration : 1f;
                 float k = ToolkitEase.Evaluate(job.Ease, t);
-                job.Target.alpha = Mathf.Lerp(job.From, job.To, k);
+                job.SetAlpha(Mathf.Lerp(job.From, job.To, k));
 
                 if (t >= 1f)
                 {
-                    job.Target.alpha = job.To;
+                    job.SetAlpha(job.To);
                     var cb = job.OnComplete;
                     _jobs.RemoveAt(i);
                     Recycle(job);       // 先回收再回调：回调内若再发起 tween 不受本作业回收影响
