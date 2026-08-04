@@ -51,9 +51,8 @@ namespace Ale.Toolkit.Runtime.UI
         #region 数据
 
         /// <summary>当前显示的数据列表（运行态，不序列化）。子类叶子可直接读取用于绑定 / 拖拽落位。</summary>
-        protected List<TData> Items = new List<TData>();
-
-
+        protected List<TData> items = new List<TData>();
+        
         #endregion
 
         #region 对象池
@@ -73,8 +72,7 @@ namespace Ale.Toolkit.Runtime.UI
         private readonly List<int> _tempRecycleIndices = new List<int>();
         // 临时缓冲，收集增量差异刷新中"数据已变、需重绑"的 key，避免遍历字典时修改字典。
         private readonly List<int> _tempRebindIndices = new List<int>();
-
-
+        
         #endregion
 
         #region 限速生成 / 分配
@@ -103,13 +101,11 @@ namespace Ale.Toolkit.Runtime.UI
 
         /// <summary>取当前正显示某数据索引的活跃实例（不在可见窗口内则返回 false）。供叶子做拖拽落位等按索引取格子。</summary>
         protected bool TryGetActiveCell(int dataIndex, out TCell cell) => _idxToInstance.TryGetValue(dataIndex, out cell);
-
-
+        
         #endregion
 
         #region 生命周期
-
-
+        
         protected virtual void Awake()
         {
             MeasureCell();
@@ -154,14 +150,13 @@ namespace Ale.Toolkit.Runtime.UI
         #endregion
 
         #region 公共入口
-
-
+        
         /// <summary>
         /// 设置数据列表并从<b>起点</b>重新显示（切换页签 / 过滤 / 排序等需要回到顶部 / 起始的场景）。
         /// </summary>
-        public virtual void SetItems(IReadOnlyList<TData> items)
+        public virtual void SetItems(IReadOnlyList<TData> itemsParam)
         {
-            Items = items != null ? new List<TData>(items) : new List<TData>();
+            this.items = itemsParam != null ? new List<TData>(itemsParam) : new List<TData>();
             if (!scrollRect || !content) return;
 
             RebuildLayout();       // 重算布局 + 撑开 content + 补齐实例 + 强制刷新
@@ -173,17 +168,17 @@ namespace Ale.Toolkit.Runtime.UI
         /// 增量更新数据列表（<b>保留当前滚动位置</b>）。与 <see cref="SetItems"/> 的唯一区别：不回到起点，
         /// 只按当前滚动位置重新绑定可见格子。适用于内容变化但不希望打断玩家滚动的场景。
         /// </summary>
-        public virtual void UpdateItems(IReadOnlyList<TData> items)
+        public virtual void UpdateItems(IReadOnlyList<TData> itemsParam)
         {
             // 实例池尚未建立 → 退化为完整构建。
             if (_instances == null || _instances.Count == 0)
             {
-                SetItems(items);
+                SetItems(itemsParam);
                 return;
             }
 
-            Items = items != null ? new List<TData>(items) : new List<TData>();
-            SetContentSize(Items.Count);   // 条目增删 → content 尺寸随之变化（起点不动，滚动位置保持）
+            this.items = itemsParam != null ? new List<TData>(itemsParam) : new List<TData>();
+            SetContentSize(this.items.Count);   // 条目增删 → content 尺寸随之变化（起点不动，滚动位置保持）
             RegainAllInstances();
             UpdateVisibleCells();
         }
@@ -194,20 +189,20 @@ namespace Ale.Toolkit.Runtime.UI
         /// （从而避免图标异步重载闪烁与无谓开销）。是否需要重绑由子类 <see cref="NeedsRebind"/> 判定
         /// （默认全部重绑，与 <see cref="UpdateItems"/> 行为一致；叶子可覆写以按数据比较跳过未变格）。
         /// </summary>
-        public virtual void RefreshItemsData(IReadOnlyList<TData> items)
+        public virtual void RefreshItemsData(IReadOnlyList<TData> itemsParam)
         {
             // 实例池尚未建立 → 退化为完整构建（回起点）。
             if (_instances == null || _instances.Count == 0)
             {
-                SetItems(items);
+                SetItems(itemsParam);
                 return;
             }
 
-            int oldCount = Items?.Count ?? 0;
-            Items = items != null ? new List<TData>(items) : new List<TData>();
-            SetContentSize(Items.Count);   // 条目增删 → content 尺寸随之变化（起点不动，滚动位置保持）
+            int oldCount = this.items?.Count ?? 0;
+            this.items = itemsParam != null ? new List<TData>(itemsParam) : new List<TData>();
+            SetContentSize(this.items.Count);   // 条目增删 → content 尺寸随之变化（起点不动，滚动位置保持）
 
-            if (Items.Count != oldCount)
+            if (this.items.Count != oldCount)
             {
                 // 条目数量变化：可见窗口"数据索引 ↔ 格子"映射整体位移，无法逐格差分，
                 // 退回"回收全部活跃格 + 按当前滚动位置重新分配"（仍保留滚动位置，不回顶）。
@@ -222,13 +217,13 @@ namespace Ale.Toolkit.Runtime.UI
             foreach (var kv in _idxToInstance)
             {
                 int idx = kv.Key;
-                if (idx < 0 || idx >= Items.Count) continue;
-                if (NeedsRebind(kv.Value, Items[idx])) _tempRebindIndices.Add(idx);
+                if (idx < 0 || idx >= this.items.Count) continue;
+                if (NeedsRebind(kv.Value, this.items[idx])) _tempRebindIndices.Add(idx);
             }
             foreach (int idx in _tempRebindIndices)
             {
                 var cell = _idxToInstance[idx];
-                BindCell(cell, Items[idx]);
+                BindCell(cell, this.items[idx]);
                 OnCellAssigned(cell, idx);
             }
         }
@@ -239,8 +234,7 @@ namespace Ale.Toolkit.Runtime.UI
             if (content) content.anchoredPosition = Vector2.zero;
             UpdateVisibleCells();
         }
-
-
+        
         #endregion
 
         #region 过滤 / 排序（可选，绑定 filterBar / secondaryFilterBar / sortToolbar）
@@ -328,7 +322,7 @@ namespace Ale.Toolkit.Runtime.UI
             _sortTiebreakers  = tiebreakers != null ? new List<SortPriority>(tiebreakers) : new List<SortPriority>();
             _sortWriteHandler = writeRuntime;
             if (sortToolbar) sortToolbar.SetSortPriorities(_sortPriorities,
-                ctx != null ? ctx.OptionOf : (Func<string, SortOption>)null);
+                ctx != null ? ctx.OptionOf : null);
         }
 
         /// <summary>当前排序 UI 选择对应的优先级（主条件 + tiebreakers，全部使用当前方向）。供「写运行时」视图取用。</summary>
@@ -361,9 +355,9 @@ namespace Ale.Toolkit.Runtime.UI
         /// 设置「源数据全集」，经 过滤 → 排序 后显示。取代直接调 <see cref="SetItems"/> / <see cref="RefreshItemsData"/>：
         /// <paramref name="preserveScroll"/>=true 保留滚动位置（增量差异刷新，用于内容变化）；false 回到起点（切页 / 过滤 / 排序 / 切视图）。
         /// </summary>
-        public void SetSourceItems(IReadOnlyList<TData> items, bool preserveScroll = false)
+        public void SetSourceItems(IReadOnlyList<TData> itemsParam, bool preserveScroll = false)
         {
-            _sourceItems = items != null ? new List<TData>(items) : new List<TData>();
+            _sourceItems = itemsParam != null ? new List<TData>(itemsParam) : new List<TData>();
             RebuildFilteredSorted(preserveScroll);
         }
 
@@ -371,7 +365,7 @@ namespace Ale.Toolkit.Runtime.UI
         public IReadOnlyList<TData> SourceItems => _sourceItems;
 
         /// <summary>当前实际显示的数据（已过滤 + 排序）。</summary>
-        public IReadOnlyList<TData> DisplayedItems => Items;
+        public IReadOnlyList<TData> DisplayedItems => items;
 
         /// <summary>把源数据全集经 过滤（主/副页签 + 额外谓词）→ 排序（显示排序模式）后交给显示。</summary>
         private void RebuildFilteredSorted(bool preserveScroll)
@@ -407,8 +401,7 @@ namespace Ale.Toolkit.Runtime.UI
         #endregion
 
         #region 虚拟滚动核心
-
-
+        
         /// <summary>滚动回调。</summary>
         private void OnScroll(Vector2 _) => UpdateVisibleCells();
 
@@ -420,7 +413,7 @@ namespace Ale.Toolkit.Runtime.UI
         /// </summary>
         protected void UpdateVisibleCells()
         {
-            if (Items == null || !content) return;
+            if (items == null || !content) return;
             if (_poolTarget <= 0) return;   // 尚未 RebuildLayout（无目标池），无窗口可算
 
             int first = Mathf.Max(0, ComputeFirstIndex(content.anchoredPosition));
@@ -464,7 +457,7 @@ namespace Ale.Toolkit.Runtime.UI
         private int FillWindow(int max)
         {
             if (max <= 0) return 0;
-            if (Items == null || _poolTarget <= 0) { _hasPendingFill = false; return 0; }
+            if (items == null || _poolTarget <= 0) { _hasPendingFill = false; return 0; }
 
             int processed = 0;
             int count = _windowLast - _windowFirst + 1;
@@ -472,7 +465,7 @@ namespace Ale.Toolkit.Runtime.UI
             {
                 // 按滚动方向决定处理次序：升序 → 从窗口开头往后；降序 → 从末尾往前，使格子按进入视口先后逐个浮现。
                 int idx = _fillAscending ? _windowFirst + k : _windowLast - k;
-                if (idx < 0 || idx >= Items.Count) continue;    // 超出数据范围
+                if (idx < 0 || idx >= items.Count) continue;    // 超出数据范围
                 if (_idxToInstance.ContainsKey(idx)) continue;    // 已分配，保持不动
                 if (processed >= max) { _hasPendingFill = true; return processed; }   // 本帧预算耗尽，余量下帧继续
 
@@ -480,7 +473,7 @@ namespace Ale.Toolkit.Runtime.UI
                 if (!inst) { _hasPendingFill = true; return processed; }   // 无法取得实例（缺 prefab 等），下帧再试
 
                 ((RectTransform)inst.transform).anchoredPosition = PositionOf(idx);
-                BindCell(inst, Items[idx]);
+                BindCell(inst, items[idx]);
                 OnCellAssigned(inst, idx);
                 if (inst is IUiwRecycleFadeCell fade) fade.PlayShowFade();   // 通用淡入（仅生成路径，不在就地刷新触发）
                 _idxToInstance[idx] = inst;
@@ -643,14 +636,14 @@ namespace Ale.Toolkit.Runtime.UI
         /// </summary>
         protected void RebuildLayout()
         {
-            if (Items == null) return;
+            if (items == null) return;
             if (!scrollRect || !scrollRect.viewport || !content) return;
 
             var vp = scrollRect.viewport.rect;
             if (vp.width <= 0f || vp.height <= 0f) return;
 
             RecomputeLayout(vp);                 // 网格：按视口重算跨轴数量（变化则内部 RegainAllInstances）
-            SetContentSize(Items.Count);        // 撑开 content 尺寸
+            SetContentSize(items.Count);        // 撑开 content 尺寸
             _poolTarget = InstancesNeeded(vp);   // 目标池大小 = 可见窗口跨度；实例按需惰性创建到此上限
 
             _lastFirstIndex = -1;                // 绕过 early-return，强制重算窗口
@@ -661,8 +654,7 @@ namespace Ale.Toolkit.Runtime.UI
         #endregion
 
         #region 布局策略（子类实现：一维纵向 / 二维网格，纵向 / 横向）
-
-
+        
         /// <summary>
         /// 读取 <see cref="cellPrefab"/> 根 RectTransform 的尺寸（供子类 <see cref="MeasureCell"/> 复用，
         /// 消除各布局重复的「取 RectTransform → rect」样板）。无 prefab / 非 RectTransform 时返回 false。
@@ -702,8 +694,7 @@ namespace Ale.Toolkit.Runtime.UI
         #endregion
 
         #region 格子绑定（叶子实现：把数据显示到格子 / 清空格子）
-
-
+        
         /// <summary>把一条数据显示到一个格子（含"窗口内空槽"的可见空态处理，由叶子决定）。</summary>
         protected abstract void BindCell(TCell cell, TData data);
 
@@ -759,6 +750,5 @@ namespace Ale.Toolkit.Runtime.UI
             UpdateVisibleCells();
         }
         #endregion
-
     }
 }
