@@ -16,7 +16,7 @@ namespace Ale.Toolkit.Runtime
     ///
     /// <para><b>不做覆盖管理</b>（与 DOTween 一致）：对同一目标同一通道再起一个 tween <b>不会</b>自动打断前一个，
     /// 两者会在同一帧互相争写（runner 倒序推进，先起的那个后写、结果为准）。需要「重来一次」时，
-    /// 请先按目标打断——见 <c>ToolkitTween.Kill(target)</c>。</para>
+    /// 请先按目标打断——见 <see cref="Kill(UnityEngine.Object, bool)"/>。</para>
     ///
     /// <para><b>作用域为轻量：</b>不复刻 DOTween 的 Sequence / 泛型链式 / 全套 Ease，按需增量扩展。</para>
     /// </summary>
@@ -300,6 +300,34 @@ namespace Ale.Toolkit.Runtime
 
         #endregion
 
+        #region 打断
+
+        /// <summary>
+        /// 打断该目标上<b>全部</b>在途作业，返回被打断的作业数。DOTween 目标登记表的等价物，
+        /// 对应 <c>target.DOKill()</c>（<paramref name="complete"/>=false）与
+        /// <c>target.DOComplete()</c>（<paramref name="complete"/>=true）。
+        ///
+        /// <para>目标按<b>引用相等</b>匹配，而非 Unity 的 <c>==</c>——后者会把两个已销毁对象都判为 null
+        /// 从而互相「相等」，用它会误杀无关作业。因此<b>已被 Destroy 的目标依然能用本方法清理自己的作业</b>。
+        /// 匹配是精确的对象身份：<c>Kill(gameObject)</c> 找不到挂在该 GameObject 上的
+        /// <see cref="SpriteRenderer"/> 的作业，需传组件本身（DOTween 同理）。</para>
+        ///
+        /// <para><paramref name="complete"/>=true 时，每个被打断的作业先瞬置终值再触发其完成回调，
+        /// <b>同步、在本调用栈上</b>完成。本方法不会为此创建 runner——没有 runner 就没有作业可打断。</para>
+        /// </summary>
+        /// <param name="target">目标对象：CanvasGroup / Graphic / SpriteRenderer / Transform，或延时的 owner。</param>
+        /// <param name="complete">true 时瞬置终值并触发完成回调；false 时静默打断（不回调）。</param>
+        public static int Kill(UnityEngine.Object target, bool complete = false)
+        {
+            if (ReferenceEquals(target, null)) return 0;
+
+            // 用 Instance 而非 EnsureRunner：不该因为一次 Kill 就凭空造出 [ToolkitTween] 对象。
+            var runner = ToolkitTweenRunner.Instance;
+            return runner ? runner.KillByTarget(target, complete) : 0;
+        }
+
+        #endregion
+
         #region 工具
 
         /// <summary>
@@ -367,9 +395,13 @@ namespace Ale.Toolkit.Runtime
 
     /// <summary>
     /// <see cref="ToolkitTween"/> 返回的作业句柄（值类型，零分配）。默认值（<c>default</c>）为无效句柄，
-    /// 其 <see cref="Kill"/> 为安全空操作。通过作业 ID 校验，避免误杀已被池复用的作业。
+    /// 其 <see cref="Kill"/> / <see cref="Complete"/> 均为安全空操作。通过作业 ID 校验，避免误杀已被池复用的作业。
+    ///
+    /// <para>实现 <see cref="IEquatable{T}"/>，可直接放进 <c>List&lt;ToolkitTweenHandle&gt;</c> 并用
+    /// <c>List.Remove(handle)</c> 移除（无装箱、无反射比较）。<b>注意</b>：所有 <c>default</c> 句柄彼此相等，
+    /// 而「时长 ≤ 0」的快路径正是返回 <c>default</c>——列表登记时请用 <c>if (h.IsActive) list.Add(h);</c> 守卫。</para>
     /// </summary>
-    public readonly struct ToolkitTweenHandle
+    public readonly struct ToolkitTweenHandle : IEquatable<ToolkitTweenHandle>
     {
         internal readonly TweenJob Job;
         internal readonly long     Id;
@@ -388,5 +420,26 @@ namespace Ale.Toolkit.Runtime
         {
             if (IsActive) Job.Kill(complete);
         }
+
+        /// <summary>
+        /// 立即完成该作业：瞬置到终值并触发完成回调（<b>同步、在本调用栈上</b>）。
+        /// 等价于 <c>Kill(true)</c>，对应 DOTween 的 <c>Tween.Complete()</c>。
+        /// </summary>
+        public void Complete() => Kill(true);
+
+        /// <summary>与另一句柄是否指向<b>同一个作业代次</b>（作业引用相同且 ID 相同）。</summary>
+        public bool Equals(ToolkitTweenHandle other) => Id == other.Id && ReferenceEquals(Job, other.Job);
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => obj is ToolkitTweenHandle other && Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => Id.GetHashCode();
+
+        /// <summary>是否指向同一个作业代次。</summary>
+        public static bool operator ==(ToolkitTweenHandle a, ToolkitTweenHandle b) => a.Equals(b);
+
+        /// <summary>是否指向不同的作业代次。</summary>
+        public static bool operator !=(ToolkitTweenHandle a, ToolkitTweenHandle b) => !a.Equals(b);
     }
 }
