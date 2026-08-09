@@ -153,5 +153,104 @@ namespace Ale.Toolkit.Runtime.UI
         }
 
         #endregion
+
+        #region 世界坐标 → UI 坐标
+        // 把世界空间中某个物体的位置换算成某个 Canvas 下的局部坐标，用于让 UI 挂件（血条 / 名牌 /
+        // 操作菜单）"贴"在场景物体上。
+        //
+        // 与上方「悬停弹窗定位」的分工：那边的输入是屏幕像素（光标），直接写 rt.position 并夹取回屏内；
+        // 这边的输入是世界坐标，返回值交由调用方赋给 localPosition，不做夹取。
+
+        /// <summary>
+        /// 世界坐标转为 UI 画布局部坐标，附加一段<b>世界空间</b>偏移。
+        /// <para>偏移走世界空间而非屏幕像素：同样的像素偏移在不同分辨率下对应的世界距离不同，
+        /// 会让挂件与目标物体的相对位置随分辨率漂移。</para>
+        /// </summary>
+        /// <param name="worldPos">世界空间位置。</param>
+        /// <param name="offsetWorldSpace">世界空间位置偏移。</param>
+        /// <param name="canvas">目标 Canvas。</param>
+        /// <param name="rectTransform">换算所依据的矩形，缺省用 <paramref name="canvas"/> 自身的 RectTransform。</param>
+        /// <returns>局部空间位置，可直接赋给 <c>rectTransform.localPosition</c>。</returns>
+        public static Vector3 WorldPosToUILocalPos(
+            Vector3 worldPos, Vector3 offsetWorldSpace, Canvas canvas, RectTransform rectTransform = null)
+            => WorldPosToUILocalPos(worldPos + offsetWorldSpace, canvas, rectTransform);
+
+        /// <summary>
+        /// 世界坐标转为 UI 画布局部坐标。
+        /// <para>WorldSpace Canvas 与场景同处一个世界空间，原样返回；ScreenSpace Canvas 先投影到屏幕，
+        /// 再经 <see cref="ScreenPosToUILocalPos"/> 换算到局部坐标。</para>
+        /// </summary>
+        /// <param name="worldPos">世界空间位置。</param>
+        /// <param name="canvas">目标 Canvas。</param>
+        /// <param name="rectTransform">换算所依据的矩形，缺省用 <paramref name="canvas"/> 自身的 RectTransform。</param>
+        /// <returns>局部空间位置，可直接赋给 <c>rectTransform.localPosition</c>。</returns>
+        public static Vector3 WorldPosToUILocalPos(
+            Vector3 worldPos, Canvas canvas, RectTransform rectTransform = null)
+        {
+            if (!canvas) return worldPos;
+
+            // WorldSpace Canvas：UI 就在世界空间里，无需换算。
+            if (canvas.renderMode == RenderMode.WorldSpace)
+                return worldPos;
+
+            // 投影游戏世界坐标必须用游戏主相机：canvas.worldCamera 是 UI 专用渲染相机，
+            // 两者分离时拿它做投影会得到错误结果。canvas.worldCamera 只在 ScreenPosToUILocalPos
+            // 内部用于 ScreenPointToLocalPointInRectangle。
+            Camera camera = Camera.main ? Camera.main : canvas.worldCamera;
+
+            Vector3 screenPos;
+            if (camera)
+            {
+                screenPos = camera.WorldToScreenPoint(worldPos);
+            }
+            else
+            {
+                // 无相机可用：退回无相机投影（等价于 Overlay 语义，世界坐标即屏幕像素）。
+                Vector2 sp = RectTransformUtility.WorldToScreenPoint(null, worldPos);
+                screenPos = new Vector3(sp.x, sp.y, 0f);
+            }
+
+            return ScreenPosToUILocalPos(screenPos, canvas, rectTransform);
+        }
+
+        /// <summary>
+        /// 屏幕坐标转为 UI 画布局部坐标。
+        /// </summary>
+        /// <param name="screenPos">屏幕像素坐标。</param>
+        /// <param name="canvas">目标 Canvas。</param>
+        /// <param name="rectTransform">换算所依据的矩形，缺省用 <paramref name="canvas"/> 自身的 RectTransform。</param>
+        /// <returns>局部空间位置，可直接赋给 <c>rectTransform.localPosition</c>。</returns>
+        public static Vector3 ScreenPosToUILocalPos(
+            Vector2 screenPos, Canvas canvas, RectTransform rectTransform = null)
+        {
+            if (!canvas) return Vector3.zero;
+
+            // 缺省以 Canvas 自身的 RectTransform 为换算基准。
+            if (!rectTransform)
+                rectTransform = canvas.transform as RectTransform;
+            if (!rectTransform) return Vector3.zero;
+
+            // Overlay 必须传 null 相机；其余模式用 Canvas 的 UI 相机。
+            var uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    rectTransform, screenPos, uiCamera, out Vector2 localPoint))
+                return localPoint;
+
+            // 兜底：矩形换算失败（如矩形退化为零尺寸）时，退回屏幕点对应的世界坐标。
+            return ScreenToWorld(screenPos, uiCamera);
+        }
+
+        /// <summary>屏幕坐标转世界坐标。仅供 <see cref="ScreenPosToUILocalPos"/> 换算失败时兜底。</summary>
+        private static Vector3 ScreenToWorld(Vector2 screenPos, Camera camera)
+        {
+            Camera cam = camera ? camera : Camera.main;
+            if (!cam) return Vector3.zero;
+
+            // z 取相机自身 z 的绝对值：沿用 2D 工程「相机在 z 负方向、内容在 z=0 平面」的惯例。
+            var sp = new Vector3(screenPos.x, screenPos.y, Mathf.Abs(cam.transform.position.z));
+            return cam.ScreenToWorldPoint(sp);
+        }
+
+        #endregion
     }
 }
