@@ -61,7 +61,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **ソート** | 要素の型に依存しないソートエンジン。ホストが `ISortContext<TData>` を実装して比較に必要な情報を提供し、エンジンが多段優先度とタイブレークを処理。主キー / タグ順ソートは標準対応 |
 | **UI** | 仮想スクロールリスト（グリッド / 順次、プール + 可視領域のみ描画）、タブバー、フィルターバー、Tooltip 基底、アイテムプールなどの汎用ウィジェット |
 | **オブジェクトプール** | 汎用 GameObject / プレハブプール + 純 C# 参照型プール `ToolkitClassPool<T>`（`Spawn`/`Despawn`、`IPoolable` コールバック、プリロード / 容量リサイクル / シーン跨ぎ、GC 削減）。Lean.Pool 等を置き換え可能 |
-| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`ToolkitTween.FadeCanvasGroup` が `CanvasGroup` をフェードし、中断可能な値型ハンドルを返す |
+| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` の alpha フェード、`TintGraphic` の全色トランジション、`MoveTransform` / `RotateTransform` / `ScaleTransform`、`DelayedCall`、ターゲット単位の `Kill(target)`。中断可能な値型ハンドルを返す |
 | **属性修飾子** | GAS 風の修飾子評価：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース内訳）。数値を「基礎値 + 一連の加算 → 現在値」へと合流させる |
 | **条件システム（`Ale.Condition`）** | データ駆動の 2 段 AND/OR 条件：`ConditionExpression` フィールドを 1 つ宣言するだけで Inspector 内にインライン設定できる。上位側で `[ConditionEvaluator]` 判定器を実装すると自動的に発見される。エンジン非依存の Core はサーバー側でも利用可能 |
 | **効果システム（`Ale.Effect`）** | 条件システムの書き込み側ミラー：データ駆動の離散トリガー型ミューテーション（ステージグループ + 各項目に任意の条件ゲート）。上位側で `[EffectExecutor]` 実行器を実装すると自動的に発見される。エンジン非依存の Core |

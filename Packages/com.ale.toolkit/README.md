@@ -55,7 +55,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **排序** | 与元素类型无关的排序引擎：宿主实现 `ISortContext<TData>` 提供比较所需信息，引擎负责多级优先级与降级比较 |
 | **UI** | 虚拟滚动列表（网格 / 顺序，对象池 + 仅渲染可见区；单元格分配 / 回收淡入淡出经 `UiwListFadeCell` + 引擎默认 hook 通用驱动）、页签栏、过滤栏、Tooltip 基类、子项实例池等通用控件 |
 | **对象池** | 通用 GameObject 预制体池（`Spawn`/`Despawn` + `IPoolable` 回调、预热 / 容量回收 / 延迟归还 / 跨场景）与纯 C# 引用类型池 `ToolkitClassPool<T>`（降 GC），可替代 Lean.Pool 一类第三方池 |
-| **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`ToolkitTween.FadeCanvasGroup` / `FadeGraphic` 对 `CanvasGroup` / `Graphic`（Image / 文本）alpha 淡入淡出，返回值类型可打断句柄；缓动最小集 `EToolkitEase` |
+| **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` 淡入淡出，`TintGraphic` 整色过渡，`MoveTransform` / `RotateTransform` / `ScaleTransform` 位移·旋转·缩放，`DelayedCall` 延时回调，`Kill(target)` 按目标打断；返回值类型可打断句柄；缓动最小集 `EToolkitEase` |
 | **属性修饰器** | GAS 式修饰器求值：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。任何「基础值 + 一叠加成 → 当前值」的数值汇流都用它 |
 | **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现。引擎无关 Core 可上服务端 |
 | **效果系统（Effect System）** | 条件系统的写侧镜像：数据驱动的离散触发式突变（阶段组 + 每项可选条件门控）；上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core |
@@ -65,7 +65,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；旧宏 `IS_*` 加载时自动迁移为 `ATK_*` |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
-> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**。完整变更见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 
@@ -164,19 +164,33 @@ ToolkitClassPool<Ctx>.Despawn(ctx, c => c.Reset());
 
 ### Tween（中央缓动）
 
-轻量中央 Tween 门面（DOTween 式「单 Update 轮询作业表」，`Ale.Toolkit.Runtime`）。当前提供 `CanvasGroup` 淡入淡出，作业经 `ToolkitClassPool` 池化、由常驻 runner 单 `LateUpdate` 推进，近零 GC。不复刻 DOTween 的 Sequence / 链式 / 全套 Ease，按需增量扩展。
+轻量中央 Tween 门面（DOTween 式「单 Update 轮询作业表」，`Ale.Toolkit.Runtime`）。提供 `CanvasGroup` / `Graphic`（Image / 文本）/ `SpriteRenderer` 的 alpha 淡入淡出、`Graphic` 的整色过渡、`Transform` 的位移 / 旋转 / 缩放，以及纯延时回调。作业经 `ToolkitClassPool` 池化、由常驻 runner 单 `LateUpdate` 推进，近零 GC。不复刻 DOTween 的 Sequence / 链式 / 全套 Ease，按需增量扩展。
 
 ```csharp
 // 对 CanvasGroup 淡入到 alpha=1，0.2s；返回可打断的句柄
 var h = ToolkitTween.FadeCanvasGroup(canvasGroup, 1f, 0.2f, EToolkitEase.OutQuad,
                                      unscaled: true, onComplete: () => { /* 完成 */ });
 h.Kill(complete: true);    // 打断并瞬置到终值 + 触发完成回调；Kill(false) 打断且不回调
+h.Complete();              // 同 Kill(true)
 bool running = h.IsActive; // 是否仍在进行
+
+// 2D 精灵淡入 / 角色平滑移动 / 延时回调
+ToolkitTween.Kill(spriteRenderer);                       // 先打断该目标上的在途作业（本门面不做覆盖管理）
+ToolkitTween.FadeSpriteRenderer(spriteRenderer, 1f, 0.3f);
+ToolkitTween.MoveTransform(actor, targetPos, duration, EToolkitEase.InOutQuad);
+ToolkitTween.Kill(actor, complete: true);                // 等价 DOTween 的 transform.DOComplete()
+var delay = ToolkitTween.DelayedCall(1.5f, () => Play(), owner: this);
 ```
 
-- `ToolkitTween.FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`：`duration ≤ 0` 或目标为空时立即到位并返回空句柄。
-- `ToolkitTweenHandle`（值类型，零分配）：`IsActive` / `Kill(complete = false)`；`default` 为无效句柄、`Kill` 安全空操作。
+- 淡入淡出 / 颜色：`FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`、`FadeGraphic(…)`、`FadeSpriteRenderer(…)`、`TintGraphic(target, endColor, …)`（整色 RGBA）。
+- Transform：`MoveTransform(target, endPosition, …)`、`RotateTransform(target, endEulerAngles, …)`、`ScaleTransform(target, endScale, …)`。旋转**逐轴走最短弧**（等价 DOTween 的 `RotateMode.Fast`，不支持多圈），折算公式另经 `ShortestEuler(fromEuler, toEuler)` 公开。
+- 延时：`DelayedCall(delay, onComplete, unscaled = true, owner = null)`。可选 `owner` 绑定生命周期：被 `Destroy` 后回调丢弃，且可经 `Kill(owner)` 取消。
+- 打断：`Kill(target, complete = false)` 打断该目标上全部在途作业并返回打断数，即 DOTween 目标登记表的等价物（`DOKill` / `DOComplete`）。按**引用相等**匹配，故已被 `Destroy` 的目标仍能清理自己的作业；`Kill(gameObject)` 找不到挂在其上的组件的作业。
+- `ToolkitTweenHandle`（值类型，零分配）：`IsActive` / `Kill(complete = false)` / `Complete()`；实现 `IEquatable<>` 与 `==`，可直接进 `List<>` 并 `Remove`。`default` 为无效句柄，其 `Kill` / `Complete` 为安全空操作。
 - `ToolkitEase.Evaluate(EToolkitEase ease, float t)`；缓动类型 `EToolkitEase`：`Linear` / `InQuad` / `OutQuad` / `InOutQuad`。
+- 所有入口在 `duration ≤ 0` 或目标为空时立即到位并返回空句柄。
+
+三条与 DOTween 的差异值得留意：**①不做覆盖管理**——同目标同通道再起一个 tween 不会自动打断前一个（DOTween 亦然），需先 `Kill(target)`；**②`unscaled` 默认 `true`**，而 DOTween 默认受 `Time.timeScale` 影响，要还原 DOTween 行为请显式传 `unscaled: false`；**③`DelayedCall(delay ≤ 0)` 同步立刻触发**（DOTween 推迟一帧），若要把句柄记进列表请用 `if (h.IsActive) list.Add(h);` 守卫。
 
 ### 属性修饰器
 

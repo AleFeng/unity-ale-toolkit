@@ -6,6 +6,36 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.6.0] - 2026-08-09
+
+把中央 Tween 从「只会淡 alpha」补齐为**可整体承接 DOTween 常用单 tween 用法**的轻量门面：内部作业模型由「CanvasGroup 或 Graphic」双目标泛化为「通道 + 单一目标 + `Vector4` 载荷」的联合体，在此之上一次性补上 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、纯延时回调，以及 DOTween 目标登记表的等价物「按目标打断」。**导出格式与序列化结构不变、纯加量；`FadeCanvasGroup` / `FadeGraphic` 的签名与行为不变，`UiwListFadeCell` 行为不变。**
+
+### 新增
+
+- **`ToolkitTween.FadeSpriteRenderer(SpriteRenderer, endAlpha, …)`**：2D 精灵的 alpha 淡入淡出。`SpriteRenderer` 并非 `Graphic`，故与 `FadeGraphic` 分列。对应 DOTween 的 `spriteRenderer.DOFade`。
+- **`ToolkitTween.TintGraphic(Graphic, endColor, …)`**：`Image` / 文本等 `Graphic` 的**整色（RGBA）**过渡，`FadeGraphic` 的全色版本。对应 DOTween 的 `graphic.DOColor`。
+- **`ToolkitTween.MoveTransform` / `RotateTransform` / `ScaleTransform`**：`Transform` 的世界坐标 / 世界欧拉角 / 局部缩放补间，对应 DOTween 的 `DOMove` / `DORotate` / `DOScale`。旋转**逐轴独立走最短弧**（起始时经 `ShortestEuler` 烘焙终值，350° → 10° 只转 20° 而非 340°），等价于 DOTween 的 `RotateMode.Fast`；**不**支持 `FastBeyond360` 那样超过 360° 的多圈旋转。
+- **`ToolkitTween.DelayedCall(delay, onComplete, unscaled = true, owner = null)`**：纯延时回调，不插值任何目标，对应 DOTween 的 `DOVirtual.DelayedCall`。可选 `owner` 绑定生命周期——owner 被 `Destroy` 后回调丢弃，且可经 `Kill(owner)` 按 owner 取消；不传则为独立于任何对象存亡的纯计时器（DOTween 的默认语义）。
+- **`ToolkitTween.Kill(UnityEngine.Object target, bool complete = false)`**：打断该目标上全部在途作业并返回打断数，DOTween 目标登记表的等价物（对应 `target.DOKill()` / `target.DOComplete()`）。目标按**引用相等**匹配而非 Unity 的 `==`——后者会把两个已销毁对象都判为 null 而互相「相等」，用它会误杀无关作业；因此已被 `Destroy` 的目标依然能用本方法清理自己的作业。匹配是精确的对象身份，`Kill(gameObject)` 找不到挂在其上的组件的作业。
+- **`ToolkitTween.ShortestEuler(fromEuler, toEuler)`**：把目标欧拉角折算为「自起始角出发、各轴独立走最短弧」的等价终点（逐轴 `from + Mathf.DeltaAngle(from, to)`）。`RotateTransform` 内部用它烘焙终值，公开出来供调用方复用。
+- **`ToolkitTweenHandle.Complete()`**：立即完成——瞬置终值并触发完成回调（同步、在调用栈上）。等价 `Kill(true)`，对应 DOTween 的 `Tween.Complete()`。
+- **`ToolkitTweenHandle : IEquatable<ToolkitTweenHandle>`** 及 `==` / `!=` / `GetHashCode`：可直接放进 `List<ToolkitTweenHandle>` 并用 `List.Remove(handle)` 移除。此前落到 `ValueType.Equals` 的反射逐字段比较，**结果相同但每次比较都要装箱**；现在走 `EqualityComparer<T>` 的 `IEquatable` 快路径，零分配。`operator ==` 此前无法书写，故无源码破坏。
+- **测试 `Assets/Tests/ToolkitTweenTests.cs`**：21 个 EditMode 用例，覆盖 `ToolkitEase.Evaluate` 四种缓动的端点 / 越界钳制 / 单调性 / 值域、`ShortestEuler` 的跨 0° 与逐轴独立折算，以及空句柄、`DelayedCall` 与 `Kill` 的快路径守卫。此前 Tween 模块零测试覆盖。
+
+### 变更
+
+- **作业模型泛化**：内部 `TweenJob` 由「`CanvasGroup` XOR `Graphic`」双目标改为 `UnityEngine.Object Target` + `ETweenChannel` 通道 + `Vector4 From/To` 载荷，`SetAlpha(float)` 改为按通道分发的 `Apply(float k)` / `ApplyEnd()`。**单池、单作业表、单 `LateUpdate` 推进与近零 GC 均不变**；每作业约多 32 字节，数十个并发作业量级下可忽略。评估过「抽象基类 + 每类型子类 + 每类型池」，因 `ToolkitClassPool<T>` 是按闭合类型静态泛型的、多子类会退化为 N 个互不复用的池而否决。
+- **插值改用 `LerpUnclamped`**：现有四种缓动的输出恒落在 [0,1]（已由 `Evaluate_AllEases_StayWithinUnitRange` 用例锁定），故与 `Mathf.Lerp` **结果逐位相同**；为将来可能引入的过冲缓动预留。收尾与「立即完成」走 `ApplyEnd()` **精确写入终值**、不经插值——`a + (b - a) * 1` 未必逐位等于 `b`，此举与此前 `SetAlpha(job.To)` 的语义保持一致。
+- **`Runtime/Tween/` 拆分为三个文件**：`ToolkitTween.cs`（门面 + 句柄）/ `ToolkitTweenJob.cs`（通道枚举 + 作业）/ `ToolkitTweenRunner.cs`（运行器）。**`ToolkitTween.cs` 的 `.meta` GUID 保留**；迁出与新增的类型均为 `internal`（`ETweenChannel` / `TweenJob` / `ToolkitTweenRunner`）或非序列化值类型（`ToolkitTweenHandle` 无 `[Serializable]`，包内唯一使用处 `UiwListFadeCell._rootFade` 是私有非 `[SerializeField]` 字段），且 `ToolkitTweenRunner` 只在运行时由 `AddComponent` 创建、不存在于任何场景 / 预制体——**资源引用不受影响**。
+- **`ToolkitTweenRunner` 移入同名文件**，消除此前「MonoBehaviour 类名与文件名不符」。
+- `package.json` 的 `keywords` 补 `tween`（Tween 模块自 1.3.0 起随包发布，一直未列入）。
+
+### 修复
+
+- **订正 README 中 Tween 章节的过时表述**：包内三份 README 的正文仍写「当前提供 `CanvasGroup` 淡入淡出」，遗漏了 1.5.1 加入的 `FadeGraphic`；仓库根目录三份 README 的模块表同样只列了 `FadeCanvasGroup`。本次一并更正并补齐新增 API 与行为说明。
+
+> **与 DOTween 的行为差异（迁移须知）**：① 本门面**不做覆盖管理**——对同一目标同一通道再起一个 tween 不会自动打断前一个，两者会在同一帧互相争写（DOTween 亦然，故 `DOKill(); DOFade(...)` 的写法可原样迁移为 `Kill(target); Fade…(target, …)`）；② 所有 API 的 `unscaled` 默认 `true`，而 DOTween 默认受 `Time.timeScale` 影响，需要还原 DOTween 行为时请显式传 `unscaled: false`；③ `DelayedCall(delay ≤ 0)` **同步立刻**触发回调并返回空句柄（DOTween 推迟到下一帧）——若调用方拿到句柄后才记进列表，请用 `if (h.IsActive) list.Add(h);` 守卫，否则回调里的 `list.Remove(h)` 会先于 `Add` 执行、留下永不移除的僵尸条目；④ 旋转等价 `RotateMode.Fast`，不支持多圈；⑤ 仍不提供 Sequence / 泛型链式 / 全套 Ease。
+
 ## [1.5.1] - 2026-08-04
 
 为「虚拟滚动列表」补上一套**通用的单元格淡入淡出**：新增列表单元格契约接口与淡入淡出基类，`UiwVirtualListBase` 的默认 hook 自动驱动——任何继承的单元格白得「分配（滚入）淡入 / 回收（滚出）淡出」，各列表无需 override。`ToolkitTween` 扩展出 `Graphic` 淡入以支撑逐图片淡入。**默认无实现者时行为不变；导出格式与序列化结构不变、纯加量。**

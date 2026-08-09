@@ -55,7 +55,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Sorting** | An element-type-agnostic sort engine: the host implements `ISortContext<TData>` to supply what comparison needs, the engine handles multi-level priorities and tiebreakers |
 | **UI** | Virtual scrolling lists (grid / sequential, object pool + visible-region-only rendering; cell assign / recycle fade-in-out driven generically by `UiwListFadeCell` + the engine's default hooks), tab strips, filter bars, tooltip base classes, widget pools |
 | **Object pool** | A general-purpose GameObject/prefab pool (`Spawn`/`Despawn` + `IPoolable` callbacks; preload / capacity-recycle / delayed despawn / cross-scene) plus a plain-C# reference-type pool `ToolkitClassPool<T>` (lower GC) — a drop-in replacement for third-party pools like Lean.Pool |
-| **Tween** | A lightweight central tween (DOTween-style single-Update polling, pooled jobs, near-zero GC): `ToolkitTween.FadeCanvasGroup` / `FadeGraphic` fade a `CanvasGroup` / `Graphic` (Image / text) alpha, returning a killable value-type handle; minimal easing set `EToolkitEase` |
+| **Tween** | A lightweight central tween (DOTween-style single-Update polling, pooled jobs, near-zero GC): `FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` for alpha, `TintGraphic` for full colour, `MoveTransform` / `RotateTransform` / `ScaleTransform`, `DelayedCall`, and `Kill(target)` to kill by target; returns a killable value-type handle; minimal easing set `EToolkitEase` |
 | **Attribute modifier** | GAS-style modifier evaluation: `ModifierDefinition` + `ModifierStackEvaluator` settle by group (Add→PercentAdd→Multiply→Override + clamp + source breakdown). Use it for any "base value + a stack of bonuses → current value" numeric convergence |
 | **Condition System** | Data-driven two-level AND/OR conditions: declare a `ConditionExpression` field to configure it inline in the Inspector; upper layers implement `[ConditionEvaluator]` evaluators that are auto-discovered. The engine-agnostic Core is server-side ready |
 | **Effect System** | The write-side mirror of the Condition System: data-driven discrete trigger-style mutations (phase groups + an optional per-item condition gate); upper layers implement `[EffectExecutor]` executors that are auto-discovered. Engine-agnostic Core |
@@ -65,7 +65,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Editor entry & global settings** | The Ale Toolkit Welcome Window (`Tools > Ale Toolkit > Welcome`): editor UI language / enum translation / the three optional feature macros / wizard default & localized fonts + general-tool entries + an "auto-show on startup" toggle; project-level settings such as the wizard fonts are saved to `ProjectSettings/AleToolkitSettings.asset` (committed with the repo, asset references stored by GUID), while language / auto-show are per-user (EditorPrefs); legacy `IS_*` macros are auto-migrated to `ATK_*` on load |
 | **General tool windows** | Walk every `AttributeValue` of any data asset (`ScriptableObject`) for batch processing: Addressable migration (Object ↔ GUID) and localization key generation, under `Tools > Ale Toolkit`, reusable by upper-layer plugins |
 
-> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**; **since 1.5.1 it adds generic cell fade-in/out for the virtual-scroll list (`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`, driven by `UiwVirtualListBase`'s default hooks) plus `ToolkitTween.FadeGraphic`**. See the [CHANGELOG](CHANGELOG.md) for details.
+> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**; **since 1.5.1 it adds generic cell fade-in/out for the virtual-scroll list (`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`, driven by `UiwVirtualListBase`'s default hooks) plus `ToolkitTween.FadeGraphic`**; **since 1.6.0 the central tween gains `SpriteRenderer` fading, `Graphic` full-colour tinting, `Transform` move / rotate / scale, delayed callbacks and kill-by-target, so it can take over DOTween's common single-tween usage (still no sequences)**. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 
@@ -163,19 +163,33 @@ ToolkitClassPool<Ctx>.Despawn(ctx, c => c.Reset());
 
 ### Tween
 
-A lightweight central tween facade (DOTween-style "single-Update polling job list", `Ale.Toolkit.Runtime`). It currently fades a `CanvasGroup`; jobs are pooled via `ToolkitClassPool` and driven by a persistent runner in a single `LateUpdate`, with near-zero GC. It does not reproduce DOTween's sequences / chaining / full easing set — extend incrementally as needed.
+A lightweight central tween facade (DOTween-style "single-Update polling job list", `Ale.Toolkit.Runtime`). It fades the alpha of a `CanvasGroup` / `Graphic` (Image / text) / `SpriteRenderer`, tints a `Graphic`'s full colour, moves / rotates / scales a `Transform`, and schedules plain delayed callbacks. Jobs are pooled via `ToolkitClassPool` and driven by a persistent runner in a single `LateUpdate`, with near-zero GC. It does not reproduce DOTween's sequences / chaining / full easing set — extend incrementally as needed.
 
 ```csharp
 // fade a CanvasGroup to alpha=1 over 0.2s; returns a killable handle
 var h = ToolkitTween.FadeCanvasGroup(canvasGroup, 1f, 0.2f, EToolkitEase.OutQuad,
                                      unscaled: true, onComplete: () => { /* done */ });
 h.Kill(complete: true);    // interrupt, snap to the end value and fire onComplete; Kill(false) interrupts without the callback
+h.Complete();              // same as Kill(true)
 bool running = h.IsActive;
+
+// sprite fade / smooth actor move / delayed callback
+ToolkitTween.Kill(spriteRenderer);                       // kill in-flight jobs on that target first (no overwrite management here)
+ToolkitTween.FadeSpriteRenderer(spriteRenderer, 1f, 0.3f);
+ToolkitTween.MoveTransform(actor, targetPos, duration, EToolkitEase.InOutQuad);
+ToolkitTween.Kill(actor, complete: true);                // equivalent to DOTween's transform.DOComplete()
+var delay = ToolkitTween.DelayedCall(1.5f, () => Play(), owner: this);
 ```
 
-- `ToolkitTween.FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`: with `duration ≤ 0` or a null target it snaps into place and returns an empty handle.
-- `ToolkitTweenHandle` (value type, zero-alloc): `IsActive` / `Kill(complete = false)`; `default` is an invalid handle whose `Kill` is a safe no-op.
+- Fade / colour: `FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`, `FadeGraphic(…)`, `FadeSpriteRenderer(…)`, `TintGraphic(target, endColor, …)` (full RGBA).
+- Transform: `MoveTransform(target, endPosition, …)`, `RotateTransform(target, endEulerAngles, …)`, `ScaleTransform(target, endScale, …)`. Rotation takes the **shortest arc per axis** (equivalent to DOTween's `RotateMode.Fast`; multi-turn spins are not supported); the conversion itself is exposed as `ShortestEuler(fromEuler, toEuler)`.
+- Delay: `DelayedCall(delay, onComplete, unscaled = true, owner = null)`. The optional `owner` binds lifetime: once it is destroyed the callback is dropped, and `Kill(owner)` cancels it.
+- Kill: `Kill(target, complete = false)` kills every in-flight job on that target and returns how many — the equivalent of DOTween's target registry (`DOKill` / `DOComplete`). Matching is by **reference equality**, so a destroyed target can still clean up its own jobs, and `Kill(gameObject)` will not find jobs on components attached to it.
+- `ToolkitTweenHandle` (value type, zero-alloc): `IsActive` / `Kill(complete = false)` / `Complete()`; it implements `IEquatable<>` and `==`, so it goes straight into a `List<>` and supports `Remove`. `default` is an invalid handle whose `Kill` / `Complete` are safe no-ops.
 - `ToolkitEase.Evaluate(EToolkitEase ease, float t)`; easing types `EToolkitEase`: `Linear` / `InQuad` / `OutQuad` / `InOutQuad`.
+- Every entry point snaps into place and returns an empty handle when `duration ≤ 0` or the target is null.
+
+Three differences from DOTween are worth noting: **(1) no overwrite management** — starting another tween on the same target and channel does not kill the previous one (DOTween behaves the same), so call `Kill(target)` first; **(2) `unscaled` defaults to `true`**, whereas DOTween is affected by `Time.timeScale` by default — pass `unscaled: false` to restore DOTween's behaviour; **(3) `DelayedCall(delay ≤ 0)` fires synchronously** (DOTween defers a frame), so guard list bookkeeping with `if (h.IsActive) list.Add(h);`.
 
 ### Attribute modifier
 

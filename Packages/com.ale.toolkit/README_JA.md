@@ -55,7 +55,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **ソート** | 要素の型に依存しないソートエンジン。ホスト側が `ISortContext<TData>` を実装して比較に必要な情報を提供し、エンジンが多段優先度とタイブレークを処理します |
 | **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画；セルの割り当て / 回収時のフェードイン・アウトを `UiwListFadeCell` + エンジン既定フックで汎用駆動）、タブバー、フィルターバー、ツールチップ基底クラス、ウィジェットプール |
 | **オブジェクトプール** | 汎用の GameObject / プレハブプール（`Spawn`/`Despawn` + `IPoolable` コールバック、プリロード / 容量リサイクル / 遅延デスポーン / シーン跨ぎ）と、純 C# 参照型プール `ToolkitClassPool<T>`（GC 削減）。Lean.Pool 等のサードパーティ製プールを置き換え可能 |
-| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`ToolkitTween.FadeCanvasGroup` / `FadeGraphic` で `CanvasGroup` / `Graphic`（Image / テキスト）の alpha をフェードし、中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
+| **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` の alpha フェード、`TintGraphic` の全色トランジション、`MoveTransform` / `RotateTransform` / `ScaleTransform`、`DelayedCall`、ターゲット単位の `Kill(target)`。中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
 | **属性モディファイア** | GAS 風のモディファイア評価：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース明細）。「基礎値 + 一連の加算 → 現在値」という数値集約はすべてこれを使用します |
 | **条件システム（Condition System）** | データ駆動の二段 AND/OR 条件：`ConditionExpression` フィールドを宣言するだけで Inspector 内にインラインで設定；上位が実装する `[ConditionEvaluator]` 判定器が自動的に発見されます。エンジン非依存の Core はサーバーサイドでも動作可能 |
 | **効果システム（Effect System）** | 条件システムの書き込み側ミラー：データ駆動の離散トリガー式ミューテーション（フェーズグループ + 各項目にオプションの条件ゲート）；上位が実装する `[EffectExecutor]` 実行器が自動的に発見されます。エンジン非依存の Core |
@@ -65,7 +65,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ / ウィザードのデフォルト・ローカライズフォント + 汎用ツール入口 +「起動時に自動表示」トグル。ウィザードフォントなどのプロジェクト単位の設定は `ProjectSettings/AleToolkitSettings.asset` に保存（リポジトリと共にコミット、アセット参照は GUID で保持）、言語 / 自動表示はユーザーごと（EditorPrefs）。旧マクロ `IS_*` は読み込み時に `ATK_*` へ自動移行 |
 | **汎用ツールウィンドウ** | 任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理：Addressable 移行（Object ↔ GUID）とローカライズキー生成。`Tools > Ale Toolkit` 配下、上位プラグインで再利用可能 |
 
-> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
+> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。**1.6.0 から、中央 Tween に `SpriteRenderer` フェード、`Graphic` の全色トランジション、`Transform` の移動 / 回転 / スケール、遅延コールバック、ターゲット単位の Kill を追加し、DOTween の一般的な単一 tween 用途をひと通り置き換え可能に（Sequence は引き続き非対応）**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
 
 ---
 
@@ -163,19 +163,33 @@ ToolkitClassPool<Ctx>.Despawn(ctx, c => c.Reset());
 
 ### Tween（中央イージング）
 
-軽量な中央 Tween ファサード（DOTween 風の「単一 Update ポーリングのジョブ表」、`Ale.Toolkit.Runtime`）。現状は `CanvasGroup` のフェードを提供し、ジョブは `ToolkitClassPool` でプール化、常駐ランナーが単一 `LateUpdate` で推進、GC ほぼゼロ。DOTween の Sequence / チェーン / 全イージングは再現せず、必要に応じて増分拡張します。
+軽量な中央 Tween ファサード（DOTween 風の「単一 Update ポーリングのジョブ表」、`Ale.Toolkit.Runtime`）。`CanvasGroup` / `Graphic`（Image / テキスト）/ `SpriteRenderer` の alpha フェード、`Graphic` の全色トランジション、`Transform` の移動 / 回転 / スケール、および純粋な遅延コールバックを提供します。ジョブは `ToolkitClassPool` でプール化、常駐ランナーが単一 `LateUpdate` で推進、GC ほぼゼロ。DOTween の Sequence / チェーン / 全イージングは再現せず、必要に応じて増分拡張します。
 
 ```csharp
 // CanvasGroup を 0.2 秒で alpha=1 へフェード；中断可能なハンドルを返す
 var h = ToolkitTween.FadeCanvasGroup(canvasGroup, 1f, 0.2f, EToolkitEase.OutQuad,
                                      unscaled: true, onComplete: () => { /* 完了 */ });
 h.Kill(complete: true);    // 中断して終端値へ即時設定 + onComplete 発火；Kill(false) は中断のみ（コールバックなし）
+h.Complete();              // Kill(true) と同じ
 bool running = h.IsActive;
+
+// スプライトのフェード / キャラのスムーズ移動 / 遅延コールバック
+ToolkitTween.Kill(spriteRenderer);                       // 先に当該ターゲットの実行中ジョブを中断（本ファサードは上書き管理をしない）
+ToolkitTween.FadeSpriteRenderer(spriteRenderer, 1f, 0.3f);
+ToolkitTween.MoveTransform(actor, targetPos, duration, EToolkitEase.InOutQuad);
+ToolkitTween.Kill(actor, complete: true);                // DOTween の transform.DOComplete() 相当
+var delay = ToolkitTween.DelayedCall(1.5f, () => Play(), owner: this);
 ```
 
-- `ToolkitTween.FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`：`duration ≤ 0` またはターゲットが空なら即座に終端へ設定し、空ハンドルを返す。
-- `ToolkitTweenHandle`（値型、ゼロアロケーション）：`IsActive` / `Kill(complete = false)`；`default` は無効ハンドルで `Kill` は安全な no-op。
+- フェード / カラー：`FadeCanvasGroup(target, endAlpha, duration, ease = OutQuad, unscaled = true, onComplete = null)`、`FadeGraphic(…)`、`FadeSpriteRenderer(…)`、`TintGraphic(target, endColor, …)`（全 RGBA）。
+- Transform：`MoveTransform(target, endPosition, …)`、`RotateTransform(target, endEulerAngles, …)`、`ScaleTransform(target, endScale, …)`。回転は**軸ごとに最短弧**を通ります（DOTween の `RotateMode.Fast` 相当。多回転には非対応）。換算式は `ShortestEuler(fromEuler, toEuler)` として公開。
+- 遅延：`DelayedCall(delay, onComplete, unscaled = true, owner = null)`。任意の `owner` で寿命を紐付け：`Destroy` されるとコールバックは破棄され、`Kill(owner)` でキャンセルできます。
+- 中断：`Kill(target, complete = false)` は当該ターゲットの実行中ジョブをすべて中断し、その件数を返します（DOTween のターゲット登録表に相当、`DOKill` / `DOComplete`）。照合は**参照等価**なので、破棄済みターゲットでも自分のジョブを掃除できます。`Kill(gameObject)` ではそこに付いたコンポーネントのジョブは見つかりません。
+- `ToolkitTweenHandle`（値型、ゼロアロケーション）：`IsActive` / `Kill(complete = false)` / `Complete()`；`IEquatable<>` と `==` を実装し、`List<>` にそのまま入れて `Remove` できます。`default` は無効ハンドルで `Kill` / `Complete` は安全な no-op。
 - `ToolkitEase.Evaluate(EToolkitEase ease, float t)`；イージング種別 `EToolkitEase`：`Linear` / `InQuad` / `OutQuad` / `InOutQuad`。
+- すべての入口は `duration ≤ 0` またはターゲットが空なら即座に終端へ設定し、空ハンドルを返します。
+
+DOTween との差異が 3 点あります：**①上書き管理をしない**——同一ターゲット・同一チャンネルに再度 tween を掛けても前のものは中断されません（DOTween も同様）。先に `Kill(target)` を呼んでください。**②`unscaled` の既定は `true`**（DOTween は既定で `Time.timeScale` の影響を受ける）。DOTween の挙動に揃えるなら `unscaled: false` を明示してください。**③`DelayedCall(delay ≤ 0)` は同期的に即発火**します（DOTween は 1 フレーム遅延）。ハンドルをリストに登録する場合は `if (h.IsActive) list.Add(h);` でガードしてください。
 
 ### 属性モディファイア
 
