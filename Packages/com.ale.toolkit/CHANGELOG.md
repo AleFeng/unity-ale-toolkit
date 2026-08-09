@@ -24,6 +24,10 @@
 - **`UiwVirtualGridList` / `UiwVirtualOrderList` 去重**：两者 `MeasureCell` 改用 `TryGetCellPrefabSize`，去除重复的 RectTransform 读取样板（行为等价，各自保留默认尺寸）。
 - **虚拟列表脚本命名规范化**：若干列表 / 基类脚本命名统一（`.meta` GUID 保留，预制体引用不受影响）。
 
+### 修复
+
+- **补声明 Newtonsoft Json 依赖**：条件系统（`Ale.Condition.Core`，1.4.0 引入）的 `ConditionJson` 用 `Newtonsoft.Json` 序列化，其 asmdef 已按 `precompiledReferences: ["Newtonsoft.Json.dll"]` 正确引用，但包 `package.json` 一直**未声明该依赖**——在未安装 `com.unity.nuget.newtonsoft-json` 的工程里会编译报 `CS0246: 找不到 Newtonsoft`。现于 `dependencies` 声明 `com.unity.nuget.newtonsoft-json`（Unity 官方 registry 包，装本包时自动拉取）。
+
 ## [1.5.0] - 2026-08-02
 
 新增轻量「展示文本」值类型 **`TextValue`**（纯文本 fallback + 可选原生 `LocalizedString`），作为 `AttributeValue` 的 `EFieldType.Text` 的**独立轻量版**——每实例仅一个 string（启用本地化时 +1 个 `LocalizedString`），无 `AttributeValue` 预分配六个类型后备列表的开销；且**直接内嵌 Unity 原生 `LocalizedString`**，Inspector 用原生表/条目选择器、选择即由原生序列化正确保存。另把 UI 组件里承载展示文本的 TMP/UGUI 文本类型别名 `InventoryText` 统一更名为 `UiText`（去领域化）。**导出格式与通用序列化结构不变、纯加量；仅 `UiwViewBase` 两个模式切换标签由 `string` 升级为 `TextValue`（见「变更」）。**
