@@ -20,17 +20,21 @@ namespace Ale.Toolkit.Editor
         public const string Localization = "ATK_LOCALIZATION";
         /// <summary>Unity Addressables 支持宏。启用后资源字段改用 <c>AssetReference</c> 授权（仅存 GUID）。</summary>
         public const string Addressable = "ATK_ADDRESSABLE";
+        /// <summary>Unity Input System 支持宏。启用后可用 <c>ToolkitInputBinder</c> 按名把回调绑到输入上。</summary>
+        public const string InputSystem = "ATK_INPUT_SYSTEM";
 
         // ── 包名（检测是否已安装）──────────────────────────────────────────────────
         /// <summary>TextMeshPro 包名（Unity 2021+ 已内置于 com.unity.ugui）。</summary>
         public const string PackageTmp          = "com.unity.ugui";
         public const string PackageLocalization = "com.unity.localization";
         public const string PackageAddressables = "com.unity.addressables";
+        public const string PackageInputSystem  = "com.unity.inputsystem";
 
         // ── 探测用命名空间 ──────────────────────────────────────────────────────────
         private const string NsTmp          = "TMPro";
         private const string NsLocalization = "UnityEngine.Localization";
         private const string NsAddressable  = "UnityEngine.AddressableAssets";
+        private const string NsInputSystem  = "UnityEngine.InputSystem";
 
         /// <summary>
         /// 旧宏名（<c>IS_*</c>，库存包时代）→ 新宏名（<c>ATK_*</c>）迁移映射。
@@ -48,6 +52,7 @@ namespace Ale.Toolkit.Editor
         public static bool IsTmpEnabled()          => IsDefineEnabled(Tmp);
         public static bool IsLocalizationEnabled() => IsDefineEnabled(Localization);
         public static bool IsAddressableEnabled()  => IsDefineEnabled(Addressable);
+        public static bool IsInputSystemEnabled()  => IsDefineEnabled(InputSystem);
 
         /// <summary>当前是否在 PlayerSettings（Standalone）启用了指定宏。</summary>
         public static bool IsDefineEnabled(string define)
@@ -73,5 +78,7 @@ namespace Ale.Toolkit.Editor
         public static bool IsLocalizationPackageInstalled() => DefineUtils.HasNamespace(NsLocalization);
         /// <summary>com.unity.addressables 是否已安装。</summary>
         public static bool IsAddressablePackageInstalled()  => DefineUtils.HasNamespace(NsAddressable);
+        /// <summary>com.unity.inputsystem 是否已安装。</summary>
+        public static bool IsInputSystemPackageInstalled()  => DefineUtils.HasNamespace(NsInputSystem);
     }
 }

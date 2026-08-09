@@ -48,6 +48,8 @@ namespace Ale.Toolkit.Editor
                 ToolkitDefines.IsLocalizationPackageInstalled(), ToolkitDefines.PackageLocalization);
             WarnIfMismatch("Unity Addressables", ToolkitDefines.Addressable,
                 ToolkitDefines.IsAddressablePackageInstalled(), ToolkitDefines.PackageAddressables);
+            WarnIfMismatch("Unity Input System", ToolkitDefines.InputSystem,
+                ToolkitDefines.IsInputSystemPackageInstalled(), ToolkitDefines.PackageInputSystem);
         }
 
         private static void WarnIfMismatch(string title, string define, bool packageInstalled, string package)

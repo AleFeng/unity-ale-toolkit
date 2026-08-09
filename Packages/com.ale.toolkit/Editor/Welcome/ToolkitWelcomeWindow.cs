@@ -25,9 +25,10 @@ namespace Ale.Toolkit.Editor
         /// </summary>
         public static Action OpenAddressableMigration;
 
-        private bool _tmpEnabled,  _tmpInstalled;
-        private bool _locEnabled,  _locInstalled;
-        private bool _addrEnabled, _addrInstalled;
+        private bool _tmpEnabled,   _tmpInstalled;
+        private bool _locEnabled,   _locInstalled;
+        private bool _addrEnabled,  _addrInstalled;
+        private bool _inputEnabled, _inputInstalled;
         private bool _initialized;
         private bool _pendingRecompile;
         private Vector2 _scroll;
@@ -69,9 +70,11 @@ namespace Ale.Toolkit.Editor
             _tmpInstalled  = ToolkitDefines.IsTmpPackageInstalled();
             _locEnabled    = ToolkitDefines.IsLocalizationEnabled();
             _locInstalled  = ToolkitDefines.IsLocalizationPackageInstalled();
-            _addrEnabled   = ToolkitDefines.IsAddressableEnabled();
-            _addrInstalled = ToolkitDefines.IsAddressablePackageInstalled();
-            _autoShow      = EditorPrefs.GetBool(AutoShowKey, true);
+            _addrEnabled    = ToolkitDefines.IsAddressableEnabled();
+            _addrInstalled  = ToolkitDefines.IsAddressablePackageInstalled();
+            _inputEnabled   = ToolkitDefines.IsInputSystemEnabled();
+            _inputInstalled = ToolkitDefines.IsInputSystemPackageInstalled();
+            _autoShow       = EditorPrefs.GetBool(AutoShowKey, true);
 #if ATK_TMP
             _defaultTmpFont = ToolkitPrefabFonts.DefaultTmpFont;
 #endif
@@ -210,6 +213,15 @@ namespace Ale.Toolkit.Editor
                    "不硬引用、加载数据库不再一并载入资源）；运行时经 Addressable 按需异步加载、引用计数随宿主销毁自动卸载。" +
                    "可用菜单 Tools/Ale Toolkit/Addressable/Addressable工具窗口在「Object 引用 ↔ AssetReference(GUID)」间批量互转。"),
                 Tr("com.unity.addressables 包尚未安装。\n启用宏后，运行时无法通过 Addressable 加载资源。\n\n确定要继续启用吗？"));
+
+            EditorGUILayout.Space(2);
+
+            DrawMacroToggle("Unity Input System", ToolkitDefines.InputSystem, ToolkitDefines.PackageInputSystem,
+                ref _inputEnabled, _inputInstalled,
+                Tr("启用后可用 ToolkitInputBinder 按「ActionMap 名 + Action 名」把回调接到输入上：" +
+                   "绑定时输入源（PlayerInput）尚未生成也不会丢回调——先挂起、逐帧重试到它出现为止。" +
+                   "回调订阅 started / performed / canceled 三个阶段，便于按下与抬起成对处理。"),
+                Tr("com.unity.inputsystem 包尚未安装。\n启用宏后，输入绑定程序集将无法编译。\n\n确定要继续启用吗？"));
         }
 
         /// <summary>

@@ -62,6 +62,22 @@ namespace Ale.Toolkit.Editor
                 "The com.unity.addressables package is not installed.\nAfter enabling the define, assets cannot be loaded via Addressable at runtime.\n\nEnable anyway?",
                 "com.unity.addressables パッケージがインストールされていません。\nマクロを有効にすると、実行時に Addressable でアセットを読み込めません。\n\nこのまま有効にしますか？");
 
+            // Unity Input System
+            Add("启用后可用 ToolkitInputBinder 按「ActionMap 名 + Action 名」把回调接到输入上：" +
+                "绑定时输入源（PlayerInput）尚未生成也不会丢回调——先挂起、逐帧重试到它出现为止。" +
+                "回调订阅 started / performed / canceled 三个阶段，便于按下与抬起成对处理。",
+                "When enabled, ToolkitInputBinder can wire callbacks to input by \"ActionMap name + Action name\": " +
+                "no callback is lost if the input source (PlayerInput) does not exist yet at bind time — the binding is " +
+                "kept pending and retried every frame until it appears. Callbacks subscribe to the started / performed / " +
+                "canceled phases, so press and release can be handled as a pair.",
+                "有効にすると、ToolkitInputBinder で「ActionMap 名 + Action 名」によりコールバックを入力に接続できます。" +
+                "バインド時に入力ソース（PlayerInput）がまだ生成されていなくてもコールバックは失われません——" +
+                "保留され、出現するまで毎フレーム再試行されます。コールバックは started / performed / canceled の" +
+                "3 つのフェーズを購読するため、押下と解放を対で扱えます。");
+            Add("com.unity.inputsystem 包尚未安装。\n启用宏后，输入绑定程序集将无法编译。\n\n确定要继续启用吗？",
+                "The com.unity.inputsystem package is not installed.\nAfter enabling the define, the input binding assembly will fail to compile.\n\nEnable anyway?",
+                "com.unity.inputsystem パッケージがインストールされていません。\nマクロを有効にすると、入力バインド用アセンブリがコンパイルできなくなります。\n\nこのまま有効にしますか？");
+
             // ── 向导字体（宏方块下的全局字体配置）─────────────────────────────────
             Add("TextMeshPro 设置", "TextMeshPro Settings", "TextMeshPro 設定");
             Add("默认字体", "Default Font", "デフォルトフォント");

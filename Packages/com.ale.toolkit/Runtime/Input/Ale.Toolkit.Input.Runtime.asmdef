@@ -1,0 +1,19 @@
+{
+    "name": "Ale.Toolkit.Input.Runtime",
+    "rootNamespace": "Ale.Toolkit.Runtime.InputSupport",
+    "references": [
+        "Ale.Toolkit.Runtime",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "ATK_INPUT_SYSTEM"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
