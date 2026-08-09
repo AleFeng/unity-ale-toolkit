@@ -6,6 +6,37 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.7.0] - 2026-08-09
+
+为「把上层插件从其它框架的底层依赖上摘下来」补齐四处缺口：世界坐标转 UI 坐标、纯地址取用资源、按名绑定输入、带焦点语义的虚拟列表。四项均为**纯加量**，既有 API 的签名与行为不变；唯一的破坏性变更是公开接口 `IAssetLoader` 新增了一个抽象成员（详见下方「破坏性变更」）。
+
+### 新增
+
+- **`UIUtility.WorldPosToUILocalPos` / `ScreenPosToUILocalPos`**：把世界坐标（或屏幕坐标）换算成某个 Canvas 下的局部坐标，用于让 UI 挂件「贴」在场景物体上（血条 / 名牌 / 操作菜单）。与既有的 `PositionAtCursor` 分工明确：那边输入是光标屏幕像素、直接写 `rt.position` 并夹取回屏内；这边返回值、不夹取，落到哪个 `RectTransform` 由调用方决定。带世界空间偏移的重载走世界空间而非屏幕像素——同样的像素偏移在不同分辨率下对应的世界距离不同，会让挂件与目标物体的相对位置随分辨率漂移。**世界投影固定用 `Camera.main`（缺省回退 `canvas.worldCamera`）**：`canvas.worldCamera` 是 UI 专用渲染相机，两者分离时拿它做投影会得到错误结果，它只在 `ScreenPosToUILocalPos` 内部喂给 `ScreenPointToLocalPointInRectangle`。
+- **`ToolkitAssets.LoadByAddress<T>` / `InstantiateByAddress<T>` / `ReleaseAddress(string)`**：面向「调用方手上只有一个运行时拼出来的地址串、没有任何实时引用可回退」的取用路径（如按角色名拼出 `"…/Actors/{name}.prefab"`）。既有的 `Bind` / `Load` 都以 `AttributeValue`（或「实时引用 + 地址」二元组）为输入、有实时引用优先路径，覆盖不到这种场景。`InstantiateByAddress` 回调给出的是**新实例**而非源资源，两份生命周期各管各的：实例归调用方 `Destroy`，源资源句柄仍须 `ReleaseAddress` 按同一地址配对释放。
+- **`Ale.Toolkit.Input.Runtime` 程序集与 `ToolkitInputBinder`**（受 `ATK_INPUT_SYSTEM` 约束，门控范式与 Addressables 层一致）：按「ActionMap 名 + Action 名」把回调接到 Input System 上。解决的是同一件麻烦事——**要绑定的时候输入源往往还不存在**：`PlayerInput` 常随玩家 / 角色在运行时生成，而调用方通常在自己的 `OnEnable` 里就想把回调挂上。`Bind` 立刻登记，能当场生效就当场生效，不能则挂起、由常驻运行器逐帧重试到输入源与对应 Action 可得为止，期间不丢回调；`Unbind` 对已生效与仍挂起的绑定都能正确撤销。输入源默认取场景中第一个 `PlayerInput` 的 actions，也可经 `ToolkitInputBinder.Actions` 显式指定（改写会把已生效的绑定全部退订并按新源重新解析）。
+  - **回调订阅 `started` / `performed` / `canceled` 三个阶段**，而非只订 `performed`：调用方常靠「按下 / 抬起」成对触发维护拖拽之类的状态（典型写法是回调里 `ctx.ReadValue<float>()` 比对 0 / 1），只订 `performed` 会收不到抬起。只关心「触发了一次」的场合用无参 `Action` 重载，其包装体只放行 `performed`。
+  - **不改动输入的启用状态**：只负责接线，不会 `Enable` 任何 ActionMap——启停由 `PlayerInput` 的 Default Map / `SwitchCurrentActionMap` 之类的输入状态机统一决定，两件事分开才不会互相打架。绑到一个当前禁用的 Map 时给出一次警告（每 Map 一次，不刷屏），因为这种情况下回调永远不触发而 Input System 本身毫无提示，极难排查。
+  - 全部可变状态放在运行器实例上而非门面的静态字段：关闭 Domain Reload 时静态字段跨播放会话残留，会把上次播放留下的绑定（其 `InputAction` 已随输入系统重新初始化而失效）带进下一次；运行器随播放结束销毁，状态天然干净。`OnDestroy` 退订全部绑定——`InputActionAsset` 是 ScriptableObject 资源、在编辑器里跨播放存活，不退订会把委托永久留在资源的 Action 上。与 `ToolkitTween` / `ToolkitTweenRunner` 是同一套分工。
+- **`UiwFocusOrderList<TData,TCell>` 与 `EFocusAnchor`**：带「焦点条目」语义的顺序虚拟列表，在 `UiwVirtualOrderList` 的单列纵向布局之上补两件事——① **焦点跟踪**，视口中某个位置（Top / Center / Bottom）被定为焦点线，中心最接近它的条目即焦点条目，改变时抛 `OnFocusChanged(prev, current)`；② **随焦点距离变化的外观**，两条可选曲线按「该格中心离焦点线有多远」（归一化到 `[-1,1]`，±1 对应视口边缘）驱动 `localScale` 与横向偏移，得到中间大两头小、并向两侧让开的弧形排布。这让「滚到哪儿就选中哪儿」的转盘 / 拨轮式交互不必额外接线：选中态直接由滚动位置派生，不需要点击、也不需要在格子上挂选中逻辑。
+  - **不改动基类的滚动模型**：滚动仍由 `ScrollRect` 驱动（拖拽 / 滚轮 / 惯性都是它原生的），本类只读取滚动位置来派生焦点与外观，不接管输入、不做释放后吸附对齐。
+  - **不自建「索引 → 格子」映射**：按滚动位置算出视口覆盖的索引区间，再逐个向基类既有的 `TryGetActiveCell` 要格子。避免与基类的回收 / 复用循环产生第二份需要同步的状态，叶子类也因此不必覆写任何额外钩子。
+  - 外观回写有变化守卫（`Mathf.Approximately` 比对后才写 `localScale` / `anchoredPosition`）：写 transform 会让 UGUI 标脏并触发画布重建，静止时逐帧写入同样的值等于每帧白重建一次画布。横向偏移只改 `x`——`y` 是基类按 `PositionOf(i)` 定的行位置，覆盖它会把整个虚拟滚动的定位打乱。
+  - `UpdateFocusAndAppearance` 有防重入守卫：订阅方若在 `OnFocusChanged` 回调里改数据（`SetItems`）会重新走进本方法，不拦住则可能形成事件递归。
+- **`UiwVirtualOrderList.CellHeight`**（`protected`）：暴露由 `MeasureCell` 量得的行高，供子类做定位 / 焦点换算，免得各子类各自重量一遍、并在基类默认值变化时静默失配。
+- **欢迎窗口新增 `ATK_INPUT_SYSTEM` 宏开关**，`ToolkitDefineChecker` 同步纳入包 / 宏一致性检查，编辑器界面文案补齐 zh / en / ja 三语。
+
+### 破坏性变更
+
+- **`IAssetLoader` 新增抽象成员 `LoadByAddress<T>(string address, GameObject owner, Action<T> onLoaded)`。** 包内两个实现（`DirectAssetLoader` / `AddressableAssetLoader`）均已补齐，**包外**若有第三方实现了本接口则需一并实现该方法。未采用默认接口实现（DIM），因其在 IL2CPP 下的支持历来不稳。
+  - `AddressableAssetLoader` 委托既有的 `AddressableManager.LoadAsync`（按地址引用计数去重）。
+  - `DirectAssetLoader` 没有实时引用可回退，故退到 `Resources.Load`（先去掉地址末段的扩展名——地址串通常带 `.prefab` 之类后缀，而 Resources 要求不带扩展名的相对路径，这是最常见的一处不匹配）；仍未命中则回调 `null` 并给出一条指明「装 Addressables + 开 `ATK_ADDRESSABLE`」的警告，而不是静默失败。
+
+### 修复
+
+- **`ToolkitInfo.Version` 与 `package.json` 的版本号对齐。** 此前前者停留在 `"1.5.0"`、后者已是 `1.6.0`，用 `ToolkitInfo.Version` 做版本门控的宿主会拿到落后一个 minor 的值。本次一并订正为 `1.7.0`。
+- `package.json` 的 `keywords` 补 `input`。
+
 ## [1.6.0] - 2026-08-09
 
 把中央 Tween 从「只会淡 alpha」补齐为**可整体承接 DOTween 常用单 tween 用法**的轻量门面：内部作业模型由「CanvasGroup 或 Graphic」双目标泛化为「通道 + 单一目标 + `Vector4` 载荷」的联合体，在此之上一次性补上 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、纯延时回调，以及 DOTween 目标登记表的等价物「按目标打断」。**导出格式与序列化结构不变、纯加量；`FadeCanvasGroup` / `FadeGraphic` 的签名与行为不变，`UiwListFadeCell` 行为不变。**

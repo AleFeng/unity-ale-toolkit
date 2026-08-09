@@ -15,7 +15,10 @@ namespace Ale.Toolkit.Runtime.UI
     {
         // 行高（像素）。应与 cellPrefab 的 RectTransform 高度一致。
         private float _cellHeight = 120f;
-        
+
+        /// <summary>当前行高（由 <see cref="MeasureCell"/> 从 <c>cellPrefab</c> 量得）。供子类做定位 / 焦点换算。</summary>
+        protected float CellHeight => _cellHeight;
+
         /// <summary>
         /// 测量 cellPrefab 的 RectTransform 高度，作为行高。若 prefab 高度为 0，则使用默认值 120。
         /// </summary>
