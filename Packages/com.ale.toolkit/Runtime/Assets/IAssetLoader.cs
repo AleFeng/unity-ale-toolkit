@@ -26,6 +26,16 @@ namespace Ale.Toolkit.Runtime
         /// </summary>
         void Load<T>(Object liveRef, string address, GameObject owner, Action<T> onLoaded) where T : Object;
 
+        /// <summary>
+        /// <b>纯地址</b>取用：调用方手上只有一个运行时拼出来的地址串，没有任何实时引用可回退
+        /// （如按角色名拼出 <c>"…/Actors/{name}.prefab"</c>）。与上面两个 <c>Load</c> 的区别正在于此——
+        /// 那两个都有实时引用优先路径，本方法没有。
+        /// <para><paramref name="owner"/> 非空时句柄随宿主销毁自动释放；为空则调用方须自行用
+        /// <see cref="ReleaseAddress"/> 按同一地址配对释放，否则句柄泄漏。</para>
+        /// <para>加载失败或直接模式无法解析该地址时，回调传入 <c>null</c>。</para>
+        /// </summary>
+        void LoadByAddress<T>(string address, GameObject owner, Action<T> onLoaded) where T : Object;
+
         /// <summary>释放某宿主名下加载的全部资源句柄（直接模式为空操作）。</summary>
         void Release(GameObject owner);
 

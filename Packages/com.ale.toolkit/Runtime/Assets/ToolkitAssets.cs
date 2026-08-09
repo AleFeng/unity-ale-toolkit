@@ -55,6 +55,47 @@ namespace Ale.Toolkit.Runtime
             (Loader ?? DirectAssetLoader.Instance).Load(value, index, null, onLoaded);
         }
 
+        // ── 按地址取用：调用方只有一个运行时拼出来的地址串 ─────────────────────────────
+        //
+        // 与上面的 Bind / Load 的分工：那些都以 AttributeValue（或「实时引用 + 地址」二元组）为输入，
+        // 有实时引用优先路径；这一组的输入只有一个地址字符串，用于「按名字拼地址」的动态取用
+        // （如按角色名拼出 "…/Actors/{name}.prefab"）。直接模式下只能退到 Resources，详见
+        // DirectAssetLoader.LoadByAddress 的说明。
+
+        /// <summary>
+        /// 按地址加载资源并回调。
+        /// <para><paramref name="owner"/> 非空时句柄随宿主销毁自动释放；为空（默认）则调用方须用
+        /// <see cref="ReleaseAddress"/> 传入<b>同一地址</b>配对释放，否则句柄泄漏。</para>
+        /// <para>加载失败时回调传入 <c>null</c>，调用方需自行判空。</para>
+        /// </summary>
+        public static void LoadByAddress<T>(string address, Action<T> onLoaded, GameObject owner = null) where T : Object
+        {
+            if (onLoaded == null) return;
+            (Loader ?? DirectAssetLoader.Instance).LoadByAddress(address, owner, onLoaded);
+        }
+
+        /// <summary>
+        /// 按地址加载资源<b>并实例化</b>，回调传入的是新实例（而非源资源）。
+        /// <para><b>两份生命周期各管各的</b>：实例归调用方所有，用完自行 <c>Destroy</c>；
+        /// 源资源句柄不随实例销毁而释放，仍须调用方用 <see cref="ReleaseAddress"/> 按同一地址配对释放。</para>
+        /// <para>加载失败时回调传入 <c>null</c>（不会实例化），调用方需自行判空。</para>
+        /// </summary>
+        /// <param name="address">资源地址。</param>
+        /// <param name="onInstantiated">实例化完成回调，参数为新实例；失败时为 <c>null</c>。</param>
+        /// <param name="parent">新实例的父节点，可空（缺省挂到当前活动场景根部）。</param>
+        public static void InstantiateByAddress<T>(
+            string address, Action<T> onInstantiated, Transform parent = null) where T : Object
+        {
+            if (onInstantiated == null) return;
+
+            LoadByAddress<T>(address, asset =>
+            {
+                // 先上转型到 Object 再判空：泛型形参 T 拿不到 UnityEngine.Object 的 bool 重载。
+                if (!(Object)asset) { onInstantiated(null); return; }
+                onInstantiated(parent ? Object.Instantiate(asset, parent) : Object.Instantiate(asset));
+            });
+        }
+
         // ── Release ─────────────────────────────────────────────────────────────────
 
         /// <summary>释放宿主名下加载的全部资源句柄（直接模式为空操作）。</summary>
@@ -71,6 +112,18 @@ namespace Ale.Toolkit.Runtime
         {
             if (value == null) return;
             (Loader ?? DirectAssetLoader.Instance).ReleaseAddress(value.GetObjAddress(index));
+        }
+
+        /// <summary>
+        /// 按地址释放一次资源句柄（引用计数归零则真正卸载）。
+        /// 与无宿主的 <see cref="LoadByAddress{T}"/> / <see cref="InstantiateByAddress{T}"/> 配对使用，
+        /// 须传入与加载时<b>完全相同</b>的地址串；直接模式为空操作。
+        /// <para>注意：只释放源资源句柄，<b>不</b>销毁已实例化出来的对象——那些由调用方自行 <c>Destroy</c>。</para>
+        /// </summary>
+        public static void ReleaseAddress(string address)
+        {
+            if (string.IsNullOrEmpty(address)) return;
+            (Loader ?? DirectAssetLoader.Instance).ReleaseAddress(address);
         }
     }
 }

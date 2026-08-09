@@ -49,6 +49,13 @@ namespace Ale.Toolkit.Runtime.AddressableSupport
             AddressableManager.LoadAsync(address, owner, onLoaded);
         }
 
+        public void LoadByAddress<T>(string address, GameObject owner, Action<T> onLoaded) where T : Object
+        {
+            // 纯地址：无实时引用可回退，直接走 Addressable 异步加载（按地址引用计数去重）。
+            if (string.IsNullOrEmpty(address)) { onLoaded?.Invoke(null); return; }
+            AddressableManager.LoadAsync(address, owner, onLoaded);
+        }
+
         public void Release(GameObject owner)
         {
             AddressableManager.Release(owner);
