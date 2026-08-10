@@ -8,9 +8,9 @@ namespace Ale.Toolkit.Runtime
     /// 作业通道：决定 <see cref="TweenJob.From"/> / <see cref="TweenJob.To"/> 载荷的语义，
     /// 以及 <see cref="TweenJob.Apply"/> 把插值结果写回目标的方式。
     ///
-    /// <para><b>Delay 刻意排在最后（值非 0）：</b>这样「零初始化 / 池复用后未填字段」的脏作业会落在
+    /// <para><b>Delay 与 Custom 刻意排在最后（值非 0）：</b>这样「零初始化 / 池复用后未填字段」的脏作业会落在
     /// <see cref="CanvasGroupAlpha"/> 且 <c>Target</c> 为 null，被 runner 判为「无目标」剔除；
-    /// 若 Delay 占 0，这类脏作业会被当成合法的「无目标纯延时」而永远存活。</para>
+    /// 若这两个「允许无目标」的通道之一占 0，这类脏作业会被当成合法作业而永远存活。</para>
     /// </summary>
     internal enum ETweenChannel
     {
@@ -40,6 +40,12 @@ namespace Ale.Toolkit.Runtime
 
         /// <summary>纯延时：无插值目标，仅到期触发回调。</summary>
         Delay,
+
+        /// <summary>
+        /// 自定义浮点：无固定写回目标，插值结果（取 x 分量）交由 <see cref="TweenJob.OnUpdate"/> 自行写回。
+        /// 用于目标不是 <see cref="UnityEngine.Object"/>、或写回路径无法用固定通道表达的场合。
+        /// </summary>
+        Custom,
     }
 
     // 单个补间作业。经 ToolkitClassPool 池化复用；字段由 ToolkitTween 填充、ToolkitTweenRunner 推进。
@@ -57,15 +63,19 @@ namespace Ale.Toolkit.Runtime
         public EToolkitEase       Ease;
         public bool               Unscaled;
         public Action             OnComplete;
+        public Action<float>      OnUpdate;   // 仅 Custom 通道：每次插值后由调用方自行写回
 
         /// <summary>
-        /// 作业是否仍有存活目标。<see cref="ETweenChannel.Delay"/> 未传 owner 时无目标可失效、恒为 true；
-        /// 其余通道（以及传了 owner 的延时）随目标存亡——目标被 Destroy 后由 runner 剔除，且不触发完成回调。
+        /// 作业是否仍有存活目标。<see cref="ETweenChannel.Delay"/> / <see cref="ETweenChannel.Custom"/>
+        /// 未传 owner 时无目标可失效、恒为 true；其余通道（以及传了 owner 的延时 / 自定义）随目标存亡——
+        /// 目标被 Destroy 后由 runner 剔除，且不触发完成回调。
         /// </summary>
         public bool HasTarget
-            // ReferenceEquals 判「真 null」（从未设过目标）——只有纯延时允许这种情况；
+            // ReferenceEquals 判「真 null」（从未设过目标）——只有纯延时与自定义浮点允许这种情况；
             // 确有引用时再走 Unity 的 operator bool，以识别「已被 Destroy」的假 null。
-            => ReferenceEquals(Target, null) ? Channel == ETweenChannel.Delay : (bool)Target;
+            => ReferenceEquals(Target, null)
+                ? Channel == ETweenChannel.Delay || Channel == ETweenChannel.Custom
+                : (bool)Target;
 
         /// <summary>按插值系数 <paramref name="k"/>（已过缓动，非线性进度 t）在 From→To 之间取值并写入目标。</summary>
         public void Apply(float k) => Write(Vector4.LerpUnclamped(From, To, k));
@@ -132,6 +142,23 @@ namespace Ale.Toolkit.Runtime
                 }
                 case ETweenChannel.Delay:
                     break;  // 纯延时：无插值目标
+
+                case ETweenChannel.Custom:
+                {
+                    if (OnUpdate == null) break;
+                    // 写回逻辑由调用方提供，抛异常的可能远高于内置通道。Write 是在 runner 的作业循环内
+                    // 被调用的，放任异常会打断本帧其余作业（与本类「单个作业的故障不外溢」的约定相悖），
+                    // 故就地捕获：记录异常并让该作业失效，由 runner 下一帧剔除（不触发完成回调）。
+                    try { OnUpdate(v.x); }
+                    catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                        Alive      = false;
+                        OnUpdate   = null;
+                        OnComplete = null;
+                    }
+                    break;
+                }
             }
         }
 
@@ -163,6 +190,7 @@ namespace Ale.Toolkit.Runtime
             Alive      = false;
             Target     = null;
             OnComplete = null;
+            OnUpdate   = null;
         }
     }
 }

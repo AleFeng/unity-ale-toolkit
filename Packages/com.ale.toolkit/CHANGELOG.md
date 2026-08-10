@@ -6,6 +6,17 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.7.3] - 2026-08-10
+
+### 新增
+
+- **`ToolkitTween.To(from, to, duration, onUpdate, …)` 通用浮点补间**，对应 DOTween 的 `DOTween.To(getter, setter, to, duration)`。此前 `ToolkitTween` 的七个方法都绑死在具体的写回目标上（`CanvasGroup.alpha` / `Graphic.color` / `SpriteRenderer.color` / `Transform` 的位移旋转缩放），**写回对象不是 `UnityEngine.Object` 时无路可走**——典型如第三方动画运行时暴露的裸结构体属性（Spine 的 `Skeleton.A`、Live2D 的 `CubismRenderController.Opacity`），它们既不是 Unity 对象、也无法用固定通道表达。新方法把插值结果交给调用方提供的 `Action<float>` 自行写回，补上这个缺口。
+  - 内置通道能表达的场合仍请优先用内置通道——它们直接写字段，不经委托。
+  - **不回读起始值**：写回路径是个只写委托，无从回读，`from` 由调用方给定并在起始时固定。需要「从当前值出发」时自行把当前值传进来。
+  - **写回目标随宿主销毁时务必传 `owner`**，否则委托捕获的引用会让作业在宿主消失后继续写一个已失效的对象；传了 `owner` 也就能经 `Kill(owner)` 按宿主批量取消。
+  - `onUpdate` 抛出的异常**就地捕获并记录**，该作业随即失效、完成回调不触发。这条与内置通道「用 `as` 转型 + 空守卫使类型不匹配退化为静默空操作」是同一个约定：`Write` 是在 runner 的作业循环内被调用的，单个作业的故障不能打断同帧其余作业。
+  - 新增的 `Custom` 通道与 `Delay` 一样允许无 `owner`，故同样**刻意排在枚举末尾（值非 0）**——若它占 0，池复用后未填字段的脏作业会被当成合法的「无目标自定义补间」而永远存活。
+
 ## [1.7.2] - 2026-08-10
 
 ### 新增

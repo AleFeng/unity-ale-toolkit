@@ -7,8 +7,8 @@ namespace Ale.Toolkit.Runtime
     /// <summary>
     /// 轻量中央 Tween 门面（DOTween 式「单 Update 轮询作业表」）。提供
     /// <see cref="CanvasGroup"/> / <see cref="Graphic"/>（<see cref="Image"/> / 文本）/ <see cref="SpriteRenderer"/>
-    /// 的 alpha 淡入淡出、<see cref="Graphic"/> 的整色过渡、<see cref="Transform"/> 的位移 / 旋转 / 缩放，
-    /// 以及纯延时回调。
+    /// 的 alpha 淡入淡出、<see cref="Graphic"/> 的整色过渡、<see cref="Transform"/> 的位移 / 旋转 / 缩放、
+    /// 纯延时回调，以及写回路径自定义的通用浮点补间（<see cref="To"/>）。
     ///
     /// <para>内部以「<see cref="ETweenChannel"/> 通道 + 单一 <see cref="UnityEngine.Object"/> 目标 +
     /// <see cref="Vector4"/> 载荷」的联合体承载各类作业（见 <c>ToolkitTweenJob.cs</c>），
@@ -300,6 +300,62 @@ namespace Ale.Toolkit.Runtime
 
         #endregion
 
+        #region 通用浮点
+
+        /// <summary>
+        /// 通用浮点补间：把一个值从 <paramref name="from"/> 补到 <paramref name="to"/>，每帧把插值结果交给
+        /// <paramref name="onUpdate"/> 自行写回。对应 DOTween 的 <c>DOTween.To(getter, setter, to, duration)</c>。
+        ///
+        /// <para>用于<b>其余通道覆盖不到的目标</b>：写回对象不是 <see cref="UnityEngine.Object"/>
+        /// （如第三方运行时的裸结构体 / 托管对象上的属性），或写回路径无法用固定通道表达。
+        /// 内置通道（<see cref="FadeCanvasGroup"/> / <see cref="FadeGraphic"/> / <see cref="MoveTransform"/> 等）
+        /// 能表达的场合请优先用它们——它们直接写字段，不经委托。</para>
+        ///
+        /// <para><b>不读取起始值：</b><paramref name="from"/> 由调用方给定并在起始时固定，本方法不回读目标当前值
+        /// （无从回读——写回路径是个只写委托）。需要「从当前值出发」时请自行把当前值传进来。</para>
+        ///
+        /// <para>可选 <paramref name="owner"/> 用于绑定生命周期：owner 被 <c>Destroy</c> 后停止推进且不再回调，
+        /// 且可经 <see cref="Kill(UnityEngine.Object, bool)"/> 按 owner 取消。不传则只能经返回的句柄取消
+        /// （与 <see cref="DelayedCall"/> 一致）。<b>写回目标随宿主销毁时务必传 owner</b>，否则委托捕获的引用
+        /// 会让作业在宿主消失后继续写一个已失效的对象。</para>
+        ///
+        /// <para><paramref name="onUpdate"/> 抛出的异常会被就地捕获并记录，该作业随即失效、完成回调不触发——
+        /// 单个作业的故障不会打断同帧其余作业。</para>
+        /// </summary>
+        /// <param name="from">起始值。</param>
+        /// <param name="to">目标值。</param>
+        /// <param name="duration">时长（秒）。</param>
+        /// <param name="onUpdate">每帧写回：参数为当前插值结果。为 null 时不启动作业。</param>
+        /// <param name="ease">缓动类型（默认 OutQuad，与本类其余方法一致）。</param>
+        /// <param name="unscaled">是否用 <see cref="Time.unscaledDeltaTime"/>（默认 true，暂停时仍推进）。</param>
+        /// <param name="onComplete">正常完成（非打断）时回调。</param>
+        /// <param name="owner">可选生命周期宿主；传入且已被销毁时直接返回空句柄、不写回也不回调。</param>
+        public static ToolkitTweenHandle To(
+            float from, float to, float duration, Action<float> onUpdate,
+            EToolkitEase ease = EToolkitEase.OutQuad, bool unscaled = true,
+            Action onComplete = null, UnityEngine.Object owner = null)
+        {
+            // 无写回路径：作业没有任何可观察效果，视同目标为空，直接丢弃（与其余通道一致）。
+            if (onUpdate == null) return default;
+
+            // 传了 owner 但已被销毁：视同目标失效，直接丢弃。
+            if (!ReferenceEquals(owner, null) && !owner) return default;
+
+            // 时长非正：瞬置到终值并直接完成，不进入 runner。
+            if (duration <= 0f)
+            {
+                onUpdate(to);
+                onComplete?.Invoke();
+                return default;
+            }
+
+            return Start(ETweenChannel.Custom, owner,
+                new Vector4(from, 0f, 0f, 0f), new Vector4(to, 0f, 0f, 0f),
+                duration, ease, unscaled, onComplete, onUpdate);
+        }
+
+        #endregion
+
         #region 打断
 
         /// <summary>
@@ -315,7 +371,7 @@ namespace Ale.Toolkit.Runtime
         /// <para><paramref name="complete"/>=true 时，每个被打断的作业先瞬置终值再触发其完成回调，
         /// <b>同步、在本调用栈上</b>完成。本方法不会为此创建 runner——没有 runner 就没有作业可打断。</para>
         /// </summary>
-        /// <param name="target">目标对象：CanvasGroup / Graphic / SpriteRenderer / Transform，或延时的 owner。</param>
+        /// <param name="target">目标对象：CanvasGroup / Graphic / SpriteRenderer / Transform，或延时 / 通用浮点的 owner。</param>
         /// <param name="complete">true 时瞬置终值并触发完成回调；false 时静默打断（不回调）。</param>
         public static int Kill(UnityEngine.Object target, bool complete = false)
         {
@@ -356,7 +412,8 @@ namespace Ale.Toolkit.Runtime
         private static ToolkitTweenHandle Start(
             ETweenChannel channel, UnityEngine.Object target,
             Vector4 from, Vector4 to, float duration,
-            EToolkitEase ease, bool unscaled, Action onComplete)
+            EToolkitEase ease, bool unscaled, Action onComplete,
+            Action<float> onUpdate = null)
         {
             var runner = EnsureRunner();
             if (!runner) return default;
@@ -373,6 +430,7 @@ namespace Ale.Toolkit.Runtime
             job.Ease       = ease;
             job.Unscaled   = unscaled;
             job.OnComplete = onComplete;
+            job.OnUpdate   = onUpdate;   // 仅 Custom 通道使用；其余通道恒为 null（池复用时由 Reset 清空）
 
             runner.Add(job);
             return new ToolkitTweenHandle(job, job.Id);
