@@ -6,6 +6,24 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.7.5] - 2026-08-10
+
+**顺序虚拟列表：行距与格子高度解耦（新增行距倍率），格子轴心由顶端改为正中（修复焦点条目对不准焦点线）。**
+
+### 新增
+
+- **`UiwVirtualOrderList` 新增 `rowPitchScale`（行距倍率）**，行距 = 格子高度 × 本倍率，默认 `1.0`（逐行紧贴，与旧行为一致）；大于 1 拉开间隙，小于 1 让相邻行重叠。
+  - 此前 `_cellHeight` 一个值同时充当「格子自身高度」与「行距」，想调疏密只能改格子预制体的尺寸——而那会连带改变格子里所有元素的可用空间。现在两者分开：`CellHeight` 只决定实例的 `sizeDelta`，新增的 `RowPitch` 决定 Content 高度、定位、可见窗口与滚动换算。
+  - `UiwFocusOrderList` 的首尾留白、焦点索引反解、`FocusIndex` 定位、滚轮步长兜底与外观曲线取样**一律改用行距**，因此焦点语义在任何倍率下都成立：滚一档仍正好换一条，第一条与最后一条仍能停到焦点线上。
+  - 倍率是给美术在 Play 模式里对着调的，故 `OnValidate` 会把布局置脏、由 `LateUpdate` 重建（走既有的延迟重建通路，不在 `OnValidate` 里直接改 UI）。为此 `UiwVirtualListBase.SetViewportDirty` 由 private 提为 `protected`。
+
+### 修复
+
+- **`UiwFocusOrderList` 配了 `focusScaleCurve` 时，焦点条目的视觉中心并不在焦点线上**，而是低了 `(缩放 - 1) × 行距 / 2`——缩放峰值 1.5、行距 60 时正好偏 15 像素，表现为「焦点锚点选了 Center，条目却明显偏下」。
+  - 成因：`UiwVirtualOrderList.SetupInstanceRect` 把格子的 pivot 设为顶端居中 `(0.5, 1)`。轴心即缩放中心，于是放大的格子只向下长开，几何中心随缩放下移，而布局与焦点反解算的一直是未缩放的行中心。
+  - 修法：pivot 改为正中 `(0.5, 0.5)`，`PositionOf` 相应给出「行槽位的中心」而非顶端（补半个行距）。补偿之后「第 i 条的中心 = 留白 + i × 行距 + 行距/2」这条等式仍然成立，焦点反解一行未改。
+  - **对没配缩放曲线的列表（`focusScaleCurve` 留空，以及所有 `UiwVirtualOrderList` 直接子类）排布逐像素不变**；配了曲线的列表则是修正其偏移。网格列表 `UiwVirtualGridList` 不受影响（它有自己的 `SetupInstanceRect`）。
+
 ## [1.7.4] - 2026-08-10
 
 **修复 `ToolkitTween` 在编辑模式下泄漏 GameObject 且从不推进的问题。**

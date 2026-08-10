@@ -134,7 +134,7 @@ int cmp = AttributeSortService.Compare(a, b, priorities, ctx);
 
 `Ale.Toolkit.Runtime.UI` 下的运行时控件，均为泛型 / 可复用组件。
 
-- **虚拟滚动列表** `UiwVirtualGridList<TData,TCell>`（网格）/ `UiwVirtualOrderList<TData,TCell>`（顺序）：继承并实现 `BindCell` / `ClearCell`，Inspector 绑定 `cellPrefab` / `scrollRect` / `content`，喂入数据即只渲染可见区、逐帧限速生成。主要方法：`SetItems` / `UpdateItems` / `RefreshItemsData` / `SetSourceItems`、`ConfigureFilter` / `SetExtraFilter`、`ConfigureSort`、`ScrollToStart`。
+- **虚拟滚动列表** `UiwVirtualGridList<TData,TCell>`（网格）/ `UiwVirtualOrderList<TData,TCell>`（顺序）：继承并实现 `BindCell` / `ClearCell`，Inspector 绑定 `cellPrefab` / `scrollRect` / `content`，喂入数据即只渲染可见区、逐帧限速生成。主要方法：`SetItems` / `UpdateItems` / `RefreshItemsData` / `SetSourceItems`、`ConfigureFilter` / `SetExtraFilter`、`ConfigureSort`、`ScrollToStart`。顺序列表另有 `rowPitchScale`（行距倍率：行距 = 格子高度 × 倍率，默认 1.0 即逐行紧贴），以及带「焦点条目」语义的子类 `UiwFocusOrderList<TData,TCell>`（滚到哪儿就选中哪儿，`OnFocusChanged` / `FocusIndex`，可配焦点停靠位置与随焦点距离变化的缩放 / 横向偏移曲线）。
 - **页签条** `UiwTabStrip<TTab,TValue>`（纯 C#）：`Configure(prefab, container, bind, onSelect)` → `SetTabs(values, labels, …)` → `Select` / `SelectValue`；差异复用不整排重建。过滤页签栏 `UiwFilterTabBar`（MonoBehaviour）：`SetFilters(tagNames)` / `Clear`。
 - **悬停弹窗** `UiwTooltipBase<TPayload>`：子类实现 `ApplyContent` / `ClearContent` 并暴露自己的 `Show`（内部转 `ShowTooltip`）；`Hide()`。
 - **子项实例池** `UiwWidgetPool<T>`（游标式复用）：`Configure` → `Begin` → `Next(out created)` → `End`。

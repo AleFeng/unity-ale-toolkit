@@ -594,7 +594,14 @@ namespace Ale.Toolkit.Runtime.UI
         // OnRectTransformDimensionsChange 在 Canvas Rebuild 循环内同步触发，其中不能修改任何 UI 元素
         // （否则报 "rebuild list" 错误）。故只在其中置脏，由 LateUpdate 在 Rebuild 结束后安全处理。
         private bool _viewportSizeDirty;
-        private void SetViewportDirty() => _viewportSizeDirty = true;
+
+        /// <summary>
+        /// 标记布局需要重建，由 <see cref="LateUpdate"/> 在 Rebuild 结束后安全处理。
+        /// <para>子类改动了影响布局的参数（如行距倍率）时调用本方法，而不要直接调
+        /// <see cref="RebuildLayout"/>——后者会就地修改 UI，在 Canvas Rebuild 循环内（
+        /// <c>OnRectTransformDimensionsChange</c> / <c>OnValidate</c>）调用会报 "rebuild list" 错误。</para>
+        /// </summary>
+        protected void SetViewportDirty() => _viewportSizeDirty = true;
 
         protected virtual void LateUpdate()
         {
