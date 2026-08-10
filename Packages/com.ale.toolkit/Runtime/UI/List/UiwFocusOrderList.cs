@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Ale.Toolkit.Runtime.UI
 {
@@ -30,8 +31,11 @@ namespace Ale.Toolkit.Runtime.UI
     /// 得到中间大两头小、并向两侧让开的弧形排布。</item>
     /// </list>
     ///
-    /// <para>不改动基类的滚动模型：滚动仍由 <c>ScrollRect</c> 驱动（拖拽 / 滚轮 / 惯性都是它原生的），
-    /// 本类只读取滚动位置来派生焦点与外观，<b>不</b>接管输入、<b>不</b>做释放后吸附对齐。</para>
+    /// <para><b>滚轮由本类接管并做平滑位移</b>（<see cref="scrollTweenDuration"/>，默认 0.1 秒）。
+    /// 焦点列表一档滚轮通常正好跨一整条，原生 <c>ScrollRect</c> 直接改写 <c>content.anchoredPosition</c>，
+    /// 表现为整条列表瞬间跳一格，焦点缩放曲线也跟着突变；补间后条目是滑过去的。
+    /// 拖拽 / 惯性 / 边界回弹仍是 <c>ScrollRect</c> 原生的，本类不碰，拖拽开始时会取消进行中的补间。
+    /// <b>仍不做释放后吸附对齐</b>——拖拽松手停在两条之间时，焦点缩放曲线会让上下两条都呈半放大态。</para>
     ///
     /// <para><b>首尾留白</b>：Content 在头尾各补一段空白，使<b>第一条与最后一条也能滚到焦点线上</b>。
     /// 没有这段留白时，条目是从 Content 顶端紧挨着排的，第一条的中心永远停在视口顶端附近、
@@ -47,7 +51,7 @@ namespace Ale.Toolkit.Runtime.UI
     /// </summary>
     /// <typeparam name="TData">列表数据元素类型。</typeparam>
     /// <typeparam name="TCell">格子显示组件类型。</typeparam>
-    public abstract class UiwFocusOrderList<TData, TCell> : UiwVirtualOrderList<TData, TCell>
+    public abstract class UiwFocusOrderList<TData, TCell> : UiwVirtualOrderList<TData, TCell>, IScrollHandler, IBeginDragHandler
         where TCell : Component
     {
         #region Inspector 配置
@@ -63,6 +67,11 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("焦点横向偏移曲线。x 同上，y = 该格的横向偏移（像素，正值向右）。" +
                  "留空（无关键帧）则完全不改动位置。")]
         public AnimationCurve focusOffsetCurve;
+
+        [Header("滚轮")]
+        [Tooltip("滚轮切换焦点条目时的平滑位移时长（秒）。0 = 不补间，一档即瞬间跳到位（原生 ScrollRect 的表现）。\n" +
+                 "一档滚轮的位移距离仍取自 ScrollRect 的 Scroll Sensitivity——本类只是把它改成滑过去而非跳过去。")]
+        public float scrollTweenDuration = 0.1f;
 
         #endregion
 
@@ -153,7 +162,7 @@ namespace Ale.Toolkit.Runtime.UI
         }
 
         /// <summary>
-        /// 立即把指定条目滚到焦点线上（瞬移，不做补间）。
+        /// 立即把指定条目滚到焦点线上（瞬移，不做补间）。进行中的滚轮补间会被取消。
         /// <para>滚动量会夹取到可滚动范围内，避免把 content 推出边界后被 ScrollRect 的回弹拉回、导致焦点跳变。</para>
         /// </summary>
         public void FocusIndex(int index)
@@ -166,13 +175,15 @@ namespace Ale.Toolkit.Runtime.UI
             float cellHeight = CellHeight;
             if (cellHeight <= 0f) return;
 
+            // 本方法是瞬移，与补间是两个互斥的位置来源；不取消的话补间会在随后的帧里把位置拉回去。
+            _tweening = false;
+
             index = Mathf.Clamp(index, 0, count - 1);
 
             float viewportHeight = scrollRect.viewport.rect.height;
             // 由「第 index 条的中心落在焦点线上」反解所需滚动量。
             float scrollY = _leadingPad + index * cellHeight + cellHeight * 0.5f - FocusLine(viewportHeight, cellHeight);
-            float maxScroll = Mathf.Max(0f, count * cellHeight + _leadingPad + _trailingPad - viewportHeight);
-            scrollY = Mathf.Clamp(scrollY, 0f, maxScroll);
+            scrollY = Mathf.Clamp(scrollY, 0f, MaxScroll());
 
             content.anchoredPosition = new Vector2(content.anchoredPosition.x, scrollY);
             UpdateVisibleCells();
@@ -181,10 +192,121 @@ namespace Ale.Toolkit.Runtime.UI
 
         #endregion
 
+        #region 滚轮接管与平滑位移
+
+        // 一档滚轮的位移距离（像素）。接管时从 ScrollRect 的 scrollSensitivity 取走。
+        private float _scrollStep;
+        private bool  _scrollTakenOver;
+
+        // 补间状态。_tweening 为 false 时整条路径提前返回，静止期无逐帧开销。
+        private float _tweenFrom, _tweenTo, _tweenElapsed;
+        private bool  _tweening;
+
+        /// <summary>是否正在播放滚轮补间。</summary>
+        public bool IsScrollTweening => _tweening;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            TakeOverScroll();
+        }
+
+        /// <summary>
+        /// 接管滚轮：取走 <c>ScrollRect.scrollSensitivity</c> 作为一档步长，并把它置 0。
+        ///
+        /// <para>置 0 是必须的，且与「本类要不要补间」无关：<c>ScrollRect</c> 与本类通常挂在同一个
+        /// GameObject 上，而 <c>ExecuteEvents</c> 会把滚轮事件派发给该物体上<b>全部</b>
+        /// <see cref="IScrollHandler"/>——不清零就会先被 <c>ScrollRect</c> 瞬间挪一档，
+        /// 再被本类的补间从头拉回，白抖一帧。清零后位移完全由本类给出，行为唯一。</para>
+        ///
+        /// <para>注意这只改运行期的字段值，不动预制体——Inspector 上的 Scroll Sensitivity 仍是
+        /// 「一档滚多远」的可读可调入口，只是改由本类来应用它。</para>
+        /// </summary>
+        private void TakeOverScroll()
+        {
+            if (_scrollTakenOver || !scrollRect) return;
+
+            _scrollStep = scrollRect.scrollSensitivity;
+            scrollRect.scrollSensitivity = 0f;
+            _scrollTakenOver = true;
+        }
+
+        /// <summary>滚轮：按一档步长推进目标滚动量，并（按需）补间过去。</summary>
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (!_scrollTakenOver) return;                                  // 未接管 → 保持 ScrollRect 原生处理
+            if (!scrollRect || !scrollRect.viewport || !content) return;
+
+            float cellHeight = CellHeight;
+            if (cellHeight <= 0f) return;
+
+            // 与 ScrollRect 同一套约定：滚轮向下时 scrollDelta.y 为正，而 UGUI 纵轴向上为正，故取反。
+            // 横向滚轮（触控板 / 侧滚轮）在纵向列表上按纵向处理，同 ScrollRect。
+            float delta = eventData.scrollDelta.y;
+            if (Mathf.Abs(eventData.scrollDelta.x) > Mathf.Abs(delta)) delta = eventData.scrollDelta.x;
+            if (Mathf.Approximately(delta, 0f)) return;
+
+            float step = _scrollStep > 0f ? _scrollStep : cellHeight;
+            // 起点取「当前补间终点」而非当前位置：连滚数档时才会逐档累加，
+            // 否则每档都从半路的实际位置重新起算，越滚越短、最后停在两条之间。
+            float from   = _tweening ? _tweenTo : content.anchoredPosition.y;
+            float target = Mathf.Clamp(from - delta * step, 0f, MaxScroll());
+
+            if (Mathf.Approximately(target, content.anchoredPosition.y) && !_tweening) return;
+
+            if (scrollTweenDuration <= 0f)
+            {
+                _tweening = false;
+                ApplyScrollY(target);
+                return;
+            }
+
+            _tweenFrom    = content.anchoredPosition.y;
+            _tweenTo      = target;
+            _tweenElapsed = 0f;
+            _tweening     = true;
+        }
+
+        /// <summary>开始拖拽时取消补间，把控制权交还给 <c>ScrollRect</c>，避免两者同时写位置。</summary>
+        public void OnBeginDrag(PointerEventData eventData) => _tweening = false;
+
+        /// <summary>当前可滚动范围上限（Content 高含首尾留白，减去视口高）。</summary>
+        private float MaxScroll()
+        {
+            int count = items?.Count ?? 0;
+            return Mathf.Max(0f, count * CellHeight + _leadingPad + _trailingPad - scrollRect.viewport.rect.height);
+        }
+
+        // 写入滚动量。直接改 anchoredPosition 不会触发 ScrollRect 的 onValueChanged，
+        // 故须显式刷一次可见格——与 FocusIndex 同一套写法。
+        private void ApplyScrollY(float y)
+        {
+            content.anchoredPosition = new Vector2(content.anchoredPosition.x, y);
+            UpdateVisibleCells();
+        }
+
+        // 推进补间。用 unscaledDeltaTime：timeScale 为 0 时 UI 仍应可滚（与基类的限速填充一致）。
+        private void TickScrollTween()
+        {
+            if (!_tweening) return;
+            if (!content) { _tweening = false; return; }
+
+            _tweenElapsed += Time.unscaledDeltaTime;
+            float t = scrollTweenDuration > 0f ? Mathf.Clamp01(_tweenElapsed / scrollTweenDuration) : 1f;
+            // 缓出（quad out）：起步快、收尾慢。0.1 秒这种短时长下比线性更跟手，停下时也不生硬。
+            float y = Mathf.Lerp(_tweenFrom, _tweenTo, 1f - (1f - t) * (1f - t));
+
+            if (t >= 1f) { y = _tweenTo; _tweening = false; }
+            ApplyScrollY(y);
+        }
+
+        #endregion
+
         #region 生命周期
 
         public override void SetItems(IReadOnlyList<TData> itemsParam)
         {
+            _tweening = false;   // 数据整体替换会回到起点，进行中的补间目标已失效
             base.SetItems(itemsParam);
 
             // 数据整体替换并回到起点，焦点必然要重算。先置为无效，保证随后必定抛一次 OnFocusChanged——
@@ -195,6 +317,7 @@ namespace Ale.Toolkit.Runtime.UI
 
         protected override void LateUpdate()
         {
+            TickScrollTween();   // 先推进滚轮补间写入滚动位置
             base.LateUpdate();   // 视口尺寸变化重建 + 限速填充
             UpdateFocusAndAppearance();
         }

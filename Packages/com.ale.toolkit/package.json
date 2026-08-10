@@ -1,6 +1,6 @@
 {
   "name": "com.ale.toolkit",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "displayName": "Ale Toolkit",
   "description": "\u9762\u5411 Unity \u63d2\u4ef6\u5f00\u53d1\u7684\u901a\u7528\u5e95\u5c42\uff1a\u81ea\u5b9a\u4e49\u5c5e\u6027\u7cfb\u7edf\u3001\u865a\u62df\u6eda\u52a8\u5217\u8868\u3001\u7f16\u8f91\u5668\u4e09\u5217\u6846\u67b6\u3001\u7f16\u8f91\u5668\u754c\u9762\u591a\u8bed\u8a00\uff0c\u4ee5\u53ca TextMeshPro / Localization / Addressables \u7684\u53ef\u9009\u652f\u6301\u5c42\u3002",
   "unity": "2022.3",

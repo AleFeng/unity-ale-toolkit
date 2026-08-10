@@ -6,6 +6,17 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.7.2] - 2026-08-10
+
+### 新增
+
+- **`UiwFocusOrderList` 的滚轮平滑位移**（`scrollTweenDuration`，默认 0.1 秒；置 0 恢复瞬间跳变）。焦点列表的一档滚轮通常正好跨一整条，而原生 `ScrollRect` 是直接改写 `content.anchoredPosition` 的，表现为整条列表瞬间跳一格、焦点缩放曲线跟着突变。现在改由本类按缓出（quad out）曲线逐帧插值过去。
+  - **一档的位移距离仍取自 `ScrollRect` 的 `Scroll Sensitivity`**，Inspector 上那个字段仍是「一档滚多远」的唯一入口，只是改由本类来应用它。
+  - **本类会在 `Awake` 里把 `ScrollRect.scrollSensitivity` 取走并置 0**（仅运行期，不动预制体）。这一步是必须的：`ScrollRect` 与本类通常挂在同一个 GameObject 上，而 `ExecuteEvents` 会把滚轮事件派发给该物体上**全部** `IScrollHandler`——不清零就会先被 `ScrollRect` 瞬间挪一档、再被补间从头拉回，白抖一帧。
+  - **连滚数档按目标位置累加**而非按当前位置：起点取「进行中的补间终点」，否则每档都从半路的实际位置重新起算，越滚越短、最后停在两条之间。
+  - 拖拽 / 惯性 / 边界回弹仍完全是 `ScrollRect` 原生的，本类不碰；拖拽开始（`OnBeginDrag`）与 `SetItems` / `FocusIndex` 都会取消进行中的补间，避免两个位置来源打架。
+  - 仍**不做**释放后吸附对齐——拖拽松手停在两条之间时，焦点缩放曲线会让上下两条都呈半放大态。
+
 ## [1.7.1] - 2026-08-10
 
 ### 修复
