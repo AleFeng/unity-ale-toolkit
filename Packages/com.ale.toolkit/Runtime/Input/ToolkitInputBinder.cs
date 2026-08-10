@@ -152,6 +152,9 @@ namespace Ale.Toolkit.Runtime.InputSupport
             return false;
         }
 
+        // 是否已就「编辑模式下调用输入绑定」告警过，避免刷屏。
+        private static bool _warnedEditMode;
+
         // 惰性获取 / 创建常驻运行器。ToolkitMonoSingleton.Instance 不自建，故此处显式创建。
         private static ToolkitInputRunner EnsureRunner()
         {
@@ -159,6 +162,22 @@ namespace Ale.Toolkit.Runtime.InputSupport
 
             var inst = ToolkitInputRunner.Instance;
             if (inst) return inst;
+
+            // 编辑模式下不自建运行器。输入系统此时并不驱动玩家循环，绑定不会有任何效果；
+            // 而运行器没有 [ExecuteAlways]，其 Awake 不会被调用 —— 单例登记不发生，
+            // 于是每次调用都会新造一个 "[ToolkitInput]" 对象，落进用户正在编辑的场景里。
+            // 与其静默泄漏，不如明确拒绝并说明原因。
+            if (!Application.isPlaying)
+            {
+                if (!_warnedEditMode)
+                {
+                    _warnedEditMode = true;
+                    Debug.LogWarning(
+                        "ToolkitInputBinder >> 在编辑模式下调用了输入绑定，已忽略。" +
+                        "输入绑定只在播放模式下有意义，请把调用移到运行时（例如 Start / OnEnable）。");
+                }
+                return null;
+            }
 
             var go = new GameObject("[ToolkitInput]");
             return go.AddComponent<ToolkitInputRunner>(); // Awake: 设 Instance + DontDestroyOnLoad

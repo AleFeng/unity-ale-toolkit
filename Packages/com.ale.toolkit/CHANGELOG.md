@@ -6,6 +6,23 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.7.4] - 2026-08-10
+
+**修复 `ToolkitTween` 在编辑模式下泄漏 GameObject 且从不推进的问题。**
+
+### 修复
+
+- **`ToolkitTween` 在编辑模式下每次调用都新造一个 `[ToolkitTween]` 对象，且补间永不推进、完成回调永不触发。**
+  - 成因：`ToolkitTweenRunner` 由门面惰性自建，而单例登记发生在 `Awake` 里——Unity 默认不在编辑模式调用 `Awake`，于是 `Instance` 始终为空，每次 `EnsureRunner()` 都重新创建；`LateUpdate` 同样不跑，作业表只进不出。
+  - 更要紧的是**这些对象落进了用户当时打开的场景**（`hideFlags` 为 `None`，属可保存对象），一旦保存场景就会被写进场景文件。
+  - 修法：给 `ToolkitTweenRunner` 标注 `[ExecuteAlways]`，并把推进逻辑从 `LateUpdate` 抽成 `Tick(scaledDelta, unscaledDelta)`；编辑模式改由 `EditorApplication.update` 驱动，用 `timeSinceStartup` 自算增量（编辑模式下 `Time.deltaTime` 不反映真实流逝），增量钳在 0.1 秒以内，避免编辑器因导入 / 编译停摆后补间一步跳完。
+  - 运行器在**离开编辑模式时自毁**：编辑模式建的实例带 `HideAndDontSave`，进入播放模式不会被销毁，而静态单例引用会随域重载复位、导致播放模式又新建一个——两个运行器并存各自推进。
+- **`ToolkitMonoSingleton<T>.Awake` 中两处仅限播放模式的调用改为按模式分支**，使子类能安全地标注 `[ExecuteAlways]`：
+  - `DontDestroyOnLoad` 在编辑模式下会抛 `InvalidOperationException`（Unity 明确限定其只能用于播放模式）。编辑模式改设 `HideFlags.HideAndDontSave`——同样达成「不随场景保存、不被场景卸载带走」，并且把对象移出当前场景，不污染用户正在编辑的场景。
+  - 重复实例分支的 `Destroy` 在编辑模式下会报错要求改用 `DestroyImmediate`，已按模式分派。
+  - **对播放模式行为零影响**；未标注 `[ExecuteAlways]` 的子类（`ToolkitInputRunner`、宿主插件的管理器）行为完全不变。
+- **`ToolkitInputBinder` 在编辑模式下不再自建运行器**。输入绑定在编辑模式没有意义（输入系统并不驱动玩家循环），而 `ToolkitInputRunner` 未标注 `[ExecuteAlways]`，此前同样会每次调用泄漏一个 `[ToolkitInput]` 对象到当前场景。现改为拒绝创建并给出一次明确告警，说明应把调用移到运行时。
+
 ## [1.7.3] - 2026-08-10
 
 ### 新增

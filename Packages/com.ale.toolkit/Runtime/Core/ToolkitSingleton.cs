@@ -134,6 +134,11 @@ namespace Ale.Toolkit.Runtime
     /// MonoBehaviour 单例基类。
     /// 在 Scene 中挂载此组件后，<c>Awake</c> 时自动设置单例实例并调用 <see cref="Init"/>；
     /// <c>DontDestroyOnLoad</c> 保证跨场景持久；重复实例时后来者自动销毁。
+    ///
+    /// <para><b>编辑模式</b>：Unity 默认不在编辑模式调用 <c>Awake</c>，因此本基类的单例登记也不会发生——
+    /// 子类若需要在编辑模式下工作（例如惰性自建的常驻运行器），必须自行标注
+    /// <see cref="ExecuteAlways"/>。本基类已把 <c>Awake</c> 里两处仅限播放模式的调用做了分支处理，
+    /// 使得加上该标注后不会在编辑模式下抛异常或污染用户正在编辑的场景，详见 <see cref="Awake"/>。</para>
     /// </summary>
     public abstract class ToolkitMonoSingleton<T>
         : MonoBehaviour where T : ToolkitMonoSingleton<T>
@@ -154,19 +159,36 @@ namespace Ale.Toolkit.Runtime
         /// </summary>
         public static bool IsQuitting { get; private set; }
 
+        /// <summary>
+        /// 设置单例实例、保证持久化，随后调用 <see cref="Init"/>。
+        ///
+        /// <para><b>两处按播放 / 编辑模式分支的调用</b>——只有子类标注了
+        /// <see cref="ExecuteAlways"/> 时才会在编辑模式下走到，未标注时本方法在编辑模式根本不被调用：</para>
+        /// <list type="bullet">
+        /// <item><c>Destroy</c> 在编辑模式下会报错要求改用 <c>DestroyImmediate</c>。</item>
+        /// <item><c>DontDestroyOnLoad</c> 在编辑模式下直接抛 <see cref="InvalidOperationException"/>
+        /// （Unity 明确限定它只能用于播放模式）。编辑模式改用
+        /// <see cref="HideFlags.HideAndDontSave"/>：同样达成「不随场景保存、不被场景卸载带走」，
+        /// 并且把对象移出当前场景——否则惰性自建的运行器会落进用户正在编辑的场景里，随保存被写进场景文件。</item>
+        /// </list>
+        /// </summary>
         protected virtual void Awake()
         {
             if (_instance != null && _instance != this)
             {
                 // 重复实例：销毁当前 GameObject，保留已有的实例
-                Destroy(gameObject);
+                if (Application.isPlaying) Destroy(gameObject);
+                else DestroyImmediate(gameObject);
                 return;
             }
 
             EnsureResetHook();
 
             _instance = (T)this;
-            DontDestroyOnLoad(gameObject);
+
+            if (Application.isPlaying) DontDestroyOnLoad(gameObject);
+            else gameObject.hideFlags = HideFlags.HideAndDontSave;
+
             Init();
         }
 
