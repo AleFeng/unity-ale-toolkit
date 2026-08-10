@@ -33,6 +33,12 @@ namespace Ale.Toolkit.Runtime.UI
     /// <para>不改动基类的滚动模型：滚动仍由 <c>ScrollRect</c> 驱动（拖拽 / 滚轮 / 惯性都是它原生的），
     /// 本类只读取滚动位置来派生焦点与外观，<b>不</b>接管输入、<b>不</b>做释放后吸附对齐。</para>
     ///
+    /// <para><b>首尾留白</b>：Content 在头尾各补一段空白，使<b>第一条与最后一条也能滚到焦点线上</b>。
+    /// 没有这段留白时，条目是从 Content 顶端紧挨着排的，第一条的中心永远停在视口顶端附近、
+    /// 够不到居中的焦点线；且条目少时 Content 比视口还矮，<c>ScrollRect</c> 干脆无从滚动——
+    /// 表现为「所有条目挤在顶部且滚轮无反应」。补上留白后滚动量与焦点索引一一对应：
+    /// 滚到 0 即焦点 0，滚到底即焦点末条。</para>
+    ///
     /// <para><b>缩放以格子自身轴心为中心</b>：基类把格子的 pivot 设为顶端居中 <c>(0.5, 1)</c>，
     /// 因此放大时格子是从自己的上边缘向下、向两侧长开的，而不是从格子正中向四周扩张。</para>
     ///
@@ -57,6 +63,65 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("焦点横向偏移曲线。x 同上，y = 该格的横向偏移（像素，正值向右）。" +
                  "留空（无关键帧）则完全不改动位置。")]
         public AnimationCurve focusOffsetCurve;
+
+        #endregion
+
+        #region 布局：首尾留白
+
+        // 头部 / 尾部留白（像素）。由视口高度与焦点锚点决定，使首尾两条也能停到焦点线上。
+        private float _leadingPad;
+        private float _trailingPad;
+
+        /// <summary>Content 头部留白（像素）。第 0 条的顶端距 Content 顶端的距离。供子类做定位换算。</summary>
+        protected float LeadingPad => _leadingPad;
+
+        // 焦点线在视口内的位置决定了首尾各需要多少留白：
+        // 头部留白 = 焦点线到视口顶端的距离 - 半个格子（把第 0 条的中心顶到焦点线上）；
+        // 尾部留白同理，取焦点线到视口底端的距离。
+        private void ComputePads(float viewportHeight, float cellHeight, out float leading, out float trailing)
+        {
+            float focusLine = FocusLine(viewportHeight, cellHeight);
+            leading  = Mathf.Max(0f, focusLine - cellHeight * 0.5f);
+            trailing = Mathf.Max(0f, viewportHeight - focusLine - cellHeight * 0.5f);
+        }
+
+        /// <summary>
+        /// 视口尺寸变化时重算首尾留白。留白变了意味着所有行的位置整体平移，
+        /// 故须把已分配的格子全部收回重排——基类的 <c>PositionOf</c> 只在「填充」时写一次位置，
+        /// 不重排的话已在窗口内的格子会停在按旧留白算出的位置上。
+        /// </summary>
+        protected override void RecomputeLayout(Rect viewport)
+        {
+            base.RecomputeLayout(viewport);
+
+            ComputePads(viewport.height, CellHeight, out float leading, out float trailing);
+            if (Mathf.Approximately(leading, _leadingPad) && Mathf.Approximately(trailing, _trailingPad)) return;
+
+            _leadingPad  = leading;
+            _trailingPad = trailing;
+            RegainAllInstances();
+        }
+
+        /// <summary>Content 高度 = 条目数 × 行高 + 首尾留白。空列表不留白（没有可聚焦的条目）。</summary>
+        protected override void SetContentSize(int count)
+        {
+            var size = content.sizeDelta;
+            size.y = count > 0 ? count * CellHeight + _leadingPad + _trailingPad : 0f;
+            content.sizeDelta = size;
+        }
+
+        /// <summary>第 index 条的纵向位置：在基类的逐行排布之上整体下移一个头部留白。</summary>
+        protected override Vector2 PositionOf(int index) => new Vector2(0f, -(_leadingPad + index * CellHeight));
+
+        /// <summary>首个可见条目索引。滚动量需先扣掉头部留白，才是「越过了几条」。</summary>
+        protected override int ComputeFirstIndex(Vector2 contentAnchoredPos)
+        {
+            float cellHeight = CellHeight;
+            if (cellHeight <= 0f) return 0;
+
+            float scrollY = Mathf.Max(0f, contentAnchoredPos.y - _leadingPad);
+            return Mathf.FloorToInt(scrollY / cellHeight) - bufferCount;
+        }
 
         #endregion
 
@@ -105,8 +170,8 @@ namespace Ale.Toolkit.Runtime.UI
 
             float viewportHeight = scrollRect.viewport.rect.height;
             // 由「第 index 条的中心落在焦点线上」反解所需滚动量。
-            float scrollY = index * cellHeight + cellHeight * 0.5f - FocusLine(viewportHeight, cellHeight);
-            float maxScroll = Mathf.Max(0f, count * cellHeight - viewportHeight);
+            float scrollY = _leadingPad + index * cellHeight + cellHeight * 0.5f - FocusLine(viewportHeight, cellHeight);
+            float maxScroll = Mathf.Max(0f, count * cellHeight + _leadingPad + _trailingPad - viewportHeight);
             scrollY = Mathf.Clamp(scrollY, 0f, maxScroll);
 
             content.anchoredPosition = new Vector2(content.anchoredPosition.x, scrollY);
@@ -169,10 +234,11 @@ namespace Ale.Toolkit.Runtime.UI
                 float scrollY        = content.anchoredPosition.y;
                 float focusLine      = FocusLine(viewportHeight, cellHeight);
 
-                // 第 i 条的中心距视口顶端 = i*h + h/2 - scrollY；令其等于焦点线，反解 i 并取最近的整数。
+                // 第 i 条的中心距视口顶端 = pad + i*h + h/2 - scrollY；令其等于焦点线，反解 i 并取最近的整数。
                 int newFocus = count > 0
                     ? Mathf.Clamp(
-                        Mathf.RoundToInt((focusLine + scrollY - cellHeight * 0.5f) / cellHeight), 0, count - 1)
+                        Mathf.RoundToInt((focusLine + scrollY - _leadingPad - cellHeight * 0.5f) / cellHeight),
+                        0, count - 1)
                     : -1;
 
                 if (newFocus != _focusedIndex)
@@ -200,8 +266,9 @@ namespace Ale.Toolkit.Runtime.UI
 
             // 只遍历视口覆盖到的数据索引（两端各留一格富余），逐个向基类要其活跃格子。
             // 不自建「索引 → 格子」映射，避免与基类的回收 / 复用循环产生第二份需要同步的状态。
-            int first = Mathf.Max(0, Mathf.FloorToInt(scrollY / cellHeight) - 1);
-            int last  = Mathf.Min(count - 1, Mathf.CeilToInt((scrollY + viewportHeight) / cellHeight) + 1);
+            float relScroll = scrollY - _leadingPad;   // 扣掉头部留白后才是「越过了几条」
+            int first = Mathf.Max(0, Mathf.FloorToInt(relScroll / cellHeight) - 1);
+            int last  = Mathf.Min(count - 1, Mathf.CeilToInt((relScroll + viewportHeight) / cellHeight) + 1);
 
             // 归一化基准取视口半高：视口上 / 下边缘恰好落在曲线定义域的 ∓1 / ±1。
             float halfSpan = viewportHeight * 0.5f;
@@ -211,7 +278,7 @@ namespace Ale.Toolkit.Runtime.UI
                 if (!TryGetActiveCell(i, out var cell)) continue;
                 if (!(Component)cell) continue;
 
-                float centerY = i * cellHeight + cellHeight * 0.5f - scrollY;   // 该格中心距视口顶端
+                float centerY = _leadingPad + i * cellHeight + cellHeight * 0.5f - scrollY;   // 该格中心距视口顶端
                 float t = Mathf.Clamp((centerY - focusLine) / halfSpan, -1f, 1f);
 
                 var rt = (RectTransform)cell.transform;
