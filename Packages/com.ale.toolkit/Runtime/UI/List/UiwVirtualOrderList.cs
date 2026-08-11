@@ -11,6 +11,10 @@ namespace Ale.Toolkit.Runtime.UI
     /// 行距由 <see cref="rowPitchScale"/> 在格子高度之上缩放而来，决定排布与滚动换算。倍率为 1（默认）时
     /// 两者相等，即逐行紧贴；大于 1 拉开间隙，小于 1 让相邻行重叠。</para>
     ///
+    /// <para><b>排布方向可反转</b>：<see cref="reverseScrollDirection"/> 勾选后第 0 条排到最下方、最后一条在最上方，
+    /// 「向下滚」于是从末条走向首条（聊天记录、日志这类自下而上追加的列表）。实现上只是把数据索引映射到
+    /// 另一个<b>槽位</b>（见 <see cref="SlotOf"/>），Content 尺寸、锚点与滚动范围一概不变。</para>
+    ///
     /// <para>各系统按需继承本类、闭合泛型并实现 <see cref="UiwVirtualListBase{TData,TCell}.BindCell"/> /
     /// <see cref="UiwVirtualListBase{TData,TCell}.ClearCell"/>（如仓库列表 <c>UiwInventoryItemOrderList</c>）。</para>
     /// </summary>
@@ -23,6 +27,11 @@ namespace Ale.Toolkit.Runtime.UI
         [Tooltip("行距倍率：行距 = 格子高度 × 本倍率。1.0 = 逐行紧贴（默认）；\n" +
                  "大于 1 拉开间隙，小于 1 让相邻行重叠。格子自身的高度不受影响。")]
         [Min(0.01f)] public float rowPitchScale = 1f;
+
+        [Tooltip("反向滚动：勾选后条目倒序排布——第 0 条在最下方，最后一条在最上方。\n" +
+                 "于是「向下滚」是从末条走向首条，适合聊天记录、日志这类自下而上追加的列表。\n" +
+                 "不勾选（默认）为正向：第 0 条在最上方，向下滚走向末条。")]
+        public bool reverseScrollDirection;
 
         #endregion
 
@@ -46,6 +55,48 @@ namespace Ale.Toolkit.Runtime.UI
             if (TryGetCellPrefabSize(out _, out float h) && h > 0f)
                 _cellHeight = h;
         }
+
+        #region 排布方向：索引 ↔ 槽位
+
+        //
+        // 【为什么用「索引 ↔ 槽位」映射，而不是把锚点翻到底部】
+        // 槽位就是「从 Content 顶端往下数的第几行」，是纯几何量；索引是数据下标。正向时两者相等，
+        // 倒序时 槽位 = 条目数-1-索引。所有定位、留白、滚动换算、焦点反解都只认槽位，于是倒序
+        // 不需要动 Content 尺寸、锚点、滚动范围中的任何一个——它们本来就是按槽位算的。
+        // 反过来若去翻锚点，上面每一处都要各写一套正 / 反分支，子类（焦点列表）还要再抄一遍。
+        //
+        // 两种做法的视觉结果完全一致：把第 0 条摆在最下方向上排，等价于让第 0 条占据最后一个槽位。
+        //
+
+        /// <summary>数据索引 → 槽位（从 Content 顶端往下数的第几行）。正向时即索引本身。</summary>
+        protected int SlotOf(int index)
+        {
+            if (!reverseScrollDirection) return index;
+            int count = items?.Count ?? 0;
+            return count - 1 - index;
+        }
+
+        /// <summary>槽位 → 数据索引。映射是自反的（再映射一次就回去了），单独留一个名字只为读起来不拧巴。</summary>
+        protected int IndexOfSlot(int slot) => SlotOf(slot);
+
+        // 上一次生效的排布方向。运行期翻转时，已摆好的格子位置全部作废，须整体收回重排。
+        private bool _reverseApplied;
+
+        /// <summary>
+        /// 排布方向变化时把所有格子收回重排。
+        /// <para>放在 <see cref="RecomputeLayout"/> 里而不是 <c>OnValidate</c>：后者可能落在 Canvas Rebuild
+        /// 循环内，就地回收 / 重排 UI 会报错；本方法由 <c>RebuildLayout</c> 在安全时机调用。</para>
+        /// </summary>
+        protected override void RecomputeLayout(Rect viewport)
+        {
+            base.RecomputeLayout(viewport);
+
+            if (_reverseApplied == reverseScrollDirection) return;
+            _reverseApplied = reverseScrollDirection;
+            RegainAllInstances();
+        }
+
+        #endregion
 
 #if UNITY_EDITOR
         /// <summary>
@@ -86,7 +137,22 @@ namespace Ale.Toolkit.Runtime.UI
         {
             // Content 向上移动时 anchoredPosition.y > 0（UGUI 坐标）。
             float scrollY = Mathf.Max(0f, contentAnchoredPos.y);
-            return Mathf.FloorToInt(scrollY / RowPitch) - bufferCount;
+            int firstSlot = Mathf.FloorToInt(scrollY / RowPitch) - bufferCount;
+            return FirstIndexOfSlotWindow(firstSlot);
+        }
+
+        /// <summary>
+        /// 由「窗口起始<b>槽位</b>」求引擎要的「窗口起始<b>索引</b>」。
+        /// <para>正向时两者相同。倒序时窗口内的索引是<b>降序</b>的——顶端槽位对应最大索引，
+        /// 而引擎的窗口恒为 <c>[first, first + PoolTarget - 1]</c> 这样的升序区间，
+        /// 故要交出的是窗口里最小的那个索引，即比顶端槽位对应的索引小一整个窗口跨度。</para>
+        /// </summary>
+        protected int FirstIndexOfSlotWindow(int firstSlot)
+        {
+            if (!reverseScrollDirection) return firstSlot;
+
+            int count = items?.Count ?? 0;
+            return count - firstSlot - PoolTarget;
         }
 
         /// <summary>
@@ -98,7 +164,7 @@ namespace Ale.Toolkit.Runtime.UI
         protected override Vector2 PositionOf(int index)
         {
             float pitch = RowPitch;
-            return new Vector2(0f, -(index * pitch + pitch * 0.5f));
+            return new Vector2(0f, -(SlotOf(index) * pitch + pitch * 0.5f));
         }
 
         /// <summary>

@@ -79,6 +79,13 @@ namespace Ale.Toolkit.Runtime.UI
 
         // 目标实例池大小（= 当前视口所需实例数 InstancesNeeded），同时也是可见窗口跨度；实例按需惰性创建到此上限。
         private int _poolTarget;
+
+        /// <summary>
+        /// 目标实例池大小，同时也是<b>可见窗口的跨度</b>——窗口恒为 <c>[first, first + PoolTarget - 1]</c>。
+        /// <para>布局策略在<b>倒序排布</b>时需要它：倒序下「视口顶端那一格」对应的是<b>最大</b>索引，
+        /// 而 <see cref="ComputeFirstIndex"/> 要交出的是窗口里<b>最小</b>的那个，两者相差正好一个窗口跨度。</para>
+        /// </summary>
+        protected int PoolTarget => _poolTarget;
         // 当前目标可见窗口（含缓冲）[first,last]，由 UpdateVisibleCells 设置，供限速填充 FillWindow 逐帧消费。
         private int _windowFirst;
         private int _windowLast = -1;

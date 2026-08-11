@@ -131,17 +131,18 @@ namespace Ale.Toolkit.Runtime.UI
         protected override Vector2 PositionOf(int index)
         {
             float pitch = RowPitch;
-            return new Vector2(0f, -(_leadingPad + index * pitch + pitch * 0.5f));
+            return new Vector2(0f, -(_leadingPad + SlotOf(index) * pitch + pitch * 0.5f));
         }
 
-        /// <summary>首个可见条目索引。滚动量需先扣掉头部留白，才是「越过了几条」。</summary>
+        /// <summary>首个可见条目索引。滚动量需先扣掉头部留白，才是「越过了几个槽位」。</summary>
         protected override int ComputeFirstIndex(Vector2 contentAnchoredPos)
         {
             float pitch = RowPitch;
             if (pitch <= 0f) return 0;
 
             float scrollY = Mathf.Max(0f, contentAnchoredPos.y - _leadingPad);
-            return Mathf.FloorToInt(scrollY / pitch) - bufferCount;
+            int firstSlot = Mathf.FloorToInt(scrollY / pitch) - bufferCount;
+            return FirstIndexOfSlotWindow(firstSlot);
         }
 
         #endregion
@@ -193,8 +194,8 @@ namespace Ale.Toolkit.Runtime.UI
             index = Mathf.Clamp(index, 0, count - 1);
 
             float viewportHeight = scrollRect.viewport.rect.height;
-            // 由「第 index 条的中心落在焦点线上」反解所需滚动量。
-            float scrollY = _leadingPad + index * pitch + pitch * 0.5f - FocusLine(viewportHeight, pitch);
+            // 由「第 index 条的中心落在焦点线上」反解所需滚动量。倒序时它占的是另一个槽位，故按槽位算。
+            float scrollY = _leadingPad + SlotOf(index) * pitch + pitch * 0.5f - FocusLine(viewportHeight, pitch);
             scrollY = Mathf.Clamp(scrollY, 0f, MaxScroll());
 
             content.anchoredPosition = new Vector2(content.anchoredPosition.x, scrollY);
@@ -369,11 +370,11 @@ namespace Ale.Toolkit.Runtime.UI
                 float scrollY        = content.anchoredPosition.y;
                 float focusLine      = FocusLine(viewportHeight, pitch);
 
-                // 第 i 条的中心距视口顶端 = pad + i*p + p/2 - scrollY；令其等于焦点线，反解 i 并取最近的整数。
+                // 槽位 s 的中心距视口顶端 = pad + s*p + p/2 - scrollY；令其等于焦点线，反解 s 并取最近的整数，
+                // 再映射回数据索引（倒序时两者不同）。
+                int focusSlot = Mathf.RoundToInt((focusLine + scrollY - _leadingPad - pitch * 0.5f) / pitch);
                 int newFocus = count > 0
-                    ? Mathf.Clamp(
-                        Mathf.RoundToInt((focusLine + scrollY - _leadingPad - pitch * 0.5f) / pitch),
-                        0, count - 1)
+                    ? Mathf.Clamp(IndexOfSlot(focusSlot), 0, count - 1)
                     : -1;
 
                 if (newFocus != _focusedIndex)
@@ -401,9 +402,14 @@ namespace Ale.Toolkit.Runtime.UI
 
             // 只遍历视口覆盖到的数据索引（两端各留一格富余），逐个向基类要其活跃格子。
             // 不自建「索引 → 格子」映射，避免与基类的回收 / 复用循环产生第二份需要同步的状态。
-            float relScroll = scrollY - _leadingPad;   // 扣掉头部留白后才是「越过了几条」
-            int first = Mathf.Max(0, Mathf.FloorToInt(relScroll / rowPitch) - 1);
-            int last  = Mathf.Min(count - 1, Mathf.CeilToInt((relScroll + viewportHeight) / rowPitch) + 1);
+            float relScroll = scrollY - _leadingPad;   // 扣掉头部留白后才是「越过了几个槽位」
+            int firstSlot = Mathf.FloorToInt(relScroll / rowPitch) - 1;
+            int lastSlot  = Mathf.CeilToInt((relScroll + viewportHeight) / rowPitch) + 1;
+            // 槽位区间 → 数据索引区间。倒序时映射是反序的，故两端要对调后再夹取。
+            int first = IndexOfSlot(reverseScrollDirection ? lastSlot  : firstSlot);
+            int last  = IndexOfSlot(reverseScrollDirection ? firstSlot : lastSlot);
+            first = Mathf.Max(0, first);
+            last  = Mathf.Min(count - 1, last);
 
             // 归一化基准取视口半高：视口上 / 下边缘恰好落在曲线定义域的 ∓1 / ±1。
             float halfSpan = viewportHeight * 0.5f;
@@ -413,7 +419,7 @@ namespace Ale.Toolkit.Runtime.UI
                 if (!TryGetActiveCell(i, out var cell)) continue;
                 if (!(Component)cell) continue;
 
-                float centerY = _leadingPad + i * rowPitch + rowPitch * 0.5f - scrollY;   // 该格中心距视口顶端
+                float centerY = _leadingPad + SlotOf(i) * rowPitch + rowPitch * 0.5f - scrollY;   // 该格中心距视口顶端
                 float t = Mathf.Clamp((centerY - focusLine) / halfSpan, -1f, 1f);
 
                 var rt = (RectTransform)cell.transform;
