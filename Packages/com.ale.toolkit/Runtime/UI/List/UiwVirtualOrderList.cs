@@ -1,4 +1,5 @@
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Ale.Toolkit.Runtime.UI
 {
@@ -11,14 +12,14 @@ namespace Ale.Toolkit.Runtime.UI
     /// 行距由 <see cref="rowPitchScale"/> 在格子高度之上缩放而来，决定排布与滚动换算。倍率为 1（默认）时
     /// 两者相等，即逐行紧贴；大于 1 拉开间隙，小于 1 让相邻行重叠。</para>
     ///
-    /// <para><b>排布方向可反转</b>：<see cref="reverseScrollDirection"/> 勾选后第 0 条排到最下方、最后一条在最上方，
+    /// <para><b>排布方向可反转</b>：<see cref="reverseContentOrder"/> 勾选后第 0 条排到最下方、最后一条在最上方，
     /// 「向下滚」于是从末条走向首条（聊天记录、日志这类自下而上追加的列表）。实现上只是把数据索引映射到
     /// 另一个<b>槽位</b>（见 <see cref="SlotOf"/>），Content 尺寸、锚点与滚动范围一概不变。</para>
     ///
     /// <para>各系统按需继承本类、闭合泛型并实现 <see cref="UiwVirtualListBase{TData,TCell}.BindCell"/> /
     /// <see cref="UiwVirtualListBase{TData,TCell}.ClearCell"/>（如仓库列表 <c>UiwInventoryItemOrderList</c>）。</para>
     /// </summary>
-    public abstract class UiwVirtualOrderList<TData, TCell> : UiwVirtualListBase<TData, TCell>
+    public abstract class UiwVirtualOrderList<TData, TCell> : UiwVirtualListBase<TData, TCell>, IScrollHandler
         where TCell : Component
     {
         #region Inspector 配置
@@ -28,9 +29,17 @@ namespace Ale.Toolkit.Runtime.UI
                  "大于 1 拉开间隙，小于 1 让相邻行重叠。格子自身的高度不受影响。")]
         [Min(0.01f)] public float rowPitchScale = 1f;
 
-        [Tooltip("反向滚动：勾选后条目倒序排布——第 0 条在最下方，最后一条在最上方。\n" +
-                 "于是「向下滚」是从末条走向首条，适合聊天记录、日志这类自下而上追加的列表。\n" +
-                 "不勾选（默认）为正向：第 0 条在最上方，向下滚走向末条。")]
+        [Tooltip("倒序排布：勾选后第 0 条在最下方、最后一条在最上方。\n" +
+                 "适合聊天记录、日志这类自下而上追加的列表。\n" +
+                 "不勾选（默认）为正序：第 0 条在最上方。\n" +
+                 "注意这改的是「条目怎么排」，不是「滚轮往哪转」——后者见 Reverse Scroll Direction。")]
+        public bool reverseContentOrder;
+
+        [Header("滚轮")]
+        [Tooltip("反向滚轮：勾选后鼠标滚轮的滚动方向反过来。\n" +
+                 "只影响滚轮，不影响拖拽——拖拽是「抓着内容走」，方向天然正确，反过来反而别扭。\n" +
+                 "勾选后本列表会接管滚轮（取走 ScrollRect 的 Scroll Sensitivity 作为一档步长）；\n" +
+                 "不勾选（默认）则完全不插手，滚轮仍由 ScrollRect 原生处理。")]
         public bool reverseScrollDirection;
 
         #endregion
@@ -71,7 +80,7 @@ namespace Ale.Toolkit.Runtime.UI
         /// <summary>数据索引 → 槽位（从 Content 顶端往下数的第几行）。正向时即索引本身。</summary>
         protected int SlotOf(int index)
         {
-            if (!reverseScrollDirection) return index;
+            if (!reverseContentOrder) return index;
             int count = items?.Count ?? 0;
             return count - 1 - index;
         }
@@ -91,9 +100,98 @@ namespace Ale.Toolkit.Runtime.UI
         {
             base.RecomputeLayout(viewport);
 
-            if (_reverseApplied == reverseScrollDirection) return;
-            _reverseApplied = reverseScrollDirection;
+            if (_reverseApplied == reverseContentOrder) return;
+            _reverseApplied = reverseContentOrder;
             RegainAllInstances();
+        }
+
+        #endregion
+
+        #region 滚轮接管
+
+        //
+        // 【接管是按需的】
+        // 不勾 reverseScrollDirection 时本类<b>完全不插手</b>滚轮——不注册、不清零灵敏度，
+        // 事件照旧由 ScrollRect 原生消费，行为与加这个开关之前一字不差。只有需要反向（或子类
+        // 另有所图，如焦点列表要做平滑位移）时才接管。这样普通顺序列表零风险。
+        //
+        // 【为什么接管就必须清零 ScrollRect.scrollSensitivity】
+        // ScrollRect 与本类通常挂在同一个 GameObject 上，而 ExecuteEvents 会把滚轮事件派发给
+        // 该物体上<b>全部</b> IScrollHandler。不清零就会被 ScrollRect 先按原方向挪一次，
+        // 再被本类按反方向挪一次，净效果是抖一下、方向还是错的。
+        //
+
+        /// <summary>一档滚轮的位移距离（像素）。接管时从 <c>ScrollRect.scrollSensitivity</c> 取走。</summary>
+        protected float ScrollStep { get; private set; }
+
+        /// <summary>是否已接管滚轮。未接管时 <see cref="OnScroll"/> 直接放行，交给 ScrollRect 原生处理。</summary>
+        protected bool ScrollTakenOver { get; private set; }
+
+        /// <summary>
+        /// 是否需要接管滚轮。基类只在要反向时接管；子类另有所需时覆写为恒 <c>true</c>
+        /// （焦点列表要做平滑位移，无论反不反向都得接管）。
+        /// </summary>
+        protected virtual bool NeedsScrollTakeOver => reverseScrollDirection;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            if (NeedsScrollTakeOver) TakeOverScroll();
+        }
+
+        /// <summary>
+        /// 接管滚轮：取走 <c>ScrollRect.scrollSensitivity</c> 作为一档步长，并把它置 0。
+        /// <para>只改运行期的字段值，不动预制体——Inspector 上的 Scroll Sensitivity 仍是
+        /// 「一档滚多远」的可读可调入口，只是改由本类来应用它。</para>
+        /// </summary>
+        protected void TakeOverScroll()
+        {
+            if (ScrollTakenOver || !scrollRect) return;
+
+            ScrollStep = scrollRect.scrollSensitivity;
+            scrollRect.scrollSensitivity = 0f;
+            ScrollTakenOver = true;
+        }
+
+        /// <summary>
+        /// 从滚轮事件解析出「本列表应当滚多少」，<b>已按 <see cref="reverseScrollDirection"/> 取反</b>。
+        /// <para>取值与 <c>ScrollRect</c> 同一套约定：滚轮向下时 <c>scrollDelta.y</c> 为正。
+        /// 横向滚轮（触控板 / 侧滚轮）在纵向列表上按纵向处理，同 <c>ScrollRect</c>。</para>
+        /// </summary>
+        protected float ResolveScrollDelta(PointerEventData eventData)
+        {
+            float delta = eventData.scrollDelta.y;
+            if (Mathf.Abs(eventData.scrollDelta.x) > Mathf.Abs(delta)) delta = eventData.scrollDelta.x;
+            return reverseScrollDirection ? -delta : delta;
+        }
+
+        /// <summary>当前可滚动范围上限（Content 高减去视口高）。子类若改了 Content 高度需一并覆写。</summary>
+        protected virtual float MaxScroll()
+        {
+            if (!scrollRect || !scrollRect.viewport) return 0f;
+            int count = items?.Count ?? 0;
+            return Mathf.Max(0f, count * RowPitch - scrollRect.viewport.rect.height);
+        }
+
+        /// <summary>滚轮：接管后按一档步长即时推进滚动量。焦点列表覆写本方法以改为平滑位移。</summary>
+        public virtual void OnScroll(PointerEventData eventData)
+        {
+            if (!ScrollTakenOver) return;                                   // 未接管 → 由 ScrollRect 原生处理
+            if (!scrollRect || !scrollRect.viewport || !content) return;
+
+            float pitch = RowPitch;
+            if (pitch <= 0f) return;
+
+            float delta = ResolveScrollDelta(eventData);
+            if (Mathf.Approximately(delta, 0f)) return;
+
+            float step   = ScrollStep > 0f ? ScrollStep : pitch;
+            // UGUI 纵轴向上为正，而滚轮向下时 delta 为正，故这里取负。
+            float target = Mathf.Clamp(content.anchoredPosition.y - delta * step, 0f, MaxScroll());
+
+            content.anchoredPosition = new Vector2(content.anchoredPosition.x, target);
+            // 直接改 anchoredPosition 不会触发 ScrollRect 的 onValueChanged，须显式刷一次可见格。
+            UpdateVisibleCells();
         }
 
         #endregion
@@ -149,7 +247,7 @@ namespace Ale.Toolkit.Runtime.UI
         /// </summary>
         protected int FirstIndexOfSlotWindow(int firstSlot)
         {
-            if (!reverseScrollDirection) return firstSlot;
+            if (!reverseContentOrder) return firstSlot;
 
             int count = items?.Count ?? 0;
             return count - firstSlot - PoolTarget;

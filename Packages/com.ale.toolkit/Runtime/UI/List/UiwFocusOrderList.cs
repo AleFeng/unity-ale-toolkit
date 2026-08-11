@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -56,7 +56,8 @@ namespace Ale.Toolkit.Runtime.UI
     /// </summary>
     /// <typeparam name="TData">列表数据元素类型。</typeparam>
     /// <typeparam name="TCell">格子显示组件类型。</typeparam>
-    public abstract class UiwFocusOrderList<TData, TCell> : UiwVirtualOrderList<TData, TCell>, IScrollHandler, IBeginDragHandler
+    // IScrollHandler 由基类实现，本类只覆写 OnScroll 加上平滑位移。
+    public abstract class UiwFocusOrderList<TData, TCell> : UiwVirtualOrderList<TData, TCell>, IBeginDragHandler
         where TCell : Component
     {
         #region Inspector 配置
@@ -207,10 +208,6 @@ namespace Ale.Toolkit.Runtime.UI
 
         #region 滚轮接管与平滑位移
 
-        // 一档滚轮的位移距离（像素）。接管时从 ScrollRect 的 scrollSensitivity 取走。
-        private float _scrollStep;
-        private bool  _scrollTakenOver;
-
         // 补间状态。_tweening 为 false 时整条路径提前返回，静止期无逐帧开销。
         private float _tweenFrom, _tweenTo, _tweenElapsed;
         private bool  _tweening;
@@ -218,48 +215,27 @@ namespace Ale.Toolkit.Runtime.UI
         /// <summary>是否正在播放滚轮补间。</summary>
         public bool IsScrollTweening => _tweening;
 
-        protected override void Awake()
-        {
-            base.Awake();
-            TakeOverScroll();
-        }
-
         /// <summary>
-        /// 接管滚轮：取走 <c>ScrollRect.scrollSensitivity</c> 作为一档步长，并把它置 0。
-        ///
-        /// <para>置 0 是必须的，且与「本类要不要补间」无关：<c>ScrollRect</c> 与本类通常挂在同一个
-        /// GameObject 上，而 <c>ExecuteEvents</c> 会把滚轮事件派发给该物体上<b>全部</b>
-        /// <see cref="IScrollHandler"/>——不清零就会先被 <c>ScrollRect</c> 瞬间挪一档，
-        /// 再被本类的补间从头拉回，白抖一帧。清零后位移完全由本类给出，行为唯一。</para>
-        ///
-        /// <para>注意这只改运行期的字段值，不动预制体——Inspector 上的 Scroll Sensitivity 仍是
-        /// 「一档滚多远」的可读可调入口，只是改由本类来应用它。</para>
+        /// 焦点列表<b>恒接管</b>滚轮，与反不反向无关——一档滚轮通常正好跨一整条，
+        /// 交给原生 <c>ScrollRect</c> 会整条列表瞬间跳一格、焦点缩放曲线跟着突变，
+        /// 故必须自己接过来做平滑位移。
         /// </summary>
-        private void TakeOverScroll()
-        {
-            if (_scrollTakenOver || !scrollRect) return;
-
-            _scrollStep = scrollRect.scrollSensitivity;
-            scrollRect.scrollSensitivity = 0f;
-            _scrollTakenOver = true;
-        }
+        protected override bool NeedsScrollTakeOver => true;
 
         /// <summary>滚轮：按一档步长推进目标滚动量，并（按需）补间过去。</summary>
-        public void OnScroll(PointerEventData eventData)
+        public override void OnScroll(PointerEventData eventData)
         {
-            if (!_scrollTakenOver) return;                                  // 未接管 → 保持 ScrollRect 原生处理
+            if (!ScrollTakenOver) return;                                   // 未接管 → 保持 ScrollRect 原生处理
             if (!scrollRect || !scrollRect.viewport || !content) return;
 
             float pitch = RowPitch;
             if (pitch <= 0f) return;
 
-            // 与 ScrollRect 同一套约定：滚轮向下时 scrollDelta.y 为正，而 UGUI 纵轴向上为正，故取反。
-            // 横向滚轮（触控板 / 侧滚轮）在纵向列表上按纵向处理，同 ScrollRect。
-            float delta = eventData.scrollDelta.y;
-            if (Mathf.Abs(eventData.scrollDelta.x) > Mathf.Abs(delta)) delta = eventData.scrollDelta.x;
+            // 方向解析（含反向开关）交给基类，本类只管补间。
+            float delta = ResolveScrollDelta(eventData);
             if (Mathf.Approximately(delta, 0f)) return;
 
-            float step = _scrollStep > 0f ? _scrollStep : pitch;
+            float step = ScrollStep > 0f ? ScrollStep : pitch;
             // 起点取「当前补间终点」而非当前位置：连滚数档时才会逐档累加，
             // 否则每档都从半路的实际位置重新起算，越滚越短、最后停在两条之间。
             float from   = _tweening ? _tweenTo : content.anchoredPosition.y;
@@ -283,9 +259,10 @@ namespace Ale.Toolkit.Runtime.UI
         /// <summary>开始拖拽时取消补间，把控制权交还给 <c>ScrollRect</c>，避免两者同时写位置。</summary>
         public void OnBeginDrag(PointerEventData eventData) => _tweening = false;
 
-        /// <summary>当前可滚动范围上限（Content 高含首尾留白，减去视口高）。</summary>
-        private float MaxScroll()
+        /// <summary>当前可滚动范围上限。覆写基类：本类的 Content 高度还含首尾留白。</summary>
+        protected override float MaxScroll()
         {
+            if (!scrollRect || !scrollRect.viewport) return 0f;
             int count = items?.Count ?? 0;
             return Mathf.Max(0f, count * RowPitch + _leadingPad + _trailingPad - scrollRect.viewport.rect.height);
         }
@@ -406,8 +383,8 @@ namespace Ale.Toolkit.Runtime.UI
             int firstSlot = Mathf.FloorToInt(relScroll / rowPitch) - 1;
             int lastSlot  = Mathf.CeilToInt((relScroll + viewportHeight) / rowPitch) + 1;
             // 槽位区间 → 数据索引区间。倒序时映射是反序的，故两端要对调后再夹取。
-            int first = IndexOfSlot(reverseScrollDirection ? lastSlot  : firstSlot);
-            int last  = IndexOfSlot(reverseScrollDirection ? firstSlot : lastSlot);
+            int first = IndexOfSlot(reverseContentOrder ? lastSlot  : firstSlot);
+            int last  = IndexOfSlot(reverseContentOrder ? firstSlot : lastSlot);
             first = Mathf.Max(0, first);
             last  = Mathf.Min(count - 1, last);
 

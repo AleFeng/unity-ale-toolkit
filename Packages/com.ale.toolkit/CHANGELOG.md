@@ -6,6 +6,23 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.7.7] - 2026-08-11
+
+**顺序虚拟列表：1.7.6 的开关改名为 `reverseContentOrder`，`reverseScrollDirection` 让位给「滚轮反向」。**
+
+### 破坏性变更
+
+- **`UiwVirtualOrderList.reverseScrollDirection`（1.7.6 引入）更名为 `reverseContentOrder`。** 原名不准确——它改的是「条目怎么排」而非「滚轮往哪转」，两者是彼此独立的两件事，挤在一个名字下必然误导。
+  - ⚠️ **字段名复用了，语义却变了**：Unity 按名匹配序列化，勾选过 1.7.6 那个 `reverseScrollDirection` 的预制体，升级后该值会落到**新的滚轮反向**字段上。请检查并改勾 `Reverse Content Order`，把 `Reverse Scroll Direction` 归零。1.7.6 只存活了很短时间，受影响面应当极小。
+
+### 新增
+
+- **`UiwVirtualOrderList` 新增 `reverseScrollDirection`（反向滚轮）**，默认 `false`。勾选后**鼠标滚轮**的滚动方向反过来。
+  - **只影响滚轮，不影响拖拽**：拖拽是「抓着内容走」，方向天然正确，反过来反而别扭；而滚轮的方向常按设计目的或用户习惯来定。
+  - **按需接管**：不勾选时本类**完全不插手**滚轮——不清零 `ScrollRect.scrollSensitivity`，事件照旧由 `ScrollRect` 原生消费，行为与本版之前一字不差。只有需要反向时才接管，普通顺序列表零风险。
+    > 接管后必须清零 `scrollSensitivity`：`ScrollRect` 与列表通常挂在同一个 GameObject 上，而 `ExecuteEvents` 会把滚轮事件派发给该物体上**全部** `IScrollHandler`，不清零就会被原生逻辑先按原方向挪一次、再被本类按反方向挪一次，净效果是抖一下且方向仍错。
+  - 滚轮接管的那套机械（`ScrollStep` / `ScrollTakenOver` / `TakeOverScroll` / `ResolveScrollDelta` / `MaxScroll`）由 `UiwFocusOrderList` **上提到本类**，两处不再各写一份；`UiwFocusOrderList` 覆写 `NeedsScrollTakeOver` 为恒 `true`（它要做平滑位移，无论反不反向都得接管）与 `MaxScroll`（其 Content 高度还含首尾留白），并在 `OnScroll` 里改调 `ResolveScrollDelta` 以自动获得反向能力。
+
 ## [1.7.6] - 2026-08-11
 
 **顺序虚拟列表：新增反向排布开关。**
