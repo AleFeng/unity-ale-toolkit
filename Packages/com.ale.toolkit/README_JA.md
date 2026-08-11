@@ -62,7 +62,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **エディター基盤** | 三列レイアウトのタブ基底クラス、データベースウィンドウのシェル基底クラス、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底クラス。いずれもデータベース型についてジェネリック化されています |
 | **エディター多言語** | 中文 / English / 日本語 の三言語サービス。中国語原文をキーとし、訳文が無い場合は自動的にフォールバックします |
 | **オプション依存のサポート層** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）のマクロ切り替えとアダプター |
-| **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ / ウィザードのデフォルト・ローカライズフォント + 汎用ツール入口 +「起動時に自動表示」トグル。ウィザードフォントなどのプロジェクト単位の設定は `ProjectSettings/AleToolkitSettings.asset` に保存（リポジトリと共にコミット、アセット参照は GUID で保持）、言語 / 自動表示はユーザーごと（EditorPrefs）。旧マクロ `IS_*` は読み込み時に `ATK_*` へ自動移行 |
+| **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ / ウィザードのデフォルト・ローカライズフォント + 汎用ツール入口 +「起動時に自動表示」トグル。ウィザードフォントなどのプロジェクト単位の設定は `ProjectSettings/AleToolkitSettings.asset` に保存（リポジトリと共にコミット、アセット参照は GUID で保持）、言語 / 自動表示はユーザーごと（EditorPrefs）。マクロはウェルカムウィンドウから明示的に切り替えるのみで、パッケージが PlayerSettings を自動で書き換えることはありません |
 | **汎用ツールウィンドウ** | 任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理：Addressable 移行（Object ↔ GUID）とローカライズキー生成。`Tools > Ale Toolkit` 配下、上位プラグインで再利用可能 |
 
 > 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。**1.6.0 から、中央 Tween に `SpriteRenderer` フェード、`Graphic` の全色トランジション、`Transform` の移動 / 回転 / スケール、遅延コールバック、ターゲット単位の Kill を追加し、DOTween の一般的な単一 tween 用途をひと通り置き換え可能に（Sequence は引き続き非対応）**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
@@ -370,7 +370,7 @@ ToolkitEditorL10n.AddEnum(MyEnum.Foo, "Foo", "フー");
 
 ### オプション依存のサポート層
 
-TextMeshPro / Unity Localization / Addressables のマクロ切り替えとランタイムアダプター。マクロはプロジェクト単位のグローバル設定（`ATK_TMP` / `ATK_LOCALIZATION` / `ATK_ADDRESSABLE`）で、ウェルカムウィンドウから切り替え。旧マクロ `IS_*` は読み込み時に自動移行。
+TextMeshPro / Unity Localization / Addressables のマクロ切り替えとランタイムアダプター。マクロはプロジェクト単位のグローバル設定（`ATK_TMP` / `ATK_LOCALIZATION` / `ATK_ADDRESSABLE`）で、ウェルカムウィンドウから切り替え。マクロが有効なのに対応パッケージが未導入の場合に Console で警告するだけで、**PlayerSettings を自動で書き換えることはありません**——自動書き換えは同名マクロを管理する他プラグインと競合し、書き込みのたびに再コンパイルが走ってエディタがループに陥ります。
 
 - `ToolkitDefines`：マクロ名定数 `Tmp` / `Localization` / `Addressable`；`IsTmpEnabled()` / `IsLocalizationEnabled()` / `IsAddressableEnabled()`。
 - `DefineUtils`：`ApplyDefine(...)`（PlayerSettings のスクリプト定義を増減）、`HasNamespace(...)` / `HasClass(...)`（パッケージがインストール済みか検出）。これらで独自のマクロ切り替えパネルを構築可能。

@@ -6,6 +6,22 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.7.9] - 2026-08-11
+
+**移除旧宏自动迁移：插件不再改写 PlayerSettings。** 自动改写对「自己是这个宏的唯一管理者」下了赌注，赌输的代价是编辑器陷入「Compiling Scripts」死循环。宏的增删从此一律由用户经欢迎窗口显式操作。
+
+### 破坏性变更
+
+- **移除 `ToolkitDefines.LegacyRename` 与 `ToolkitDefineChecker.MigrateLegacyDefines()`**，`IS_TMP` / `IS_LOCALIZATION` / `IS_ADDRESSABLE` → `ATK_*` 的自动迁移就此取消。
+  - **起因**：在 `[InitializeOnLoad]` 里改写 PlayerSettings 是个危险动作。只要工程里还有别的插件按自己的规则管同一个宏（典型场景：A 插件按命名空间是否存在添加 `HAS_X`，B 插件把 `HAS_X` 当旧名删掉换成 `NEW_X`），两者就会在每次域重载里互相覆写；而每次 PlayerSettings 写入都会触发一次重编译 → 域重载 → 再写一次，**永不收敛**。
+  - 迁移本身是一次性收益，却把这个死循环风险常驻在每个装了本包的工程里，不划算。
+  - ⚠️ **仍在用 `IS_*` 旧宏的老工程需手动改一次**：在 `Tools > Ale Toolkit > Welcome` 勾上对应的 `ATK_*`，并到 Player Settings 的 Scripting Define Symbols 删掉 `IS_*`。1.5.1 之后建的工程不受影响。
+  - `ToolkitDefineChecker` 保留「开了宏却没装对应包」的 Console 一致性提示——**只读不写**。
+
+### 修复
+
+- `ToolkitInfo.Version` 由 `1.7.4` 订正为 `1.7.9`（自 1.7.5 起漏同步；1.7.0 曾修过一次同类漂移）。
+
 ## [1.7.8] - 2026-08-11
 
 **聚焦式顺序列表：让「静止时必对齐到某一条」成立——拖拽松手吸附、滚轮改按整数条步进。**

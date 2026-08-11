@@ -62,7 +62,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **编辑器框架** | 三列布局页签基类、数据库窗口外壳基类、主列表面板、实体列表面板、工具窗口基类，均对数据库类型泛型化 |
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
 | **可选依赖支持层** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）的宏开关与适配 |
-| **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；旧宏 `IS_*` 加载时自动迁移为 `ATK_*` |
+| **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；宏只由欢迎窗口显式开关，插件不会自动改写 PlayerSettings |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
 > 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
@@ -371,7 +371,7 @@ ToolkitEditorL10n.AddEnum(MyEnum.Foo, "Foo", "フー");
 
 ### 可选依赖支持层
 
-TextMeshPro / Unity Localization / Addressables 的宏开关与运行时适配。宏为项目级全局设定（`ATK_TMP` / `ATK_LOCALIZATION` / `ATK_ADDRESSABLE`），由欢迎窗口统一开关；旧宏 `IS_*` 加载时自动迁移。
+TextMeshPro / Unity Localization / Addressables 的宏开关与运行时适配。宏为项目级全局设定（`ATK_TMP` / `ATK_LOCALIZATION` / `ATK_ADDRESSABLE`），由欢迎窗口统一开关。插件只在「开了宏却没装对应包」时给出 Console 提示，**绝不自动改写 PlayerSettings**——自动改写会与其他插件对同名宏的管理逻辑互相覆盖，每次写入触发一次重编译，编辑器会陷入死循环。
 
 - `ToolkitDefines`：宏名常量 `Tmp` / `Localization` / `Addressable`，`IsTmpEnabled()` / `IsLocalizationEnabled()` / `IsAddressableEnabled()`。
 - `DefineUtils`：`ApplyDefine(...)`（增删 PlayerSettings 脚本宏）、`HasNamespace(...)` / `HasClass(...)`（探测包是否安装），供消费方自建宏开关面板。

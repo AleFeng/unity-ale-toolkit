@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Build;
 
@@ -6,7 +5,7 @@ namespace Ale.Toolkit.Editor
 {
     /// <summary>
     /// toolkit 可选依赖宏（TextMeshPro / Unity Localization / Unity Addressables）的中枢：宏名常量、
-    /// 对应 Unity 包名、宏启用状态 / 包安装状态检测，以及旧宏名（<c>IS_*</c>）→ 新宏名（<c>ATK_*</c>）迁移映射。
+    /// 对应 Unity 包名、宏启用状态 / 包安装状态检测。
     ///
     /// <para>这些宏是<b>项目级全局设定</b>（一个项目一般统一启用 / 不启用），统一由 toolkit 管理，供 toolkit
     /// 欢迎窗口的宏开关与各上层插件共享；不再由每个上层插件各自定义。宏的增删经 <see cref="DefineUtils"/>。</para>
@@ -35,18 +34,6 @@ namespace Ale.Toolkit.Editor
         private const string NsLocalization = "UnityEngine.Localization";
         private const string NsAddressable  = "UnityEngine.AddressableAssets";
         private const string NsInputSystem  = "UnityEngine.InputSystem";
-
-        /// <summary>
-        /// 旧宏名（<c>IS_*</c>，库存包时代）→ 新宏名（<c>ATK_*</c>）迁移映射。
-        /// 供 <see cref="ToolkitDefineChecker"/> 在加载时一次性把老项目已设的旧宏改写为新宏。
-        /// </summary>
-        public static readonly IReadOnlyDictionary<string, string> LegacyRename =
-            new Dictionary<string, string>
-            {
-                { "IS_TMP",          Tmp },
-                { "IS_LOCALIZATION", Localization },
-                { "IS_ADDRESSABLE",  Addressable },
-            };
 
         // ── 宏启用状态 ──────────────────────────────────────────────────────────────
         public static bool IsTmpEnabled()          => IsDefineEnabled(Tmp);
