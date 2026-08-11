@@ -31,11 +31,20 @@ namespace Ale.Toolkit.Runtime.UI
     /// 得到中间大两头小、并向两侧让开的弧形排布。</item>
     /// </list>
     ///
-    /// <para><b>滚轮由本类接管并做平滑位移</b>（<see cref="scrollTweenDuration"/>，默认 0.1 秒）。
-    /// 焦点列表一档滚轮通常正好跨一整条，原生 <c>ScrollRect</c> 直接改写 <c>content.anchoredPosition</c>，
-    /// 表现为整条列表瞬间跳一格，焦点缩放曲线也跟着突变；补间后条目是滑过去的。
-    /// 拖拽 / 惯性 / 边界回弹仍是 <c>ScrollRect</c> 原生的，本类不碰，拖拽开始时会取消进行中的补间。
-    /// <b>仍不做释放后吸附对齐</b>——拖拽松手停在两条之间时，焦点缩放曲线会让上下两条都呈半放大态。</para>
+    /// <para><b>滚轮由本类接管</b>，做两件原生 <c>ScrollRect</c> 做不到的事：<b>按整数条步进</b>
+    /// （<see cref="wheelRowsPerNotch"/>，默认一档一条）与<b>平滑位移</b>（<see cref="scrollTweenDuration"/>，
+    /// 默认 0.1 秒）。原生滚轮按 <c>Scroll Sensitivity</c> 走固定像素，只要该值不等于行距就必然停在两条之间；
+    /// 且它直接改写 <c>content.anchoredPosition</c>，表现为整条列表瞬间跳一格、焦点缩放曲线跟着突变。
+    /// 接管后一档恒好一条、且是滑过去的。<b><c>Scroll Sensitivity</c> 对本类不再有意义</b>——它仍会被取走并置 0
+    /// （否则 <c>ScrollRect</c> 会与本类重复处理同一次滚轮），但位移量完全由行距与档位条数算出，
+    /// 行距又由格子高度 × 行距倍率自动量得，不存在需要人工同步的第二份数值。
+    /// 拖拽 / 惯性 / 边界回弹仍是 <c>ScrollRect</c> 原生的，本类不碰，拖拽开始时会取消进行中的补间。</para>
+    ///
+    /// <para><b>拖拽松手后吸附对齐</b>（<see cref="snapAfterDrag"/>，默认开）。焦点列表的语义是
+    /// 「停在哪条就选中哪条」，停在两条之间时既没有明确的选中项，焦点缩放曲线还会让上下两条都呈半放大态。
+    /// 松手后先让 <c>ScrollRect</c> 的惯性照常滑（「甩一下翻几条」的手感要留住），速度衰减到
+    /// <see cref="snapVelocityThreshold"/> 以下再接管，补间到<b>当前焦点条目</b>正对焦点线的位置——
+    /// 目标条目就是 <see cref="FocusedIndex"/> 已经指向的那条，故吸附过程中焦点不会跳变。</para>
     ///
     /// <para><b>首尾留白</b>：Content 在头尾各补一段空白，使<b>第一条与最后一条也能滚到焦点线上</b>。
     /// 没有这段留白时，条目是从 Content 顶端紧挨着排的，第一条的中心永远停在视口顶端附近、
@@ -57,7 +66,10 @@ namespace Ale.Toolkit.Runtime.UI
     /// <typeparam name="TData">列表数据元素类型。</typeparam>
     /// <typeparam name="TCell">格子显示组件类型。</typeparam>
     // IScrollHandler 由基类实现，本类只覆写 OnScroll 加上平滑位移。
-    public abstract class UiwFocusOrderList<TData, TCell> : UiwVirtualOrderList<TData, TCell>, IBeginDragHandler
+    // IBeginDragHandler / IEndDragHandler 只用来「知道拖拽何时开始 / 结束」，不消费事件——
+    // ExecuteEvents 会把拖拽派发给本物体上全部处理器，ScrollRect 照常收到并做它的拖拽与惯性。
+    public abstract class UiwFocusOrderList<TData, TCell> : UiwVirtualOrderList<TData, TCell>,
+                                                            IBeginDragHandler, IEndDragHandler
         where TCell : Component
     {
         #region Inspector 配置
@@ -75,9 +87,31 @@ namespace Ale.Toolkit.Runtime.UI
         public AnimationCurve focusOffsetCurve;
 
         [Header("滚轮")]
-        [Tooltip("滚轮切换焦点条目时的平滑位移时长（秒）。0 = 不补间，一档即瞬间跳到位（原生 ScrollRect 的表现）。\n" +
-                 "一档滚轮的位移距离仍取自 ScrollRect 的 Scroll Sensitivity——本类只是把它改成滑过去而非跳过去。")]
+        [Tooltip("一档滚轮跨几条。默认 1 = 一档换一条焦点。\n" +
+                 "本类的一档恒为「整数条」而非固定像素——焦点列表的语义是「停在哪条就选中哪条」，\n" +
+                 "按像素走必然会停在两条之间。行距由格子高度 × 行距倍率自动算出，无需在别处再配一遍。\n" +
+                 "注意 ScrollRect 的 Scroll Sensitivity 对本类不起作用（仍会被取走并置 0，见类注释）。")]
+        [Min(1)] public int wheelRowsPerNotch = 1;
+
+        [Tooltip("滚轮切换焦点条目时的平滑位移时长（秒）。0 = 不补间，一档即瞬间跳到位（原生 ScrollRect 的表现）。")]
         public float scrollTweenDuration = 0.1f;
+
+        [Header("拖拽吸附")]
+        [Tooltip("拖拽松手后吸附对齐：把当前焦点条目补间到正对焦点线的位置，不让列表停在两条之间。\n" +
+                 "焦点列表的语义是「停在哪条就选中哪条」，停在两条之间既没有明确的选中项，\n" +
+                 "焦点缩放曲线还会让上下两条都呈半放大态。\n" +
+                 "取消勾选则完全交还 ScrollRect（拖到哪停哪，本版之前的表现）。")]
+        public bool snapAfterDrag = true;
+
+        [Tooltip("吸附补间时长（秒）。0 = 瞬间对齐。")]
+        public float snapTweenDuration = 0.15f;
+
+        [Tooltip("惯性滑行的速度（像素/秒）降到该值以下即开始吸附。\n" +
+                 "松手后先让 ScrollRect 的惯性照常滑，「甩一下翻几条」的手感才留得住；\n" +
+                 "但惯性是指数衰减，尾巴很长，等它自然归零会让吸附迟迟不来，故在此提前接管。\n" +
+                 "调大 = 更早吸附（滑行更短促），调小 = 更贴近原生惯性。0 = 等惯性完全停下。\n" +
+                 "ScrollRect 未开启 Inertia 时本项无效——松手即吸附。")]
+        [Min(0f)] public float snapVelocityThreshold = 200f;
 
         #endregion
 
@@ -190,14 +224,16 @@ namespace Ale.Toolkit.Runtime.UI
             if (pitch <= 0f) return;
 
             // 本方法是瞬移，与补间是两个互斥的位置来源；不取消的话补间会在随后的帧里把位置拉回去。
-            _tweening = false;
+            // 待吸附同理——它一旦到点就会按「当时最近的那条」重新定位，把这次显式定位覆盖掉。
+            _tweening    = false;
+            _pendingSnap = false;
+            // 惯性同样是位置来源之一：松手后的滑行若还没停，会立刻把刚定好的位置带跑。
+            scrollRect.velocity = Vector2.zero;
 
             index = Mathf.Clamp(index, 0, count - 1);
 
-            float viewportHeight = scrollRect.viewport.rect.height;
-            // 由「第 index 条的中心落在焦点线上」反解所需滚动量。倒序时它占的是另一个槽位，故按槽位算。
-            float scrollY = _leadingPad + SlotOf(index) * pitch + pitch * 0.5f - FocusLine(viewportHeight, pitch);
-            scrollY = Mathf.Clamp(scrollY, 0f, MaxScroll());
+            // 倒序时第 index 条占的是另一个槽位，故先经 SlotOf 换算再定位。
+            float scrollY = ScrollYForSlot(SlotOf(index), pitch, scrollRect.viewport.rect.height);
 
             content.anchoredPosition = new Vector2(content.anchoredPosition.x, scrollY);
             UpdateVisibleCells();
@@ -209,7 +245,8 @@ namespace Ale.Toolkit.Runtime.UI
         #region 滚轮接管与平滑位移
 
         // 补间状态。_tweening 为 false 时整条路径提前返回，静止期无逐帧开销。
-        private float _tweenFrom, _tweenTo, _tweenElapsed;
+        // 时长随每次启动传入（滚轮用 scrollTweenDuration，吸附用 snapTweenDuration），故须记在状态里。
+        private float _tweenFrom, _tweenTo, _tweenElapsed, _tweenDuration;
         private bool  _tweening;
 
         /// <summary>是否正在播放滚轮补间。</summary>
@@ -222,42 +259,83 @@ namespace Ale.Toolkit.Runtime.UI
         /// </summary>
         protected override bool NeedsScrollTakeOver => true;
 
-        /// <summary>滚轮：按一档步长推进目标滚动量，并（按需）补间过去。</summary>
+        /// <summary>
+        /// 滚轮：按<b>整数条</b>推进焦点，并（按需）补间过去。
+        ///
+        /// <para><b>一档 = 整数条，不是固定像素。</b>焦点列表的语义是「停在哪条就选中哪条」，
+        /// 按像素走时只要步长不等于行距，就必然停在两条之间——既没有明确的选中项，
+        /// 焦点缩放曲线还会让上下两条都呈半放大态。行距由格子高度 × 行距倍率自动算出，
+        /// 一档跨几条由 <see cref="wheelRowsPerNotch"/> 定，两者都不需要在别处再配一份像素值。</para>
+        /// </summary>
         public override void OnScroll(PointerEventData eventData)
         {
             if (!ScrollTakenOver) return;                                   // 未接管 → 保持 ScrollRect 原生处理
             if (!scrollRect || !scrollRect.viewport || !content) return;
 
+            int count = items?.Count ?? 0;
+            if (count <= 0) return;
+
             float pitch = RowPitch;
             if (pitch <= 0f) return;
 
-            // 方向解析（含反向开关）交给基类，本类只管补间。
+            // 方向解析（含反向开关）交给基类，本类只管步进与补间。
             float delta = ResolveScrollDelta(eventData);
             if (Mathf.Approximately(delta, 0f)) return;
 
-            float step = ScrollStep > 0f ? ScrollStep : pitch;
-            // 起点取「当前补间终点」而非当前位置：连滚数档时才会逐档累加，
-            // 否则每档都从半路的实际位置重新起算，越滚越短、最后停在两条之间。
-            float from   = _tweening ? _tweenTo : content.anchoredPosition.y;
-            float target = Mathf.Clamp(from - delta * step, 0f, MaxScroll());
+            // 滚轮是一次新的意图，作废上一次拖拽留下的待吸附——否则惯性一停，
+            // 吸附会把滚轮刚推到的位置又拽回去。
+            _pendingSnap = false;
+            // 惯性同理：残余速度会在随后的帧里与补间抢写位置。
+            scrollRect.velocity = Vector2.zero;
 
+            float viewportHeight = scrollRect.viewport.rect.height;
+            // 起点取「当前补间终点」而非当前位置：连滚数档时才会逐档累加，
+            // 否则每档都从半路的实际位置重新起算，越滚越短。
+            float from = _tweening ? _tweenTo : content.anchoredPosition.y;
+
+            // 先把起点归到最近的整槽再整条整条地走。常态下起点本就对齐，归整不改变它；
+            // 若因拖拽 / 外部写入停在半路（如关掉了拖拽吸附），这一步顺带把它拉回格上。
+            int fromSlot = SlotAtFocusLine(from, pitch, viewportHeight);
+            // 滚轮向下时 delta 为正，对应滚动量减小、走向更靠前的槽位，故取负号。
+            int targetSlot = fromSlot - (delta > 0f ? 1 : -1) * Mathf.Max(1, wheelRowsPerNotch);
+            targetSlot = Mathf.Clamp(targetSlot, 0, count - 1);
+
+            float target = ScrollYForSlot(targetSlot, pitch, viewportHeight);
             if (Mathf.Approximately(target, content.anchoredPosition.y) && !_tweening) return;
 
-            if (scrollTweenDuration <= 0f)
+            BeginScrollTween(target, scrollTweenDuration);
+        }
+
+        /// <summary>开始拖拽时取消补间与待吸附，把控制权交还给 <c>ScrollRect</c>，避免两者同时写位置。</summary>
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            _tweening    = false;
+            _pendingSnap = false;
+        }
+
+        /// <summary>
+        /// 松开拖拽：登记「待吸附」。此处<b>不</b>立刻吸附——惯性还没跑，立刻接管等于把
+        /// <c>ScrollRect</c> 的惯性整个吞掉，「甩一下翻几条」就没了。实际接管时机见
+        /// <see cref="TickSnapAfterDrag"/>。
+        /// </summary>
+        public void OnEndDrag(PointerEventData eventData) => _pendingSnap = snapAfterDrag;
+
+        // 启动一次补间到指定滚动量。时长 ≤ 0 视为瞬移。
+        private void BeginScrollTween(float target, float duration)
+        {
+            if (duration <= 0f)
             {
                 _tweening = false;
                 ApplyScrollY(target);
                 return;
             }
 
-            _tweenFrom    = content.anchoredPosition.y;
-            _tweenTo      = target;
-            _tweenElapsed = 0f;
-            _tweening     = true;
+            _tweenFrom     = content.anchoredPosition.y;
+            _tweenTo       = target;
+            _tweenElapsed  = 0f;
+            _tweenDuration = duration;
+            _tweening      = true;
         }
-
-        /// <summary>开始拖拽时取消补间，把控制权交还给 <c>ScrollRect</c>，避免两者同时写位置。</summary>
-        public void OnBeginDrag(PointerEventData eventData) => _tweening = false;
 
         /// <summary>当前可滚动范围上限。覆写基类：本类的 Content 高度还含首尾留白。</summary>
         protected override float MaxScroll()
@@ -282,7 +360,7 @@ namespace Ale.Toolkit.Runtime.UI
             if (!content) { _tweening = false; return; }
 
             _tweenElapsed += Time.unscaledDeltaTime;
-            float t = scrollTweenDuration > 0f ? Mathf.Clamp01(_tweenElapsed / scrollTweenDuration) : 1f;
+            float t = _tweenDuration > 0f ? Mathf.Clamp01(_tweenElapsed / _tweenDuration) : 1f;
             // 缓出（quad out）：起步快、收尾慢。0.1 秒这种短时长下比线性更跟手，停下时也不生硬。
             float y = Mathf.Lerp(_tweenFrom, _tweenTo, 1f - (1f - t) * (1f - t));
 
@@ -292,11 +370,88 @@ namespace Ale.Toolkit.Runtime.UI
 
         #endregion
 
+        #region 拖拽松手后的吸附对齐
+
+        //
+        // 【为什么要等惯性、而不是松手即吸附】
+        // ScrollRect 松手后会按 decelerationRate 指数衰减地继续滑（inertia）。松手当帧就接管，
+        // 等于把这段惯性整个吞掉——「甩一下翻好几条」这个手感是拖拽列表的主要交互方式，不能没有。
+        // 反过来，指数衰减的尾巴很长（ScrollRect 要衰减到 |v| < 1 才归零），等它自然停会让吸附
+        // 迟迟不来，中间那段慢速蠕动毫无意义。故取「速度降到阈值以下」这个中间时机。
+        //
+        // 【为什么要给 ScrollRect.velocity 清零】
+        // 接管后由本类的补间写 content.anchoredPosition，而 ScrollRect 自己的 LateUpdate 只要
+        // velocity 非零就会继续往上叠加位移，两者会在同一帧抢写同一个值。清零后它那段直接短路
+        // （movementType 为 Clamped 时 offset 恒为零，那个分支整个跳过），位置由补间独占。
+        //
+
+        // 松手后待吸附。等惯性衰减到阈值以下再真正接管，中途被新的拖拽 / 滚轮 / 数据替换作废。
+        private bool _pendingSnap;
+
+        /// <summary>是否正处于「松手后等待吸附」的状态（惯性仍在滑行）。</summary>
+        public bool IsPendingSnap => _pendingSnap;
+
+        // 每帧检查待吸附是否到点。无待吸附时立即返回，静止期无开销。
+        private void TickSnapAfterDrag()
+        {
+            if (!_pendingSnap) return;
+            if (!snapAfterDrag) { _pendingSnap = false; return; }
+            if (!scrollRect || !scrollRect.viewport || !content) { _pendingSnap = false; return; }
+
+            // 惯性未衰减到阈值 → 继续让 ScrollRect 滑。未开启 inertia 时 velocity 恒为零，松手即吸附。
+            if (scrollRect.inertia && Mathf.Abs(scrollRect.velocity.y) > snapVelocityThreshold) return;
+
+            _pendingSnap = false;
+            SnapToFocusLine(snapTweenDuration);
+        }
+
+        /// <summary>
+        /// 把<b>当前焦点条目</b>补间到正对焦点线的位置。
+        /// <para>目标条目取的就是 <see cref="FocusedIndex"/> 已经指向的那条——两处用的是同一条反解
+        /// （槽位中心 = 留白 + 槽位×行距 + 半行距 - 滚动量，令其等于焦点线），故吸附过程中
+        /// 焦点<b>不会跳变</b>，只是把它从「最接近」挪到「正对」。</para>
+        /// </summary>
+        /// <param name="duration">补间时长（秒）。≤ 0 为瞬间对齐。</param>
+        public void SnapToFocusLine(float duration)
+        {
+            if (!scrollRect || !scrollRect.viewport || !content) return;
+
+            int count = items?.Count ?? 0;
+            if (count <= 0) return;
+
+            float pitch = RowPitch;
+            if (pitch <= 0f) return;
+
+            float viewportHeight = scrollRect.viewport.rect.height;
+            float scrollY        = content.anchoredPosition.y;
+
+            // 反解最近的槽位并夹取。槽位与索引同域（倒序时互为镜像），故夹槽位等价于夹索引，
+            // 与 UpdateFocusAndAppearance 对 IndexOfSlot 结果的夹取结果一致。
+            int slot = Mathf.Clamp(SlotAtFocusLine(scrollY, pitch, viewportHeight), 0, count - 1);
+            float target = ScrollYForSlot(slot, pitch, viewportHeight);
+
+            // 必须在补间之前：否则 ScrollRect 会带着残余速度与补间抢写位置。
+            scrollRect.velocity = Vector2.zero;
+
+            if (Mathf.Approximately(target, scrollY))
+            {
+                // 已经对齐（含滚到两端边界的情形——首尾留白保证了那里本就正对焦点线）。
+                _tweening = false;
+                return;
+            }
+
+            BeginScrollTween(target, duration);
+        }
+
+        #endregion
+
         #region 生命周期
 
         public override void SetItems(IReadOnlyList<TData> itemsParam)
         {
-            _tweening = false;   // 数据整体替换会回到起点，进行中的补间目标已失效
+            // 数据整体替换会回到起点，进行中的补间与待吸附的目标都已失效
+            _tweening    = false;
+            _pendingSnap = false;
             base.SetItems(itemsParam);
 
             // 数据整体替换并回到起点，焦点必然要重算。先置为无效，保证随后必定抛一次 OnFocusChanged——
@@ -307,7 +462,8 @@ namespace Ale.Toolkit.Runtime.UI
 
         protected override void LateUpdate()
         {
-            TickScrollTween();   // 先推进滚轮补间写入滚动位置
+            TickSnapAfterDrag(); // 松手后的惯性衰减到位则启动吸附补间
+            TickScrollTween();   // 推进补间（滚轮 / 吸附共用）写入滚动位置
             base.LateUpdate();   // 视口尺寸变化重建 + 限速填充
             UpdateFocusAndAppearance();
         }
@@ -326,6 +482,26 @@ namespace Ale.Toolkit.Runtime.UI
                 default:                  return viewportHeight * 0.5f;
             }
         }
+
+        //
+        // 「滚动量 ↔ 槽位」的两条互逆换算。焦点判定、滚轮步进、拖拽吸附、FocusIndex 四处全都要用，
+        // 各写一遍必然会漂——本类此前就有三份同式的抄写。集中在这里，任何一处改动都同时作用于四者。
+        //
+        //   槽位 s 的中心距视口顶端 = 首留白 + s×行距 + 半行距 - 滚动量
+        //   令其等于焦点线，即得两式。
+        //
+
+        /// <summary>由滚动量反解「此刻正对焦点线的槽位」，四舍五入到最近的整槽。<b>不</b>夹取，由调用方按需夹。</summary>
+        private int SlotAtFocusLine(float scrollY, float rowPitch, float viewportHeight)
+            => Mathf.RoundToInt((FocusLine(viewportHeight, rowPitch) + scrollY - _leadingPad - rowPitch * 0.5f) / rowPitch);
+
+        /// <summary>
+        /// 由槽位求「使该槽位正对焦点线」所需的滚动量，已夹到可滚范围内。
+        /// <para>夹取不会带来偏差：首尾留白的定义保证了槽位 0 恰好落在滚动量 0、末槽位恰好落在 <see cref="MaxScroll"/>。</para>
+        /// </summary>
+        private float ScrollYForSlot(int slot, float rowPitch, float viewportHeight)
+            => Mathf.Clamp(_leadingPad + slot * rowPitch + rowPitch * 0.5f - FocusLine(viewportHeight, rowPitch),
+                           0f, MaxScroll());
 
         // 防重入：OnFocusChanged 的订阅方若在回调里改数据（如 SetItems），会重新走进本方法；
         // 不拦住则可能形成事件递归。嵌套调用直接返回——外层这一趟走完后状态即已一致。
@@ -347,9 +523,8 @@ namespace Ale.Toolkit.Runtime.UI
                 float scrollY        = content.anchoredPosition.y;
                 float focusLine      = FocusLine(viewportHeight, pitch);
 
-                // 槽位 s 的中心距视口顶端 = pad + s*p + p/2 - scrollY；令其等于焦点线，反解 s 并取最近的整数，
-                // 再映射回数据索引（倒序时两者不同）。
-                int focusSlot = Mathf.RoundToInt((focusLine + scrollY - _leadingPad - pitch * 0.5f) / pitch);
+                // 反解此刻正对焦点线的槽位，再映射回数据索引（倒序时两者不同）。
+                int focusSlot = SlotAtFocusLine(scrollY, pitch, viewportHeight);
                 int newFocus = count > 0
                     ? Mathf.Clamp(IndexOfSlot(focusSlot), 0, count - 1)
                     : -1;
