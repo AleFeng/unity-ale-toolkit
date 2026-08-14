@@ -53,6 +53,20 @@ namespace Ale.Toolkit.Runtime.AddressableSupport
             else
             {
                 e.RefCount++;
+
+                // 上一次加载失败（或资源事后被销毁）：重新发起一次真正的加载，
+                // 而不是把上次那个 null 直接回传——否则该地址一旦失败过就永远取不回来了。
+                //
+                // 注意这里是「原地重试」而不是「删掉条目重来」：Entry 同时充当引用计数账本，
+                // 而 OwnerAddrs 里已经登记了该地址。若删掉条目、之后又有人成功加载建出新条目，
+                // 先前那些宿主销毁时的 ReleaseAddress 就会去扣新条目的计数，把还在用的句柄提前释放掉。
+                if (e.Done && !e.Result)
+                {
+                    // 失败的句柄同样需要释放，否则重试会不断堆积句柄。
+                    if (e.Handle.IsValid()) Addressables.Release(e.Handle);
+                    e.Done = false;
+                    BeginLoad<T>(address, e);
+                }
             }
 
             if (onLoaded != null)
