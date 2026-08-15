@@ -213,5 +213,198 @@ namespace Ale.Toolkit.Tests
             Assert.IsTrue (ConditionEngine.Evaluate(Make(NumberCompareEvaluator.Less,           200d), ctx, r).Passed);
             Assert.IsFalse(ConditionEngine.Evaluate(Make(NumberCompareEvaluator.Less,           100d), ctx, r).Passed);
         }
+
+        /// <summary>
+        /// 本判定器的「等于」用严格容差 1e-9，不跟随 <see cref="ConditionCompare.DefaultEpsilon"/>（1e-6）。
+        /// <para>用 float 扩宽出来的 10.100000381469727 与 10.1 相差约 3.8e-7 —— 恰好卡在两个容差之间，
+        /// 于是这条断言能钉住「容差没有被悄悄放宽」。</para>
+        /// </summary>
+        [Test] public void BuiltIn_NumberCompare_EqualUsesStrictEpsilon()
+        {
+            var r = new ConditionRegistry(); r.Register(new NumberCompareEvaluator());
+            var ctx = new TestContext(new NumberSource(new Dictionary<string, double> { { "attr", 10.1f } }));
+
+            var it = new ConditionItem("Condition.NumberCompare");
+            var pid  = new ConditionParam("id",     ConditionParamType.String); pid.SetString("attr");
+            var pop  = new ConditionParam("op",     ConditionParamType.Int);    pop.SetInt(NumberCompareEvaluator.Equal);
+            var pamt = new ConditionParam("amount", ConditionParamType.Float);  pamt.SetFloat(10.1d);
+            it.parameters.Add(pid); it.parameters.Add(pop); it.parameters.Add(pamt);
+            var e = Expr(ConditionLogicOp.And, Group(ConditionLogicOp.And, false, it));
+
+            Assert.IsFalse(ConditionEngine.Evaluate(e, ctx, r).Passed, "1e-9 下不应判为相等");
+            // 同一组数值在默认容差下是相等的——反证上面那条不是因为写错了参数才失败。
+            Assert.IsTrue(ConditionCompare.Compare(10.1f, 10.1d, ConditionCompare.Equal));
+        }
+
+        // ── ConditionCompare 比较符范式 ──
+
+        /// <summary>标签的文本与顺序是通信格式（进对话剧本与配置索引），必须冻结。</summary>
+        [Test] public void ConditionCompare_LabelsAreFrozen()
+        {
+            CollectionAssert.AreEqual(
+                new[] { "大于", "大于等于", "等于", "小于等于", "小于" }, ConditionCompare.Labels);
+            Assert.AreEqual(0, ConditionCompare.Greater);
+            Assert.AreEqual(1, ConditionCompare.GreaterOrEqual);
+            Assert.AreEqual(2, ConditionCompare.Equal);
+            Assert.AreEqual(3, ConditionCompare.LessOrEqual);
+            Assert.AreEqual(4, ConditionCompare.Less);
+        }
+
+        /// <summary>内置判定器的常量必须与公共实现一致（它们是转发别名）。</summary>
+        [Test] public void ConditionCompare_NumberCompareConstantsForward()
+        {
+            Assert.AreEqual(ConditionCompare.Greater,        NumberCompareEvaluator.Greater);
+            Assert.AreEqual(ConditionCompare.GreaterOrEqual, NumberCompareEvaluator.GreaterOrEqual);
+            Assert.AreEqual(ConditionCompare.Equal,          NumberCompareEvaluator.Equal);
+            Assert.AreEqual(ConditionCompare.LessOrEqual,    NumberCompareEvaluator.LessOrEqual);
+            Assert.AreEqual(ConditionCompare.Less,           NumberCompareEvaluator.Less);
+        }
+
+        [Test] public void ConditionCompare_IntegerOverload_IsExact()
+        {
+            Assert.IsTrue (ConditionCompare.Compare(10L, 10L, ConditionCompare.Equal));
+            Assert.IsFalse(ConditionCompare.Compare(11L, 10L, ConditionCompare.Equal));
+            Assert.IsTrue (ConditionCompare.Compare(11L, 10L, ConditionCompare.Greater));
+            Assert.IsTrue (ConditionCompare.Compare(10L, 10L, ConditionCompare.GreaterOrEqual));
+            Assert.IsTrue (ConditionCompare.Compare(9L,  10L, ConditionCompare.Less));
+            Assert.IsTrue (ConditionCompare.Compare(10L, 10L, ConditionCompare.LessOrEqual));
+        }
+
+        /// <summary>默认容差 1e-6 要能吃下 float 扩宽误差；显式传更严的值则不能。</summary>
+        [Test] public void ConditionCompare_FloatOverload_RespectsEpsilon()
+        {
+            double widened = 10.1f;   // 10.100000381469727，与 10.1 相差约 3.8e-7
+            Assert.IsTrue (ConditionCompare.Compare(widened, 10.1d, ConditionCompare.Equal));
+            Assert.IsFalse(ConditionCompare.Compare(widened, 10.1d, ConditionCompare.Equal, 1e-9));
+        }
+
+        /// <summary>未知比较符一律回落到「大于等于」，与各历史副本的行为一致。</summary>
+        [Test] public void ConditionCompare_UnknownOp_FallsBackToGreaterOrEqual()
+        {
+            Assert.IsTrue (ConditionCompare.Compare(11L, 10L, 99));
+            Assert.IsFalse(ConditionCompare.Compare(9L,  10L, 99));
+            Assert.IsTrue (ConditionCompare.Compare(11d, 10d, -1));
+        }
+
+        [Test] public void ConditionCompare_ReadOp_DefaultsToGreaterOrEqual()
+        {
+            var withOp = new List<ConditionParam>();
+            var p = new ConditionParam("op", ConditionParamType.Int); p.SetInt(ConditionCompare.Less);
+            withOp.Add(p);
+
+            Assert.AreEqual(ConditionCompare.Less, ConditionCompare.ReadOp(withOp));
+            Assert.AreEqual(ConditionCompare.GreaterOrEqual, ConditionCompare.ReadOp(new List<ConditionParam>()));
+        }
+
+        [Test] public void ConditionCompare_CreateOpParam_UsesSharedLabels()
+        {
+            var def = ConditionCompare.CreateOpParam();
+            Assert.AreEqual(ConditionCompare.DefaultParamId, def.id);
+            Assert.AreEqual(ConditionParamType.Int, def.type);
+            Assert.IsFalse(def.isArray);
+            Assert.AreSame(ConditionCompare.Labels, def.choices);
+        }
+
+        // ── ConditionContext / SubjectConditionContext ──
+
+        [Test] public void ConditionContext_ResolvesByExactType()
+        {
+            var src = new FlagSource("brave");
+            var ctx = new ConditionContext();
+            ctx.RegisterService<IConditionFlagSource>(src);
+
+            Assert.AreSame(src, ctx.GetService<IConditionFlagSource>());
+            Assert.IsTrue(ctx.HasService<IConditionFlagSource>());
+            // 精确查表：按具体类取不到，按未注册的接口也取不到。
+            Assert.IsNull(ctx.GetService<FlagSource>());
+            Assert.IsNull(ctx.GetService<IConditionNumberSource>());
+        }
+
+        [Test] public void ConditionContext_RegisterNull_Unregisters()
+        {
+            var ctx = new ConditionContext();
+            ctx.RegisterService<IConditionFlagSource>(new FlagSource("brave"));
+            ctx.RegisterService<IConditionFlagSource>(null);
+            Assert.IsFalse(ctx.HasService<IConditionFlagSource>());
+        }
+
+        [Test] public void ConditionContext_UnregisterAndClear()
+        {
+            var ctx = new ConditionContext { Subject = "hero" };
+            ctx.RegisterService<IConditionFlagSource>(new FlagSource("brave"));
+
+            Assert.IsTrue(ctx.UnregisterService<IConditionFlagSource>());
+            Assert.IsFalse(ctx.UnregisterService<IConditionFlagSource>());
+
+            ctx.RegisterService<IConditionFlagSource>(new FlagSource("brave"));
+            ctx.Clear();
+            Assert.IsNull(ctx.GetService<IConditionFlagSource>());
+            Assert.IsNull(ctx.Subject);
+        }
+
+        [Test] public void ConditionContext_WorksAsEvaluatorContext()
+        {
+            var r = new ConditionRegistry(); r.Register(new HasFlagEvaluator());
+            var it = new ConditionItem("Condition.HasFlag");
+            var p = new ConditionParam("flag", ConditionParamType.String); p.SetString("brave");
+            it.parameters.Add(p);
+            var e = Expr(ConditionLogicOp.And, Group(ConditionLogicOp.And, false, it));
+
+            var ctx = new ConditionContext();
+            ctx.RegisterService<IConditionFlagSource>(new FlagSource("brave"));
+            Assert.IsTrue(ConditionEngine.Evaluate(e, ctx, r).Passed);
+
+            Assert.IsFalse(ConditionEngine.Evaluate(e, new ConditionContext(), r).Passed); // 无服务 → 不通过
+        }
+
+        [Test] public void SubjectConditionContext_OverridesSubjectAndForwardsServices()
+        {
+            var src = new FlagSource("brave");
+            var inner = new ConditionContext { Subject = "inner" };
+            inner.RegisterService<IConditionFlagSource>(src);
+
+            var scoped = new SubjectConditionContext(inner, "outer");
+
+            Assert.AreEqual("outer", scoped.Subject);
+            Assert.AreSame(src, scoped.GetService<IConditionFlagSource>());
+            Assert.AreEqual("inner", inner.Subject, "包装不应改动内层状态");
+        }
+
+        [Test] public void SubjectConditionContext_NullInner_ReturnsNullService()
+        {
+            var scoped = new SubjectConditionContext(null, "outer");
+            Assert.AreEqual("outer", scoped.Subject);
+            Assert.IsNull(scoped.GetService<IConditionFlagSource>());
+        }
+
+        // ── EnsureAutoRegistered 幂等兜底 ──
+
+        [Test] public void EnsureAutoRegistered_IsIdempotent()
+        {
+            var r = new ConditionRegistry();
+            Assert.IsTrue(r.EnsureAutoRegistered(), "首次应执行扫描");
+            Assert.IsTrue(r.Count > 0);
+            Assert.IsFalse(r.EnsureAutoRegistered(), "第二次应跳过");
+        }
+
+        /// <summary>Clear() 必须复位标志，否则清空后再 Ensure 会静默变成空操作、注册表永久为空。</summary>
+        [Test] public void EnsureAutoRegistered_ClearResetsFlag()
+        {
+            var r = new ConditionRegistry();
+            r.EnsureAutoRegistered();
+            r.Clear();
+            Assert.AreEqual(0, r.Count);
+
+            Assert.IsTrue(r.EnsureAutoRegistered(), "Clear 之后应能重新扫描");
+            Assert.IsTrue(r.TryGet("Condition.NumberCompare", out _));
+        }
+
+        /// <summary>手动全量重扫之后，Ensure 应认为已扫过。</summary>
+        [Test] public void EnsureAutoRegistered_AfterManualScan_Skips()
+        {
+            var r = new ConditionRegistry();
+            r.AutoRegisterFromAssemblies();
+            Assert.IsFalse(r.EnsureAutoRegistered());
+        }
     }
 }

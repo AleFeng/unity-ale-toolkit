@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Ale.Condition
@@ -12,23 +11,42 @@ namespace Ale.Condition
     /// <summary>
     /// 内置判定器：数值 <c>id</c> 与 <c>amount</c> 按 <c>op</c> 比较（大于 / 大于等于 / 等于 / 小于等于 / 小于），
     /// 数值经上下文的 <see cref="IConditionNumberSource"/> 取得。键 <c>Condition.NumberCompare</c>。
-    /// <para><c>op</c> 存下拉索引，取值见 <see cref="Greater"/> …；顺序与 <see cref="OpLabels"/> 一致。</para>
+    /// <para><c>op</c> 存下拉索引，语义见 <see cref="ConditionCompare"/>。</para>
     /// </summary>
     [ConditionEvaluator("Condition.NumberCompare")]
     public sealed class NumberCompareEvaluator : IConditionEvaluator
     {
-        public const int Greater        = 0; // 大于
-        public const int GreaterOrEqual = 1; // 大于等于
-        public const int Equal          = 2; // 等于
-        public const int LessOrEqual    = 3; // 小于等于
-        public const int Less           = 4; // 小于
+        // 比较符常量转发到 ConditionCompare。
+        // 保留在此处是为了不破坏既有引用（含本包测试与下游代码）——它们是已发布的公开 API。
+        /// <summary>大于。等价于 <see cref="ConditionCompare.Greater"/>。</summary>
+        public const int Greater = ConditionCompare.Greater;
 
-        private static readonly string[] OpLabels = { "大于", "大于等于", "等于", "小于等于", "小于" };
+        /// <summary>大于等于。等价于 <see cref="ConditionCompare.GreaterOrEqual"/>。</summary>
+        public const int GreaterOrEqual = ConditionCompare.GreaterOrEqual;
+
+        /// <summary>等于。等价于 <see cref="ConditionCompare.Equal"/>。</summary>
+        public const int Equal = ConditionCompare.Equal;
+
+        /// <summary>小于等于。等价于 <see cref="ConditionCompare.LessOrEqual"/>。</summary>
+        public const int LessOrEqual = ConditionCompare.LessOrEqual;
+
+        /// <summary>小于。等价于 <see cref="ConditionCompare.Less"/>。</summary>
+        public const int Less = ConditionCompare.Less;
+
+        /// <summary>
+        /// 本判定器「等于」所用的容差。
+        ///
+        /// <para>刻意<b>不</b>跟随 <see cref="ConditionCompare.DefaultEpsilon"/>（<c>1e-6</c>）：
+        /// 本判定器自 1.4.0 起就是 <c>1e-9</c>，跟随默认值会放宽既有行为。
+        /// 数值来自宿主的 <see cref="IConditionNumberSource"/>，本就是 <c>double</c>，
+        /// 不像属性系统那样普遍存在 float 扩宽误差，用严格容差是合适的。</para>
+        /// </summary>
+        public const double Epsilon = 1e-9;
 
         private static readonly ConditionParamDef[] Schema =
         {
             new ConditionParamDef("id",     ConditionParamType.String, false, "数值ID"),
-            new ConditionParamDef("op",     ConditionParamType.Int,    false, "比较", null, OpLabels),
+            ConditionCompare.CreateOpParam(),
             new ConditionParamDef("amount", ConditionParamType.Float,  false, "数值"),
         };
 
@@ -47,17 +65,8 @@ namespace Ale.Condition
 
             double value  = src.GetNumber(id);
             double amount = parameters.Find("amount")?.GetFloat() ?? 0d;
-            int    op     = (int)(parameters.Find("op")?.GetInt() ?? GreaterOrEqual);
 
-            switch (op)
-            {
-                case Greater:        return value >  amount;
-                case GreaterOrEqual: return value >= amount;
-                case Equal:          return Math.Abs(value - amount) < 1e-9;
-                case LessOrEqual:    return value <= amount;
-                case Less:           return value <  amount;
-                default:             return value >= amount;
-            }
+            return ConditionCompare.Compare(value, amount, ConditionCompare.ReadOp(parameters), Epsilon);
         }
     }
 }
