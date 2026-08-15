@@ -57,7 +57,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **オブジェクトプール** | 汎用の GameObject / プレハブプール（`Spawn`/`Despawn` + `IPoolable` コールバック、プリロード / 容量リサイクル / 遅延デスポーン / シーン跨ぎ）と、純 C# 参照型プール `ToolkitClassPool<T>`（GC 削減）。Lean.Pool 等のサードパーティ製プールを置き換え可能 |
 | **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` の alpha フェード、`TintGraphic` の全色トランジション、`MoveTransform` / `RotateTransform` / `ScaleTransform`、`DelayedCall`、ターゲット単位の `Kill(target)`。中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
 | **属性モディファイア** | GAS 風のモディファイア評価：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース明細）。「基礎値 + 一連の加算 → 現在値」という数値集約はすべてこれを使用します |
-| **条件システム（Condition System）** | データ駆動の二段 AND/OR 条件：`ConditionExpression` フィールドを宣言するだけで Inspector 内にインラインで設定；上位が実装する `[ConditionEvaluator]` 判定器が自動的に発見されます。エンジン非依存の Core はサーバーサイドでも動作可能 |
+| **条件システム（Condition System）** | データ駆動の二段 AND/OR 条件：`ConditionExpression` フィールドを宣言するだけで Inspector 内にインラインで設定；上位が実装する `[ConditionEvaluator]` 判定器が自動的に発見され、既製の比較記号キットと判定コンテキストをそのまま再利用できます。エンジン非依存の Core はサーバーサイドでも動作可能 |
 | **効果システム（Effect System）** | 条件システムの書き込み側ミラー：データ駆動の離散トリガー式ミューテーション（フェーズグループ + 各項目にオプションの条件ゲート）；上位が実装する `[EffectExecutor]` 実行器が自動的に発見されます。エンジン非依存の Core |
 | **エディター基盤** | 三列レイアウトのタブ基底クラス、データベースウィンドウのシェル基底クラス、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底クラス。いずれもデータベース型についてジェネリック化されています |
 | **エディター多言語** | 中文 / English / 日本語 の三言語サービス。中国語原文をキーとし、訳文が無い場合は自動的にフォールバックします |
@@ -65,7 +65,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ / ウィザードのデフォルト・ローカライズフォント + 汎用ツール入口 +「起動時に自動表示」トグル。ウィザードフォントなどのプロジェクト単位の設定は `ProjectSettings/AleToolkitSettings.asset` に保存（リポジトリと共にコミット、アセット参照は GUID で保持）、言語 / 自動表示はユーザーごと（EditorPrefs）。マクロはウェルカムウィンドウから明示的に切り替えるのみで、パッケージが PlayerSettings を自動で書き換えることはありません |
 | **汎用ツールウィンドウ** | 任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理：Addressable 移行（Object ↔ GUID）とローカライズキー生成。`Tools > Ale Toolkit` 配下、上位プラグインで再利用可能 |
 
-> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。**1.6.0 から、中央 Tween に `SpriteRenderer` フェード、`Graphic` の全色トランジション、`Transform` の移動 / 回転 / スケール、遅延コールバック、ターゲット単位の Kill を追加し、DOTween の一般的な単一 tween 用途をひと通り置き換え可能に（Sequence は引き続き非対応）**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
+> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。**1.6.0 から、中央 Tween に `SpriteRenderer` フェード、`Graphic` の全色トランジション、`Transform` の移動 / 回転 / スケール、遅延コールバック、ターゲット単位の Kill を追加し、DOTween の一般的な単一 tween 用途をひと通り置き換え可能に（Sequence は引き続き非対応）**。**1.8.0 から、条件システムが「ホストごとに書き直していた」3 つの設備を Core に取り込みます —— 比較記号キット `ConditionCompare`、汎用判定コンテキスト `ConditionContext` / `SubjectConditionContext`、冪等な `ConditionRegistry.EnsureAutoRegistered()`**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
 
 ---
 
@@ -79,7 +79,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | `Ale.Toolkit.Addressables.Runtime` | Addressables の読み込みとハンドル管理 | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | エディター基盤、データベースウィンドウのシェル基底クラス、属性ドロワー、多言語サービス、マクロ切り替え | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables のエディターツール | `ATK_ADDRESSABLE` |
-| `Ale.Condition.Core` | 条件システム · エンジン非依存モデル / 判定エンジン / 登録とリフレクション発見 / JSON（`noEngineReferences`、サーバーサイド可） | Newtonsoft を参照 |
+| `Ale.Condition.Core` | 条件システム · エンジン非依存モデル / 判定エンジン / 登録とリフレクション発見 / JSON、およびホストが再利用できる比較記号キット `ConditionCompare` と汎用判定コンテキスト `ConditionContext`（`noEngineReferences`、サーバーサイド可） | Newtonsoft を参照 |
 | `Ale.Condition.Runtime` | 条件システム · Unity ブリッジ（`ConditionAsset` + 起動時自動登録） | — |
 | `Ale.Condition.Editor` | 条件システム · インラインドロワー / カタログ / ウェルカムウィンドウ | — |
 | `Ale.Effect.Core` | 効果システム · エンジン非依存モデル / 実行ランナー / 登録とリフレクション発見 / JSON（`noEngineReferences`） | `Ale.Condition.Core` + Newtonsoft を参照 |
@@ -254,24 +254,32 @@ public sealed class StatAtLeastEvaluator : IConditionEvaluator
 }
 ```
 
-`ParamSchema` がエディターの動的パラメータ領域を駆動します；固定的な選択肢（比較記号など）は `ConditionParamDef` の `choices`（ドロップダウンとして描画、インデックスを保存）を使用。パラメータは 5 型：`String` / `Int` / `Float` / `Bool` / `Enum`（+ `isArray`）。
+`ParamSchema` がエディターの動的パラメータ領域を駆動します；パラメータは 5 型：`String` / `Int` / `Float` / `Bool` / `Enum`（+ `isArray`）。固定的な選択肢は `ConditionParamDef` の `choices`（ドロップダウンとして描画、インデックスを保存）を使用 —— 比較記号は**既製の `ConditionCompare` をそのまま使えます**。ラベル配列を自前で宣言する必要はありません：
+
+```csharp
+ConditionCompare.CreateOpParam()                       // choices = ConditionCompare.Labels を持つ "op" パラメータと等価
+int  op = ConditionCompare.ReadOp(ps);                 // 既定は「以上」
+bool ok = ConditionCompare.Compare(cur, need, op);     // 整数は厳密比較；double オーバーロードは epsilon 指定可（既定 1e-6）
+```
+
+> ⚠️ `ConditionCompare.Labels` の**文言と順序は通信フォーマット**です：インデックスは条件アセットにシリアライズされ、ラベル自体も文字列として利用側のスクリプトに入ることがあります（VN Framework 経由の会話条件など）。**ローカライズしないこと、並べ替えないこと。**
 
 **③ コンテキストを提供 + 評価（ランタイム）**
 
 ```csharp
-class MyCtx : IConditionContext {              // 主体 + サービスパック（ホストが実装）
-    public object Subject { get; set; }
-    private readonly object[] _svc;
-    public MyCtx(params object[] svc) { _svc = svc; }
-    public T GetService<T>() where T : class { foreach (var s in _svc) if (s is T t) return t; return null; }
-}
+var ctx = new ConditionContext();                           // 汎用コンテキスト：型でドメインサービスを登録
+ctx.RegisterService<IMyStatSource>(myStatSource);
 
-var ctx = new MyCtx(myStatSource);
 bool ok = expr.Evaluate(ctx).Passed;                        // 簡便メソッド
 ConditionResult r = ConditionEngine.Evaluate(expr, ctx);    // またはエンジンを直接呼ぶ；r.FailedKeys は未達成のキー一覧
+
+// 「このオブジェクトは条件を満たすか」——共有コンテキストの Subject を触らずにラップする
+bool okForHero = expr.Evaluate(new SubjectConditionContext(ctx, hero)).Passed;
 ```
 
-ランタイムの `ConditionRuntime` は `[RuntimeInitializeOnLoadMethod]` で `ConditionRegistry.Default` をリフレクションで充填し、欠落キーの警告を接続します；サーバーサイド / テストでは手動で `new ConditionRegistry()` + `AutoRegisterFromAssemblies()`、あるいは 1 つずつ `Register` できます。
+`ConditionContext.GetService<T>()` は `typeof(T)` で**厳密に**引きます（インターフェースで登録したものはインターフェースでしか取得できません）。また意図的に `virtual` にしていません —— 評価のホットパス上にあるためです。独自の解決戦略（「カスタム優先、組み込みにフォールバック」など）が必要なホストは、継承ではなく **`IConditionContext` を直接実装**してください。toolkit はグローバルな既定インスタンスも**意図的に提供しません**：「どれが既定のコンテキストか」はホスト側の方針なので、各ホストが静的インスタンスを自前で保持します。
+
+ランタイムの `ConditionRuntime` は `[RuntimeInitializeOnLoadMethod]` で `ConditionRegistry.Default` をリフレクションで充填し、欠落キーの警告を接続します；サーバーサイド / テストでは手動で `new ConditionRegistry()` + `AutoRegisterFromAssemblies()`、あるいは 1 つずつ `Register` できます。**エディターツールが再生モード外で評価する**場合はレジストリが空です（`ConditionRuntime` がまだ走っていないため）。冪等な `ConditionRegistry.Default.EnsureAutoRegistered()` で一度だけ補ってください。
 
 **組み込み判定器**：`Condition.AlwaysTrue`、`Condition.HasFlag`（`IConditionFlagSource`）、`Condition.NumberCompare`（`IConditionNumberSource`）。**JSON**：`ConditionJson.ToJson(expr)` / `FromJson(str)`（Newtonsoft；モデルは純 POCO でシリアライザ差し替え可能、セーブデータへの格納も可）。**総覧**：`Tools > Ale Toolkit > Condition System > Welcome`。
 

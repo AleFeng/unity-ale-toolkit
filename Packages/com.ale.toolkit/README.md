@@ -57,7 +57,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **对象池** | 通用 GameObject 预制体池（`Spawn`/`Despawn` + `IPoolable` 回调、预热 / 容量回收 / 延迟归还 / 跨场景）与纯 C# 引用类型池 `ToolkitClassPool<T>`（降 GC），可替代 Lean.Pool 一类第三方池 |
 | **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` 淡入淡出，`TintGraphic` 整色过渡，`MoveTransform` / `RotateTransform` / `ScaleTransform` 位移·旋转·缩放，`DelayedCall` 延时回调，`Kill(target)` 按目标打断；返回值类型可打断句柄；缓动最小集 `EToolkitEase` |
 | **属性修饰器** | GAS 式修饰器求值：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。任何「基础值 + 一叠加成 → 当前值」的数值汇流都用它 |
-| **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现。引擎无关 Core 可上服务端 |
+| **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现，并可直接复用现成的比较符范式与判定上下文。引擎无关 Core 可上服务端 |
 | **效果系统（Effect System）** | 条件系统的写侧镜像：数据驱动的离散触发式突变（阶段组 + 每项可选条件门控）；上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core |
 | **编辑器框架** | 三列布局页签基类、数据库窗口外壳基类、主列表面板、实体列表面板、工具窗口基类，均对数据库类型泛型化 |
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
@@ -65,7 +65,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；宏只由欢迎窗口显式开关，插件不会自动改写 PlayerSettings |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
-> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 
@@ -79,7 +79,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | `Ale.Toolkit.Addressables.Runtime` | Addressables 资源加载与句柄管理 | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | 编辑器框架、数据库窗口外壳基类、属性绘制器、多语言服务、宏开关 | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables 编辑器工具 | `ATK_ADDRESSABLE` |
-| `Ale.Condition.Core` | 条件系统 · 引擎无关模型 / 判定引擎 / 注册与反射发现 / JSON（`noEngineReferences`，可上服务端） | 引用 Newtonsoft |
+| `Ale.Condition.Core` | 条件系统 · 引擎无关模型 / 判定引擎 / 注册与反射发现 / JSON，以及供宿主复用的比较符范式 `ConditionCompare` 与通用判定上下文 `ConditionContext`（`noEngineReferences`，可上服务端） | 引用 Newtonsoft |
 | `Ale.Condition.Runtime` | 条件系统 · Unity 桥（`ConditionAsset` + 启动自动注册） | — |
 | `Ale.Condition.Editor` | 条件系统 · 内联绘制器 / 目录 / 欢迎窗口 | — |
 | `Ale.Effect.Core` | 效果系统 · 引擎无关模型 / 执行运行器 / 注册与反射发现 / JSON（`noEngineReferences`） | 引用 `Ale.Condition.Core` + Newtonsoft |
@@ -255,24 +255,32 @@ public sealed class StatAtLeastEvaluator : IConditionEvaluator
 }
 ```
 
-`ParamSchema` 驱动编辑器动态参数区；固定选项（如比较符）用 `ConditionParamDef` 的 `choices`（渲染为下拉、存索引）。参数 5 型：`String` / `Int` / `Float` / `Bool` / `Enum`（+ `isArray`）。
+`ParamSchema` 驱动编辑器动态参数区；参数 5 型：`String` / `Int` / `Float` / `Bool` / `Enum`（+ `isArray`）。固定选项用 `ConditionParamDef` 的 `choices`（渲染为下拉、存索引）——**比较符直接用现成的 `ConditionCompare`**，不必自己声明一份标签数组：
+
+```csharp
+ConditionCompare.CreateOpParam()                       // 等价于带 choices = ConditionCompare.Labels 的 "op" 参数
+int  op = ConditionCompare.ReadOp(ps);                 // 缺省「大于等于」
+bool ok = ConditionCompare.Compare(cur, need, op);     // 整数精确；浮点重载可传 epsilon（默认 1e-6）
+```
+
+> ⚠️ `ConditionCompare.Labels` 的**文本与顺序是通信格式**：索引会序列化进条件资产，标签本身还可能以字符串形式进入使用方的脚本（如经 VN Framework 桥接后的对话条件）。**不要本地化、不要调序。**
 
 **③ 提供上下文 + 求值（运行时）**
 
 ```csharp
-class MyCtx : IConditionContext {              // 主体 + 服务包（宿主实现）
-    public object Subject { get; set; }
-    private readonly object[] _svc;
-    public MyCtx(params object[] svc) { _svc = svc; }
-    public T GetService<T>() where T : class { foreach (var s in _svc) if (s is T t) return t; return null; }
-}
+var ctx = new ConditionContext();                           // 通用上下文：按类型登记领域服务
+ctx.RegisterService<IMyStatSource>(myStatSource);
 
-var ctx = new MyCtx(myStatSource);
 bool ok = expr.Evaluate(ctx).Passed;                        // 便捷法
 ConditionResult r = ConditionEngine.Evaluate(expr, ctx);    // 或直接调引擎；r.FailedKeys 列未满足键
+
+// 「判定这个对象是否满足条件」——包一层，不改动共享上下文的 Subject
+bool okForHero = expr.Evaluate(new SubjectConditionContext(ctx, hero)).Passed;
 ```
 
-运行时 `ConditionRuntime` 于 `[RuntimeInitializeOnLoadMethod]` 把 `ConditionRegistry.Default` 反射填满并接缺键告警；服务端 / 测试可手动 `new ConditionRegistry()` + `AutoRegisterFromAssemblies()` 或逐个 `Register`。
+`ConditionContext.GetService<T>()` 按 `typeof(T)` **精确**查表（按接口登记的只能按接口取用），且刻意不做 `virtual`——它在求值热路径上。需要自定义解析策略（如「自定义优先、内置回落」分层）的宿主**直接实现 `IConditionContext` 即可**，不必继承。toolkit 也**刻意不提供全局默认实例**：「哪个是默认上下文」是宿主的策略，各宿主自行持有一个静态实例即可。
+
+运行时 `ConditionRuntime` 于 `[RuntimeInitializeOnLoadMethod]` 把 `ConditionRegistry.Default` 反射填满并接缺键告警；服务端 / 测试可手动 `new ConditionRegistry()` + `AutoRegisterFromAssemblies()` 或逐个 `Register`。**编辑器工具在非播放态求值**时注册表是空的（那时 `ConditionRuntime` 还没跑），用幂等的 `ConditionRegistry.Default.EnsureAutoRegistered()` 兜一次即可。
 
 **内置判定器**：`Condition.AlwaysTrue`、`Condition.HasFlag`（`IConditionFlagSource`）、`Condition.NumberCompare`（`IConditionNumberSource`）。**JSON**：`ConditionJson.ToJson(expr)` / `FromJson(str)`（Newtonsoft；模型纯 POCO，可换序列化器、可入库存档）。**总览**：`Tools > Ale Toolkit > Condition System > Welcome`。
 

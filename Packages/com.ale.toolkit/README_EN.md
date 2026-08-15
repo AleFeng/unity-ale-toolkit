@@ -57,7 +57,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Object pool** | A general-purpose GameObject/prefab pool (`Spawn`/`Despawn` + `IPoolable` callbacks; preload / capacity-recycle / delayed despawn / cross-scene) plus a plain-C# reference-type pool `ToolkitClassPool<T>` (lower GC) — a drop-in replacement for third-party pools like Lean.Pool |
 | **Tween** | A lightweight central tween (DOTween-style single-Update polling, pooled jobs, near-zero GC): `FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` for alpha, `TintGraphic` for full colour, `MoveTransform` / `RotateTransform` / `ScaleTransform`, `DelayedCall`, and `Kill(target)` to kill by target; returns a killable value-type handle; minimal easing set `EToolkitEase` |
 | **Attribute modifier** | GAS-style modifier evaluation: `ModifierDefinition` + `ModifierStackEvaluator` settle by group (Add→PercentAdd→Multiply→Override + clamp + source breakdown). Use it for any "base value + a stack of bonuses → current value" numeric convergence |
-| **Condition System** | Data-driven two-level AND/OR conditions: declare a `ConditionExpression` field to configure it inline in the Inspector; upper layers implement `[ConditionEvaluator]` evaluators that are auto-discovered. The engine-agnostic Core is server-side ready |
+| **Condition System** | Data-driven two-level AND/OR conditions: declare a `ConditionExpression` field to configure it inline in the Inspector; upper layers implement `[ConditionEvaluator]` evaluators that are auto-discovered, and can reuse the ready-made comparison-operator kit and evaluation context. The engine-agnostic Core is server-side ready |
 | **Effect System** | The write-side mirror of the Condition System: data-driven discrete trigger-style mutations (phase groups + an optional per-item condition gate); upper layers implement `[EffectExecutor]` executors that are auto-discovered. Engine-agnostic Core |
 | **Editor framework** | Three-column tab base class, database window shell base class, master list panel, entity list panel and tool window base — all generic over the database type |
 | **Editor localization** | 中文 / English / 日本語 service, keyed by the Chinese source string, falling back automatically when a translation is missing |
@@ -65,7 +65,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | **Editor entry & global settings** | The Ale Toolkit Welcome Window (`Tools > Ale Toolkit > Welcome`): editor UI language / enum translation / the three optional feature macros / wizard default & localized fonts + general-tool entries + an "auto-show on startup" toggle; project-level settings such as the wizard fonts are saved to `ProjectSettings/AleToolkitSettings.asset` (committed with the repo, asset references stored by GUID), while language / auto-show are per-user (EditorPrefs); macros are only ever toggled explicitly from the Welcome window — the package never rewrites PlayerSettings on its own |
 | **General tool windows** | Walk every `AttributeValue` of any data asset (`ScriptableObject`) for batch processing: Addressable migration (Object ↔ GUID) and localization key generation, under `Tools > Ale Toolkit`, reusable by upper-layer plugins |
 
-> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**; **since 1.5.1 it adds generic cell fade-in/out for the virtual-scroll list (`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`, driven by `UiwVirtualListBase`'s default hooks) plus `ToolkitTween.FadeGraphic`**; **since 1.6.0 the central tween gains `SpriteRenderer` fading, `Graphic` full-colour tinting, `Transform` move / rotate / scale, delayed callbacks and kill-by-target, so it can take over DOTween's common single-tween usage (still no sequences)**. See the [CHANGELOG](CHANGELOG.md) for details.
+> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**; **since 1.5.1 it adds generic cell fade-in/out for the virtual-scroll list (`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`, driven by `UiwVirtualListBase`'s default hooks) plus `ToolkitTween.FadeGraphic`**; **since 1.6.0 the central tween gains `SpriteRenderer` fading, `Graphic` full-colour tinting, `Transform` move / rotate / scale, delayed callbacks and kill-by-target, so it can take over DOTween's common single-tween usage (still no sequences)**; **since 1.8.0 the Condition System moves three "every host writes its own" facilities into Core — the comparison-operator kit `ConditionCompare`, the general-purpose contexts `ConditionContext` / `SubjectConditionContext`, and the idempotent `ConditionRegistry.EnsureAutoRegistered()`**. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 
@@ -79,7 +79,7 @@ Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 | `Ale.Toolkit.Addressables.Runtime` | Addressables loading and handle management | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | Editor framework, database window shell base class, attribute drawers, localization service, macro toggles | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables editor tooling | `ATK_ADDRESSABLE` |
-| `Ale.Condition.Core` | Condition System · engine-agnostic model / evaluation engine / registry & reflection discovery / JSON (`noEngineReferences`, server-side ready) | References Newtonsoft |
+| `Ale.Condition.Core` | Condition System · engine-agnostic model / evaluation engine / registry & reflection discovery / JSON, plus the reusable comparison-operator kit `ConditionCompare` and the general-purpose `ConditionContext` (`noEngineReferences`, server-side ready) | References Newtonsoft |
 | `Ale.Condition.Runtime` | Condition System · Unity bridge (`ConditionAsset` + auto-register on startup) | — |
 | `Ale.Condition.Editor` | Condition System · inline drawer / catalog / Welcome window | — |
 | `Ale.Effect.Core` | Effect System · engine-agnostic model / execution runner / registry & reflection discovery / JSON (`noEngineReferences`) | References `Ale.Condition.Core` + Newtonsoft |
@@ -254,24 +254,32 @@ public sealed class StatAtLeastEvaluator : IConditionEvaluator
 }
 ```
 
-`ParamSchema` drives the editor's dynamic parameter area; fixed options (such as comparison operators) use `ConditionParamDef`'s `choices` (rendered as a dropdown, storing the index). Five parameter types: `String` / `Int` / `Float` / `Bool` / `Enum` (+ `isArray`).
+`ParamSchema` drives the editor's dynamic parameter area; five parameter types: `String` / `Int` / `Float` / `Bool` / `Enum` (+ `isArray`). Fixed options use `ConditionParamDef`'s `choices` (rendered as a dropdown, storing the index) — for comparison operators **just use the ready-made `ConditionCompare`** instead of declaring your own label array:
+
+```csharp
+ConditionCompare.CreateOpParam()                       // equivalent to an "op" param with choices = ConditionCompare.Labels
+int  op = ConditionCompare.ReadOp(ps);                 // defaults to "greater or equal"
+bool ok = ConditionCompare.Compare(cur, need, op);     // exact for integers; the double overload takes an epsilon (default 1e-6)
+```
+
+> ⚠️ The **text and order of `ConditionCompare.Labels` are a wire format**: the index is serialized into condition assets, and the label itself may reach the consumer's scripts as a string (e.g. dialogue conditions bridged through VN Framework). **Do not localize it, do not reorder it.**
 
 **③ Provide context + evaluate (runtime)**
 
 ```csharp
-class MyCtx : IConditionContext {              // subject + service bag (host-implemented)
-    public object Subject { get; set; }
-    private readonly object[] _svc;
-    public MyCtx(params object[] svc) { _svc = svc; }
-    public T GetService<T>() where T : class { foreach (var s in _svc) if (s is T t) return t; return null; }
-}
+var ctx = new ConditionContext();                           // general-purpose context: register domain services by type
+ctx.RegisterService<IMyStatSource>(myStatSource);
 
-var ctx = new MyCtx(myStatSource);
 bool ok = expr.Evaluate(ctx).Passed;                        // convenience method
 ConditionResult r = ConditionEngine.Evaluate(expr, ctx);    // or call the engine directly; r.FailedKeys lists the unmet keys
+
+// "does this object satisfy the condition?" — wrap it, without touching the shared context's Subject
+bool okForHero = expr.Evaluate(new SubjectConditionContext(ctx, hero)).Passed;
 ```
 
-At runtime `ConditionRuntime` fills `ConditionRegistry.Default` via reflection in `[RuntimeInitializeOnLoadMethod]` and wires up missing-key warnings; server-side / tests can manually `new ConditionRegistry()` + `AutoRegisterFromAssemblies()` or `Register` one by one.
+`ConditionContext.GetService<T>()` looks up by **exact** `typeof(T)` (register by interface, retrieve by interface), and is deliberately non-`virtual` — it sits on the evaluation hot path. Hosts needing a custom resolution strategy (e.g. "custom first, built-in fallback") should **implement `IConditionContext` directly** rather than inherit. The toolkit also **deliberately ships no global default instance**: which context is "the default" is a host policy, so each host holds its own static instance.
+
+At runtime `ConditionRuntime` fills `ConditionRegistry.Default` via reflection in `[RuntimeInitializeOnLoadMethod]` and wires up missing-key warnings; server-side / tests can manually `new ConditionRegistry()` + `AutoRegisterFromAssemblies()` or `Register` one by one. **Editor tooling evaluating outside play mode** sees an empty registry (`ConditionRuntime` has not run yet) — call the idempotent `ConditionRegistry.Default.EnsureAutoRegistered()` to cover that.
 
 **Built-in evaluators**: `Condition.AlwaysTrue`, `Condition.HasFlag` (`IConditionFlagSource`), `Condition.NumberCompare` (`IConditionNumberSource`). **JSON**: `ConditionJson.ToJson(expr)` / `FromJson(str)` (Newtonsoft; the model is a plain POCO — swap the serializer, persist to a save/database). **Overview**: `Tools > Ale Toolkit > Condition System > Welcome`.
 

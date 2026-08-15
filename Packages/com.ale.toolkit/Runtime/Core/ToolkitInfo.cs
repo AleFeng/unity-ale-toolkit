@@ -13,6 +13,6 @@ namespace Ale.Toolkit.Runtime
         public const string PackageName = "com.ale.toolkit";
 
         /// <summary>包版本，与 <c>package.json</c> 的 <c>version</c> 保持一致。</summary>
-        public const string Version = "1.7.10";
+        public const string Version = "1.8.0";
     }
 }

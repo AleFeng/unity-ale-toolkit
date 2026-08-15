@@ -6,6 +6,32 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.8.0] - 2026-08-15
+
+**把三样「每个宿主都得自己写一遍」的条件系统设施收进 `Ale.Condition.Core`。** 纯新增，无 API 破坏；内置判定器改用公共实现但行为逐位不变。
+
+### 新增
+
+- **`ConditionCompare`（比较符范式）**：五个索引常量 + `Labels` 下拉标签 + `CreateOpParam()` + `ReadOp()` + 两个 `Compare` 重载。此前比较符只以 `private` 形式存在于 `NumberCompareEvaluator` 内部，**下游想复用够不着，只能各抄一份**——实测已被抄了三份（角色系统、动画模拟器、Fs 游戏框架），且开始漂移：三份的形参顺序各不相同（`(a, op, b)` / `(value, amount, op)`），「等于」的容差也分成了 `1e-6` 与 `1e-9` 两派。
+  - ⚠️ **`Labels` 是通信格式，不是 UI 文案。** 它以字符串形式进入使用方的配置与脚本——经 VN Framework 桥接后，Dialogue System 的对话条件里写的就是 `AleCond_Xxx("大于等于", 3)`，运行时再按标签反查索引；而索引本身又序列化进条件资产。**永远不要本地化它**（跟着编辑器语言变会让已写好的剧本集体失配），**也永远不要调整顺序**（会让已配置的条件集体错位）。这条禁令写在类注释里，并有测试钉住。
+  - **默认容差取 `1e-6` 而非更严的值**：常见来源是 `float` 扩宽成 `double`，`10.1f` 实际是 `10.100000381469727`，与配置里存的 `double 10.1` 相差约 `3.8e-7`。容差比这个小，「等于」在浮点属性上就几乎永远判不成立。需要严格语义的显式传 `epsilon`。
+  - 提供 `Compare(long, long, int)` 精确重载：年月日、等级这类整数比较不必绕道浮点容差。
+- **`ConditionContext` + `SubjectConditionContext`（通用判定上下文）**：按类型登记领域服务，宿主不必再为「把数据源交给判定器」手写一个上下文类——此前 README 的用法示例就是让每个使用者照抄一份 `class MyCtx : IConditionContext`。
+  - **刻意不提供全局默认实例**。「哪个是默认上下文」是宿主的策略，由 toolkit 提供一个全局实例只会和宿主自己的注册表形成两套并列的东西，让人搞不清该往哪注册。
+  - **成员刻意不做 `virtual`**：`GetService<T>()` 在条件求值的热路径上（一次链接评估可能调几十次）。需要自定义解析策略的宿主（例如要按「自定义优先、内置回落」分层的）**直接实现 `IConditionContext` 即可**，本就不必继承。
+  - `GetService<T>()` 按 `typeof(T)` **精确**查表，不做可赋值匹配：按接口登记的只能按接口取用。
+  - `SubjectConditionContext` 用于「判定这个对象是否满足条件」——包一层而不改动共享上下文的 `Subject`，因而多处求值（乃至嵌套求值）之间不会互相踩。
+- **`ConditionRegistry.EnsureAutoRegistered()`**：幂等的自动注册兜底。补的是这样一个缺口——`ConditionRuntime` 只在运行时启动阶段填表，而**编辑器工具在非播放态求值时注册表是空的**（资产预览、批量校验等），于是每个宿主都得自己兜一次。
+  - ⚠️ `Clear()` 一并复位「已扫描」标志，否则清空之后再 `Ensure` 会静默变成空操作、注册表永久为空。这条有测试钉住。
+
+### 变更
+
+- **`NumberCompareEvaluator` 改用 `ConditionCompare`**，行为逐位不变：
+  - 五个 `public const int` **保留为转发别名**（`Greater = ConditionCompare.Greater`），既有引用与测试零破坏；
+  - 新增 `public const double Epsilon = 1e-9` 并在比较时显式传入。**刻意不跟随 `ConditionCompare.DefaultEpsilon`（`1e-6`）**——本判定器自 1.4.0 起就是 `1e-9`，跟随默认值等于悄悄放宽既有行为。数值来自宿主的 `IConditionNumberSource`，本就是 `double`，不像属性系统那样普遍存在 float 扩宽误差，严格容差是合适的。
+- **`ConditionEngineTests` 新增 17 个用例**（原有 17 个一字未动）：比较符的整数 / 浮点重载与容差边界、标签顺序与转发常量的冻结断言、通用上下文与主体包装、`EnsureAutoRegistered` 的幂等性与「`Clear()` 后可重扫」。
+  - 其中 `BuiltIn_NumberCompare_EqualUsesStrictEpsilon` 用 `10.1f` 扩宽值对 `10.1`，断言在本判定器下**不**相等、同时反证同一组数在默认容差下**相等**——谁哪天把 `Epsilon` 改掉或让它跟随默认值，测试立刻红。
+
 ## [1.7.10] - 2026-08-14
 
 **修掉一个会让 Addressable 地址「一次失败、永久失效」的缺陷。** 纯修复，无 API 变更。
