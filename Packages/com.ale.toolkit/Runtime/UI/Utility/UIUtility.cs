@@ -160,6 +160,31 @@ namespace Ale.Toolkit.Runtime.UI
         //
         // 与上方「悬停弹窗定位」的分工：那边的输入是屏幕像素（光标），直接写 rt.position 并夹取回屏内；
         // 这边的输入是世界坐标，返回值交由调用方赋给 localPosition，不做夹取。
+        //
+        // 两个 PositionAt* 的差别（名字像，语义不同，别混）：
+        //   PositionAtCursor    输入屏幕像素 → 写 rt.position（世界），并夹取回屏内
+        //   PositionAtWorldPos  输入世界坐标 → 写 rt.localPosition（以父级为基准），不夹取
+
+        /// <summary>
+        /// 把 <paramref name="rt"/> 摆到世界坐标 <paramref name="worldPos"/> 在 UI 上对应的位置。
+        ///
+        /// <para><b>基准取父级而非 Canvas</b>：结果写的是 <c>localPosition</c>，而它的原点就是父级的轴心。
+        /// 两者只在「父级恰好与 Canvas 原点重合」时等价——中间层一旦带了偏移或换了锚点，
+        /// 以 Canvas 为基准算出的值会整体错开那段偏移，且错法酷似「相机没对上」，极难查。
+        /// 直接用本方法就不存在「基准与赋值目标不一致」这种配错法。</para>
+        ///
+        /// <para>父级不是 RectTransform（或 <paramref name="rt"/> 无父级）时退回以 Canvas 为基准。</para>
+        /// </summary>
+        /// <param name="rt">要定位的矩形。</param>
+        /// <param name="worldPos">世界空间位置。</param>
+        /// <param name="canvas">目标 Canvas。</param>
+        /// <param name="worldCamera">把世界坐标投影到屏幕所用的相机，见 <see cref="ResolveWorldCamera"/>。</param>
+        public static void PositionAtWorldPos(RectTransform rt, Vector3 worldPos, Canvas canvas, Camera worldCamera = null)
+        {
+            if (!rt) return;
+
+            rt.localPosition = WorldPosToUILocalPos(worldPos, canvas, rt.parent as RectTransform, worldCamera);
+        }
 
         /// <summary>
         /// 世界坐标转为 UI 画布局部坐标，附加一段<b>世界空间</b>偏移。
@@ -170,10 +195,12 @@ namespace Ale.Toolkit.Runtime.UI
         /// <param name="offsetWorldSpace">世界空间位置偏移。</param>
         /// <param name="canvas">目标 Canvas。</param>
         /// <param name="rectTransform">换算所依据的矩形，缺省用 <paramref name="canvas"/> 自身的 RectTransform。</param>
+        /// <param name="worldCamera">把世界坐标投影到屏幕所用的相机，见 <see cref="ResolveWorldCamera"/>。</param>
         /// <returns>局部空间位置，可直接赋给 <c>rectTransform.localPosition</c>。</returns>
         public static Vector3 WorldPosToUILocalPos(
-            Vector3 worldPos, Vector3 offsetWorldSpace, Canvas canvas, RectTransform rectTransform = null)
-            => WorldPosToUILocalPos(worldPos + offsetWorldSpace, canvas, rectTransform);
+            Vector3 worldPos, Vector3 offsetWorldSpace, Canvas canvas,
+            RectTransform rectTransform = null, Camera worldCamera = null)
+            => WorldPosToUILocalPos(worldPos + offsetWorldSpace, canvas, rectTransform, worldCamera);
 
         /// <summary>
         /// 世界坐标转为 UI 画布局部坐标。
@@ -183,20 +210,18 @@ namespace Ale.Toolkit.Runtime.UI
         /// <param name="worldPos">世界空间位置。</param>
         /// <param name="canvas">目标 Canvas。</param>
         /// <param name="rectTransform">换算所依据的矩形，缺省用 <paramref name="canvas"/> 自身的 RectTransform。</param>
+        /// <param name="worldCamera">把世界坐标投影到屏幕所用的相机，见 <see cref="ResolveWorldCamera"/>。</param>
         /// <returns>局部空间位置，可直接赋给 <c>rectTransform.localPosition</c>。</returns>
         public static Vector3 WorldPosToUILocalPos(
-            Vector3 worldPos, Canvas canvas, RectTransform rectTransform = null)
+            Vector3 worldPos, Canvas canvas, RectTransform rectTransform = null, Camera worldCamera = null)
         {
             if (!canvas) return worldPos;
 
-            // WorldSpace Canvas：UI 就在世界空间里，无需换算。
+            // WorldSpace Canvas：UI 就在世界空间里，无需换算（也就用不到相机）。
             if (canvas.renderMode == RenderMode.WorldSpace)
                 return worldPos;
 
-            // 投影游戏世界坐标必须用游戏主相机：canvas.worldCamera 是 UI 专用渲染相机，
-            // 两者分离时拿它做投影会得到错误结果。canvas.worldCamera 只在 ScreenPosToUILocalPos
-            // 内部用于 ScreenPointToLocalPointInRectangle。
-            Camera camera = Camera.main ? Camera.main : canvas.worldCamera;
+            Camera camera = ResolveWorldCamera(worldCamera, canvas);
 
             Vector3 screenPos;
             if (camera)
@@ -205,12 +230,57 @@ namespace Ale.Toolkit.Runtime.UI
             }
             else
             {
+                WarnNoWorldCameraOnce(canvas);
                 // 无相机可用：退回无相机投影（等价于 Overlay 语义，世界坐标即屏幕像素）。
                 Vector2 sp = RectTransformUtility.WorldToScreenPoint(null, worldPos);
                 screenPos = new Vector3(sp.x, sp.y, 0f);
             }
 
             return ScreenPosToUILocalPos(screenPos, canvas, rectTransform);
+        }
+
+        /// <summary>
+        /// 解析「把世界坐标投影到屏幕」所用的相机：显式传入的优先，其次 <see cref="Camera.main"/>，
+        /// 最后才兜底到 <c>canvas.worldCamera</c>。
+        ///
+        /// <para><b>务必显式传入</b>：<c>Camera.main</c> 依赖「场景里有且仅有一台打了 MainCamera 标签的
+        /// 相机」这条隐含约定——标签漏打时它直接是 <c>null</c>，分屏 / 多相机 / RenderTexture 下则取错那台。
+        /// 调用方通常明确知道是哪台相机在渲染目标物体，交进来即可，也就不必再依赖场景标签。</para>
+        ///
+        /// <para><c>canvas.worldCamera</c> 排在最后且仅作兜底：它是 <b>UI 的</b>渲染相机，与渲染游戏世界的
+        /// 那台分离时拿它做世界投影会得到错误结果；Overlay 模式下它按定义恒为 <c>null</c>。</para>
+        /// </summary>
+        public static Camera ResolveWorldCamera(Camera worldCamera, Canvas canvas)
+        {
+            if (worldCamera) return worldCamera;
+            if (Camera.main) return Camera.main;
+            return canvas ? canvas.worldCamera : null;
+        }
+
+        // 已就「取不到世界相机」报过警的 Canvas 实例 ID。
+        private static readonly HashSet<int> NoWorldCameraWarned = new HashSet<int>();
+
+        /// <summary>
+        /// 就某个 Canvas 上「三个相机来源全空」告警一次。
+        ///
+        /// <para><b>为什么值得单独报</b>：此时换算退化成「世界坐标的 XY 直接当屏幕像素」——2D 工程里世界坐标
+        /// 通常是个位数，于是所有挂件都塌到屏幕左下角那一小撮，彼此只差不到一个像素。这是纯粹的配置事故
+        /// （相机没打 MainCamera 标签、调用方也没把相机交进来），但退化本身悄无声息，症状又酷似
+        /// 「UI 预制体的锚点 / 轴心配错」，不报出来只会往错的方向查。</para>
+        ///
+        /// <para><b>必须去重</b>：跟随物体的挂件是每帧定位的，不去重会刷屏。
+        /// 去重表随程序域存活，域重载（改代码、进退播放模式）后重新计数。</para>
+        /// </summary>
+        private static void WarnNoWorldCameraOnce(Canvas canvas)
+        {
+            if (!canvas || !NoWorldCameraWarned.Add(canvas.GetInstanceID())) return;
+
+            Debug.LogWarning(
+                $"[Toolkit.UI] Canvas '{canvas.name}' 上做世界坐标 → UI 坐标换算时取不到相机：" +
+                $"调用方未传入、场景中没有 MainCamera 标签的相机、Canvas.worldCamera 也为空" +
+                $"（Overlay 模式下它恒为空）。本次换算已退化为「世界坐标当屏幕像素」，" +
+                $"UI 会整体塌向屏幕左下角。请把渲染该世界物体的相机传给换算方法，" +
+                $"或给场景相机打上 MainCamera 标签。（同一 Canvas 只报一次）", canvas);
         }
 
         /// <summary>
