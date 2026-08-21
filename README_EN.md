@@ -38,13 +38,13 @@ Unity's Package Manager **does not support git-URL entries in `package.json` `de
 **Step 1 — install the Toolkit first:**
 
 ```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.0
+https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit
 ```
 
 **Step 2 — then install the plugin that depends on it**, e.g. the inventory system:
 
 ```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.10.0
+https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory
 ```
 
 > If you install in the wrong order or forget this package, Unity reports compile errors like `Ale.Toolkit.* not found`. Just add this package and wait for the recompile — you do not need to reinstall the other plugin.
