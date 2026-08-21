@@ -10,7 +10,6 @@
 
 ## 目录
 
-- [安装（请先读这一段）](#-安装请先读这一段)
 - [包含的模块](#包含的模块)
 - [程序集](#程序集)
 - [用法与主要 API](#用法与主要-api)
@@ -18,32 +17,6 @@
   - [属性修饰器](#属性修饰器) · [条件系统 · Condition System](#条件系统--condition-system) · [效果系统 · Effect System](#效果系统--effect-system)
   - [编辑器框架](#编辑器框架) · [编辑器多语言](#编辑器多语言) · [可选依赖支持层](#可选依赖支持层) · [编辑器入口与全局设置](#编辑器入口与全局设置) · [通用工具窗口](#通用工具窗口)
 - [许可](#许可)
-
----
-
-## ⚠️ 安装（请先读这一段）
-
-**`com.ale.toolkit` 必须先于依赖它的插件安装。**
-
-Unity 的 Package Manager **不支持在 `package.json` 的 `dependencies` 里写 git URL**，因此依赖本包的插件无法自动把它拉下来。你需要手动安装两次，且**顺序不能颠倒**：
-
-`Window > Package Manager` → 左上角 `+` → `Install package from git URL...`
-
-**第一步 —— 先装 Toolkit：**
-
-```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.1
-```
-
-**第二步 —— 再装依赖它的插件**，例如库存系统：
-
-```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.11.1
-```
-
-> 若顺序颠倒或漏装本包，Unity 会报 `找不到 Ale.Toolkit.*` 一类的编译错误。此时补装本包并等待重新编译即可，无需重装另一个插件。
-
-最低支持 **Unity 2022.3**（基于 Unity 6000.3 开发与维护）。
 
 ---
 

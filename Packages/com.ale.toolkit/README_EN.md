@@ -10,7 +10,6 @@ A **general-purpose foundation library** for Unity plugin development. It carrie
 
 ## Table of Contents
 
-- [Installation (read this first)](#-installation-read-this-first)
 - [Modules](#modules)
 - [Assemblies](#assemblies)
 - [Usage & Main APIs](#usage--main-apis)
@@ -18,32 +17,6 @@ A **general-purpose foundation library** for Unity plugin development. It carrie
   - [Attribute modifier](#attribute-modifier) · [Condition System](#condition-system) · [Effect System](#effect-system)
   - [Editor framework](#editor-framework) · [Editor localization](#editor-localization) · [Optional dependency support](#optional-dependency-support) · [Editor entry & global settings](#editor-entry--global-settings) · [General tool windows](#general-tool-windows)
 - [License](#license)
-
----
-
-## ⚠️ Installation (read this first)
-
-**`com.ale.toolkit` must be installed before any plugin that depends on it.**
-
-Unity's Package Manager **does not support git URLs in the `dependencies` field of `package.json`**, so a dependent plugin cannot pull this package automatically. You must install both manually, **in this order**:
-
-`Window > Package Manager` → `+` in the top-left → `Install package from git URL...`
-
-**Step 1 — install Toolkit first:**
-
-```
-https://github.com/AleFeng/unity-ale-toolkit.git?path=/Packages/com.ale.toolkit#1.5.1
-```
-
-**Step 2 — then install the dependent plugin**, for example the inventory system:
-
-```
-https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale.inventory#1.11.1
-```
-
-> If the order is reversed or this package is missing, Unity reports compile errors such as `Ale.Toolkit.* not found`. Just install this package and wait for the recompile — there is no need to reinstall the other plugin.
-
-Requires **Unity 2022.3** or newer (developed and maintained on Unity 6000.3).
 
 ---
 
