@@ -5,6 +5,8 @@
         "Ale.Toolkit.Runtime",
         "Ale.Condition.Core",
         "Ale.Effect.Core",
+        "Ale.GameplayTags.Core",
+        "Ale.GameplayTags.Condition",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

@@ -1,0 +1,17 @@
+{
+    "name": "Ale.GameplayTags.Condition",
+    "rootNamespace": "Ale.GameplayTags",
+    "references": [
+        "Ale.Condition.Core",
+        "Ale.GameplayTags.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
