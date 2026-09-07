@@ -14,7 +14,7 @@ Unity プラグイン開発向けの**汎用基盤ライブラリ**です。特�
 - [アセンブリ](#アセンブリ)
 - [使い方と主要 API](#使い方と主要-api)
   - [属性システム](#属性システム) · [ソート](#ソート) · [UI](#ui) · [オブジェクトプール](#オブジェクトプール) · [Tween（中央イージング）](#tween中央イージング)
-  - [属性モディファイア](#属性モディファイア) · [条件システム · Condition System](#条件システム--condition-system) · [効果システム · Effect System](#効果システム--effect-system)
+  - [属性モディファイア](#属性モディファイア) · [タグシステム · GameplayTag System](#タグシステム--gameplaytag-system) · [条件システム · Condition System](#条件システム--condition-system) · [効果システム · Effect System](#効果システム--effect-system)
   - [エディター基盤](#エディター基盤) · [エディター多言語](#エディター多言語) · [オプション依存のサポート層](#オプション依存のサポート層) · [エディタ入口とグローバル設定](#エディタ入口とグローバル設定) · [汎用ツールウィンドウ](#汎用ツールウィンドウ)
 - [ライセンス](#ライセンス)
 
@@ -29,16 +29,17 @@ Unity プラグイン開発向けの**汎用基盤ライブラリ**です。特�
 | **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画；セルの割り当て / 回収時のフェードイン・アウトを `UiwListFadeCell` + エンジン既定フックで汎用駆動）、タブバー、フィルターバー、ツールチップ基底クラス、ウィジェットプール |
 | **オブジェクトプール** | 汎用の GameObject / プレハブプール（`Spawn`/`Despawn` + `IPoolable` コールバック、プリロード / 容量リサイクル / 遅延デスポーン / シーン跨ぎ）と、純 C# 参照型プール `ToolkitClassPool<T>`（GC 削減）。Lean.Pool 等のサードパーティ製プールを置き換え可能 |
 | **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` の alpha フェード、`TintGraphic` の全色トランジション、`MoveTransform` / `RotateTransform` / `ScaleTransform`、`DelayedCall`、ターゲット単位の `Kill(target)`。中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
-| **属性モディファイア** | GAS 風のモディファイア評価：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース明細）。「基礎値 + 一連の加算 → 現在値」という数値集約はすべてこれを使用します |
+| **属性モディファイア** | GAS 風のモディファイア評価（エンジン非依存アセンブリ `Ale.Modifier.Core`、名前空間 `Ale.Modifier`）：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース明細）。「基礎値 + 一連の加算 → 現在値」という数値集約はすべてこれを使用し、効果システムの持続モディファイアも直接この型を産出します |
+| **タグシステム（GameplayTag System）** | UE GameplayTag 流の階層タグ：`GameplayTag`（`Status.Debuff.Mental`、子孫を持てば祖先にマッチ）、設定側コンテナ `GameplayTagContainer`、ランタイムのカウントコンテナ `GameplayTagCountContainer`、タグ要件 `GameplayTagRequirements`、参考用レジストリ + タグ表アセット + エディターのタグツリードロップダウン；条件ブリッジ `Condition.HasGameplayTag` / `Condition.GameplayTags` |
 | **条件システム（Condition System）** | データ駆動の二段 AND/OR 条件：`ConditionExpression` フィールドを宣言するだけで Inspector 内にインラインで設定；上位が実装する `[ConditionEvaluator]` 判定器が自動的に発見され、既製の比較記号キットと判定コンテキストをそのまま再利用できます。エンジン非依存の Core はサーバーサイドでも動作可能 |
-| **効果システム（Effect System）** | 条件システムの書き込み側ミラー：データ駆動の離散トリガー式ミューテーション（フェーズグループ + 各項目にオプションの条件ゲート）；上位が実装する `[EffectExecutor]` 実行器が自動的に発見されます。エンジン非依存の Core |
+| **効果システム（Effect System）** | UE5 GAS `GameplayEffect` 流の完全な効果システム：`EffectDefinition`（持続ポリシー / 周期 / スタック / タグ / 適用条件と確率 / モディファイア / フェーズ別実行 / キュー）+ ランタイムの `EffectContainer`（適用パイプライン、Tick、抑制、免疫、タグ指定除去、集約、セーブ）；実行層は従来どおりデータ駆動のフェーズグループ + 各項目にオプションの条件ゲートで、上位が実装する `[EffectExecutor]` 実行器が自動的に発見されます。エンジン非依存の Core |
 | **エディター基盤** | 三列レイアウトのタブ基底クラス、データベースウィンドウのシェル基底クラス、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底クラス。いずれもデータベース型についてジェネリック化されています |
 | **エディター多言語** | 中文 / English / 日本語 の三言語サービス。中国語原文をキーとし、訳文が無い場合は自動的にフォールバックします |
 | **オプション依存のサポート層** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）のマクロ切り替えとアダプター |
 | **エディタ入口とグローバル設定** | Ale Toolkit ウェルカムウィンドウ（`Tools > Ale Toolkit > Welcome`）：エディタ UI 言語 / 列挙翻訳 / 3 つのオプション機能マクロ / ウィザードのデフォルト・ローカライズフォント + 汎用ツール入口 +「起動時に自動表示」トグル。ウィザードフォントなどのプロジェクト単位の設定は `ProjectSettings/AleToolkitSettings.asset` に保存（リポジトリと共にコミット、アセット参照は GUID で保持）、言語 / 自動表示はユーザーごと（EditorPrefs）。マクロはウェルカムウィンドウから明示的に切り替えるのみで、パッケージが PlayerSettings を自動で書き換えることはありません |
 | **汎用ツールウィンドウ** | 任意のデータアセット（`ScriptableObject`）の全 `AttributeValue` を走査して一括処理：Addressable 移行（Object ↔ GUID）とローカライズキー生成。`Tools > Ale Toolkit` 配下、上位プラグインで再利用可能 |
 
-> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。**1.6.0 から、中央 Tween に `SpriteRenderer` フェード、`Graphic` の全色トランジション、`Transform` の移動 / 回転 / スケール、遅延コールバック、ターゲット単位の Kill を追加し、DOTween の一般的な単一 tween 用途をひと通り置き換え可能に（Sequence は引き続き非対応）**。**1.8.0 から、条件システムが「ホストごとに書き直していた」3 つの設備を Core に取り込みます —— 比較記号キット `ConditionCompare`、汎用判定コンテキスト `ConditionContext` / `SubjectConditionContext`、冪等な `ConditionRegistry.EnsureAutoRegistered()`**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
+> 上記のモジュールはすべて配置済みです —— 1.1.0 以降、3 つのオプション依存サポート層（TMP / Localization / Addressables）が揃い、toolkit 単体のプロジェクトでもエディタ UI は 3 言語対応です。**1.2.0 以降はプロジェクト単位のグローバル設定（言語 / マクロ）を担い、任意のデータアセットで動作する汎用ツールウィンドウを提供します**。**1.3.0 以降は汎用オブジェクトプール（GameObject プール + 純 C# クラスプール）と軽量な中央 Tween を追加します**。**1.4.0 以降は属性モディファイア評価、データベースウィンドウのシェル基底クラス、および 2 つの独立したサブシステム —— 条件システム（`Ale.Condition`）と効果システム（`Ale.Effect`）—— を追加します**。**1.5.0 以降は軽量な表示テキスト値 `TextValue`（fallback + オプションのネイティブローカライズ、`AttributeValue` の `Text` タイプの独立軽量版）を追加します**。**1.5.1 から、仮想スクロールリストにセルの汎用フェードイン / アウト（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`、`UiwVirtualListBase` の既定フックで駆動）と `ToolkitTween.FadeGraphic` を追加**。**1.6.0 から、中央 Tween に `SpriteRenderer` フェード、`Graphic` の全色トランジション、`Transform` の移動 / 回転 / スケール、遅延コールバック、ターゲット単位の Kill を追加し、DOTween の一般的な単一 tween 用途をひと通り置き換え可能に（Sequence は引き続き非対応）**。**1.8.0 から、条件システムが「ホストごとに書き直していた」3 つの設備を Core に取り込みます —— 比較記号キット `ConditionCompare`、汎用判定コンテキスト `ConditionContext` / `SubjectConditionContext`、冪等な `ConditionRegistry.EnsureAutoRegistered()`**。**1.9.0 から、階層タグシステム（`Ale.GameplayTags`）を追加し、効果システムを GAS `GameplayEffect` の全体像（`EffectDefinition` + `EffectContainer`）に拡充、属性モディファイアをエンジン非依存の `Ale.Modifier.Core` に分離（⚠️ 名前空間は `Ale.Modifier` に変更）**。詳細は [CHANGELOG](CHANGELOG.md) をご覧ください。
 
 ---
 
@@ -46,20 +47,25 @@ Unity プラグイン開発向けの**汎用基盤ライブラリ**です。特�
 
 | Assembly Definition | 役割 | マクロ制約 |
 | --- | --- | --- |
-| `Ale.Toolkit.Runtime` | 属性システム、ソート、アセット読み込み抽象、共通シリアライズ、オブジェクトプール、中央 Tween、属性モディファイア評価 | — |
+| `Ale.Toolkit.Runtime` | 属性システム、ソート、アセット読み込み抽象、共通シリアライズ、オブジェクトプール、中央 Tween | — |
 | `Ale.Toolkit.UI` | バーチャルスクロールリストと汎用 UI コントロール | — |
 | `Ale.Toolkit.UI.Localization` | Unity Localization 対応コンポーネント | `ATK_LOCALIZATION` |
 | `Ale.Toolkit.Addressables.Runtime` | Addressables の読み込みとハンドル管理 | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | エディター基盤、データベースウィンドウのシェル基底クラス、属性ドロワー、多言語サービス、マクロ切り替え | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables のエディターツール | `ATK_ADDRESSABLE` |
+| `Ale.Modifier.Core` | 属性モディファイア · `ModifierDefinition` / `ModifierStackEvaluator` / 3 つの列挙（`noEngineReferences`；1.9.0 で `Ale.Toolkit.Runtime` から分離、名前空間 `Ale.Modifier`） | — |
+| `Ale.GameplayTags.Core` | タグシステム · エンジン非依存モデル：タグ / コンテナ / カウントコンテナ / 要件 / レジストリ（`noEngineReferences`、参照なし） | — |
+| `Ale.GameplayTags.Condition` | タグシステム · 条件ブリッジ：組み込み判定器 `Condition.HasGameplayTag` / `Condition.GameplayTags` | `Ale.Condition.Core` + `Ale.GameplayTags.Core` を参照 |
+| `Ale.GameplayTags.Runtime` | タグシステム · Unity ブリッジ（`GameplayTagTable` アセット + 起動時登録 + `[GameplayTagField]`） | — |
+| `Ale.GameplayTags.Editor` | タグシステム · カタログ / タグツリードロップダウン / コンテナと要件のドロワー / 表 Inspector / ウェルカムウィンドウ | — |
 | `Ale.Condition.Core` | 条件システム · エンジン非依存モデル / 判定エンジン / 登録とリフレクション発見 / JSON、およびホストが再利用できる比較記号キット `ConditionCompare` と汎用判定コンテキスト `ConditionContext`（`noEngineReferences`、サーバーサイド可） | Newtonsoft を参照 |
 | `Ale.Condition.Runtime` | 条件システム · Unity ブリッジ（`ConditionAsset` + 起動時自動登録） | — |
 | `Ale.Condition.Editor` | 条件システム · インラインドロワー / カタログ / ウェルカムウィンドウ | — |
-| `Ale.Effect.Core` | 効果システム · エンジン非依存モデル / 実行ランナー / 登録とリフレクション発見 / JSON（`noEngineReferences`） | `Ale.Condition.Core` + Newtonsoft を参照 |
-| `Ale.Effect.Runtime` | 効果システム · Unity ブリッジ（`EffectAsset` + 起動時自動登録） | — |
-| `Ale.Effect.Editor` | 効果システム · インラインドロワー / カタログ / ウェルカムウィンドウ | — |
+| `Ale.Effect.Core` | 効果システム · エンジン非依存モデル（`EffectDefinition` / `EffectExpression`）/ ランタイムコンテナ `EffectContainer` / 実行ランナー / 登録とリフレクション発見 / JSON（`noEngineReferences`） | `Ale.Condition.Core` + `Ale.GameplayTags.Core` + `Ale.Modifier.Core` + Newtonsoft を参照 |
+| `Ale.Effect.Runtime` | 効果システム · Unity ブリッジ（`EffectAsset` / `EffectDefinitionAsset` + 起動時自動登録） | — |
+| `Ale.Effect.Editor` | 効果システム · 定義 / 振幅 / モディファイア / 式のドロワー、ホスト属性ドロップダウンのフック、カタログ、ウェルカムウィンドウ | — |
 
-依存の向きは一方向です：ホストプラグイン → `Ale.Toolkit.*` / `Ale.Condition.*` / `Ale.Effect.*`。本パッケージがホストプラグインを逆参照することはありません。条件 / 効果の 2 サブシステムは名前空間が独立しており（`Ale.Condition` / `Ale.Effect`）、`Ale.Effect.Core` は `Ale.Condition.Core` を一方向に参照します（効果項目のオプション条件ゲート用）。
+依存の向きは一方向です：ホストプラグイン → `Ale.Toolkit.*` / `Ale.Modifier.*` / `Ale.GameplayTags.*` / `Ale.Condition.*` / `Ale.Effect.*`。本パッケージがホストプラグインを逆参照することはありません。各サブシステムは名前空間が独立しており（`Ale.Modifier` / `Ale.GameplayTags` / `Ale.Condition` / `Ale.Effect`）、`Ale.Modifier.Core`・`Ale.GameplayTags.Core`・`Ale.Condition.Core` の 3 つは互いに参照せず、`Ale.GameplayTags.Condition` と `Ale.Effect.Core` が合流点です（階層：タグ < 条件 < 効果）。
 
 ---
 
@@ -166,7 +172,7 @@ DOTween との差異が 3 点あります：**①上書き管理をしない**�
 
 ### 属性モディファイア
 
-GAS 風のモディファイア評価（`Ale.Toolkit.Runtime`）。宣言的な `ModifierDefinition` を 1 つの属性に集約し、`ModifierStackEvaluator` が固定順序でグループ集計して「現在値 + ソースごとの明細」を算出します。静的・無状態・Unity 非依存で、持続時間の満了 / スタッキングのランタイムループは**含みません**（設定として携え、ホストがランタイムで計算した後、有効なモディファイアを渡します）。
+GAS 風のモディファイア評価（アセンブリ `Ale.Modifier.Core`、名前空間 `Ale.Modifier`；**1.9.0 より前は `Ale.Toolkit.Runtime` にありました**——アップグレード後は asmdef に参照を追加し `using Ale.Modifier;` に変更してください。保存済みデータは影響を受けません）。宣言的な `ModifierDefinition` を 1 つの属性に集約し、`ModifierStackEvaluator` が固定順序でグループ集計して「現在値 + ソースごとの明細」を算出します。静的・無状態・Unity 非依存で、持続時間の満了 / スタッキングのランタイムループは**含みません**——それは[効果システム](#効果システム--effect-system)の仕事です：持続効果の `EffectContainer.CollectModifiers` が産出するのがまさにこの型で、ホストは自前の他のソースと一緒に評価器へ渡します。
 
 ```csharp
 var mods = new List<ModifierDefinition> {
@@ -180,9 +186,42 @@ foreach (var c in r.Breakdown)                    // ソースごと：SourceTag
     Debug.Log($"{c.SourceTag} {c.Operation} {c.Delta}");
 ```
 
-- `ModifierDefinition`：`targetAttributeId`（不透明なキー、評価器は解釈しない）/ `operation` / `magnitude` / `duration` / `durationDays` / `sourceTag`（ソース明細 + グループ単位の取り消し）/ `stackLimit` / `stackRule`。
+- `ModifierDefinition`：`targetAttributeId`（不透明なキー、評価器は解釈しない）/ `operation` / `magnitude` / `sourceTag`（ソース明細 + グループ単位の取り消し）；さらに設定のみを携える 4 つの休眠フィールド `duration` / `durationDays` / `stackLimit` / `stackRule`——評価器も効果システムも読み取らず、持続時間 / 周期 / スタックは `EffectDefinition` が担います。
 - `ModifierStackEvaluator.Evaluate(baseValue, min, max, modifiers, collectBreakdown = true)` → `ModifierEvaluation{ BaseValue, RawValue, Value, Breakdown }`；軽量な `EvaluateValue(...)` は最終値のみ返す。集計順序は固定：`base → +ΣAdd → ×(1+ΣPercentAdd) → 各項 ×(1+magnitude) Multiply → 最後に Override で上書き → clamp[min,max]`。呼び出し側は先に `targetAttributeId` でグループ化する必要があり、持続時間 / スタッキングはランタイムで計算した後に渡します。
 - 列挙：`EModifierOperation`（`Add`/`PercentAdd`/`Multiply`/`Override`）、`EModifierDuration`（`Instant`/`Timed`/`Permanent`）、`EStackRule`（`Refresh`/`Add`/`EveryXStacks`/`OnMaxStacks`）。
+
+### タグシステム · GameplayTag System
+
+UE GameplayTag 流の階層タグ（名前空間 `Ale.GameplayTags`、アセンブリ `Ale.GameplayTags.Core` / `.Condition` / `.Runtime` / `.Editor`）。ドット区切り名で階層を表し、`Status.Debuff.Mental` は `Status.Debuff` と `Status` にマッチします（**子孫を持てば祖先にマッチ**）。単なる前方一致は数えません（`AB` は `A` にマッチしない）。序数比較・大文字小文字を区別——toolkit の他の文字列キーと同じです；正規化規則（全体と各セグメントを Trim、空セグメント / セグメント内の空白 / `/` は不正）はデータ形式であり、リリース後は凍結、テストで固定されています。
+
+```csharp
+using Ale.GameplayTags;
+
+// 設定側：コンテナは List<string> を保存し、Unity / Newtonsoft でそのまま往復；[GameplayTagField] で string フィールドにタグツリードロップダウン
+public GameplayTagContainer assetTags = new GameplayTagContainer();
+[GameplayTagField] public string cueTag;
+
+// ランタイム：所有者のカウントコンテナ（明示カウント + 暗黙の祖先カウント、O(1) の階層照会）
+var owned = new GameplayTagCountContainer();
+owned.AddTag(new GameplayTag("Status.Debuff.Mental"));
+bool mental = owned.HasMatchingTag(new GameplayTag("Status.Debuff"));   // true：子孫を所有
+owned.OnTagCountChanged += (tag, count) => { /* 効果コンテナはこれで抑制を再評価 */ };
+
+// 要件：requireTags をすべて所有し、ignoreTags をひとつも所有しない
+var req = new GameplayTagRequirements();
+req.requireTags.AddTag("State.Alive");
+req.ignoreTags.AddTag("Immunity.Mental");
+bool ok = req.IsMet(owned);
+```
+
+- `GameplayTag`（読み取り専用構造体、**シリアライズされない**）：`IsValid` / `Depth` / `Parent` / `Root` / `Leaf`、`MatchesTag(parent)` / `MatchesTagExact` / `IsDescendantOf`、`Normalize` / `TryParse` / `Parse`。
+- `GameplayTagContainer`（`[Serializable]`、唯一のフィールドは `List<string> tags`）：`AddTag` / `RemoveTag`（厳密）/ `RemoveTagsMatching`（サブツリー）、`HasTag`（階層）/ `HasTagExact` / `HasAny` / `HasAll`（空集合：All は true、Any は false）/ `Filter`、`Normalize` / `Clone`。
+- `GameplayTagCountContainer`（ランタイム）：`AddTag/RemoveTag(tag, count)`、`AddTags/RemoveTags(container)`、`HasMatchingTag` / `HasExactTag` / `GetTagCount`、`GetExplicitTags`、イベント `OnTagCountChanged`。
+- `GameplayTagRequirements`：`requireTags` / `ignoreTags`、`IsMet(...)`、`Validate`（require ∩ ignore はエラー）。
+- **レジストリは参考用**：`GameplayTagRegistry.Default`（登録時に祖先を自動補完；`Validate` が未登録や大文字小文字違いのタイプミスを検出）はエディターのドロップダウンと設定時の検証にのみ使われ、**ランタイムのマッチングはレジストリを参照しません**。未登録のタグも通常どおりマッチします。ソース：`Resources` 配下の `GameplayTagTable` アセット（`Create > Ale > GameplayTag > Gameplay Tag Table`、起動時に自動登録）、ホストによる `GameplayTagRuntime.Register(...)` の明示登録（データベース内のカスタムタグなど）。
+- **条件ブリッジ**（`Ale.GameplayTags.Condition`）：組み込み判定器 `Condition.HasGameplayTag(tag, exact)`、`Condition.GameplayTags(tags[], いずれか / すべて / なし, exact)`。主体のタグはコンテキストの `IGameplayTagSource` サービス、または `Subject as IGameplayTagOwner` で解決。**TagQuery は別途作りません**——AND / OR / NOT の組み合わせは `ConditionExpression` に任せます。ブリッジは `Ale.Condition.Core` にタグを参照させず独立アセンブリに置き、その「参照ゼロ」の約束を守ります。
+- エディター：`GameplayTagContainer` / `GameplayTagRequirements` / `[GameplayTagField]` の 3 ドロワー（タグツリードロップダウン、不正は赤、未登録は黄の下地）、タグ表 Inspector（検証 / ソート）、`Tools > Ale Toolkit > GameplayTag System > Welcome`。
+- 命名の注意：名前空間は複数形の `Ale.GameplayTags`——`Ale.GameplayTag` にすると `namespace Ale.*` 内で `GameplayTag t` と書いた際に名前空間が先に解決されます（CS0118）；属性は型との曖昧さ（CS1614）を避けて `[GameplayTagField]`。
 
 ### 条件システム · Condition System
 
@@ -258,7 +297,7 @@ bool okForHero = expr.Evaluate(new SubjectConditionContext(ctx, hero)).Passed;
 
 ### 効果システム · Effect System
 
-条件システムの**書き込み側ミラー**（名前空間 `Ale.Effect`）：データ駆動・パラメータ化された**離散トリガー式ミューテーション**で、「フェーズグループ」で組織し、各項目にオプションの条件ゲートを掛けられます。数値加算（buff）は上記の**属性モディファイア**が担当し、効果は離散的なアクション（付与 / 除去、フラグ設定、イベント発火、着火…）のみ行います。同じく「`EffectExpression` フィールドを宣言すれば Inspector で設定」でき、上位が実装する `[EffectExecutor]` 実行器が自動的に発見されます。3 つのアセンブリ：`Ale.Effect.Core`（ゲート用に `Ale.Condition.Core` を参照）/ `.Runtime` / `.Editor`。
+UE5 GAS `GameplayEffect` 流の効果システム（名前空間 `Ale.Effect`）。2 層構成です：**定義層** `EffectDefinition` + **ランタイムコンテナ** `EffectContainer`（1.9.0 から。GAS の GameplayEffect + ASC の効果部分に相当：持続 / 周期 / スタック / タグ / 免疫 / 抑制 / モディファイア / セーブ）、および**実行層** `EffectExpression`（1.4.0 から。GAS の Executions に相当：フェーズグループ + 各項目にオプションの条件ゲートを持つ離散アクション）。「フィールドを宣言すれば Inspector で設定」でき、上位が実装する `[EffectExecutor]` 実行器が自動的に発見されます。3 つのアセンブリ：`Ale.Effect.Core`（`Ale.Condition.Core` / `Ale.GameplayTags.Core` / `Ale.Modifier.Core` を参照、エンジン非依存）/ `.Runtime` / `.Editor`。まず実行層（定義の `executions` フィールドがまさにそれ）、次に定義とコンテナを説明します。
 
 **構造**：`EffectExpression → EffectGroup(phase タイミングタグ) → EffectItem(key + パラメータ + オプションの gate)`。同一フィールドに複数のフェーズグループ（`onGained` / `onLost` など）を置けます；グループ内は**順次実行**、ランタイムは `phase` で絞り込みます（空 phase のグループはワイルドカードで、任意の phase で実行）。
 
@@ -319,9 +358,43 @@ Debug.Log($"適用 {rep.Applied} / スキップ {rep.Skipped} / 失敗 {rep.Fail
 
 各項目に gate（内包する `ConditionExpression` を 1 つ、エディター内でその場に展開して設定）を掛けた場合、ランナーはまず `ConditionEngine` で評価し、不満足なら `Skipped` とします。ランタイムの `EffectRuntime` は `[RuntimeInitializeOnLoadMethod]` で全実行器を自動登録します。
 
-**組み込み実行器**：`Effect.NoOp`、`Effect.SetFlag`（`IEffectFlagSink`）、`Effect.AdjustNumber`（`IEffectNumberSink`）—— それぞれ条件システムの `HasFlag` / `NumberCompare` の書き込み側の対偶です。**JSON**：`EffectJson.ToJson/FromJson`（内包する gate もグラフと共に往復）。**総覧**：`Tools > Ale Toolkit > Effect System > Welcome`。
+**組み込み実行器**：`Effect.NoOp`、`Effect.SetFlag`（`IEffectFlagSink`）、`Effect.AdjustNumber`（`IEffectNumberSink`）—— それぞれ条件システムの `HasFlag` / `NumberCompare` の書き込み側の対偶；`Effect.ApplyEffect(effectId, level)` / `Effect.RemoveEffectsWithTag(tag)` / `Effect.RemoveEffectById(effectId)`—— 効果の合成と解除（コンテナと定義はコンテキストから解決）。**JSON**：`EffectJson.ToJson/FromJson`（式）と `ToJson(EffectDefinition)/DefinitionFromJson`（内包する gate / 条件 / タグもグラフと共に往復）。**総覧**：`Tools > Ale Toolkit > Effect System > Welcome`。
 
-> **UE5 GAS との境界**：GAS `GameplayEffect` の数値側（Modifiers / Duration / Stacking）は上記の**属性モディファイア**がカバーします；効果システムはその実行側（Executions / Cues / Conditional Effects）—— 離散トリガーアクション —— に対応します。両者の分担は明確です：**モディファイアは「値」を、効果は「事」を管理**。
+**④ 効果定義とコンテナ（GAS 層）**
+
+`EffectDefinition` は再利用できる「効果はどんな形か」の定義です：`durationPolicy`（Instant / HasDuration / Infinite）、`duration` / `period` + `executePeriodicOnApplication`、スタック（`stackingType` ソース別 / ターゲット別の集約、`stackLimit`、持続時間更新 / 周期リセット / 満了の 3 ポリシー）、タグ（`assetTags` / `grantedTags` / `removeEffectsWithTags` / `grantedApplicationImmunityTags`、`applicationTagRequirements` / `ongoingTagRequirements`）、`applicationCondition`（Condition）、`chanceToApply`、`modifiers`（`EffectModifier`：属性 id + 演算 + `EffectMagnitude`——Scalable / AttributeBased / SetByCaller）、`executions`（上記の `EffectExpression`、フェーズ定数 `EffectPhases.OnApply / OnStack / OnPeriod / OnExpire / OnRemove`）、`cueTags`。ホストは定義をデータベースの**トップレベルのリスト**に置き id で参照します（ネストは既に 8 段で、さらに 2 段包むと Unity のシリアライズ深度上限に達します）；toolkit 単体のユーザーは `EffectDefinitionAsset` を使えます。`Normalize()` は空のフェーズを `onApply` に書き換えます（`EffectRunner` は空の phase をワイルドカードとみなすため、そのままだと周期 / 除去のたびに再実行されます）；`Validate(errors)` はエラーと「警告:」接頭辞付きの警告を報告します。
+
+```csharp
+using Ale.Effect; using Ale.Modifier; using Ale.GameplayTags;
+
+// 定義：30「日」の +10 戦力バフ、ターゲット別に最大 3 スタック、Status.Buff.Might を付与
+var buff = new EffectDefinition("battle_focus", EDurationPolicy.HasDuration) {
+    duration = EffectMagnitude.Scalable(30f), stackingType = EEffectStackingType.AggregateByTarget, stackLimit = 3,
+};
+buff.modifiers.Add(new EffectModifier("might", EModifierOperation.Add, 10f));
+buff.grantedTags.AddTag("Status.Buff.Might");
+
+// 所有者ごとに 1 コンテナ；ホストの時間単位（世界日 / 秒…）は定義内の持続時間と同じ単位
+var container = new EffectContainer(owner: heroId);
+var ctx = new EffectContext { Subject = heroId };            // ConditionContext のサービス袋：インターフェースで登録
+ctx.RegisterService<IEffectAttributeSink>(mySink);          // 瞬時 / 周期モディファイアの永久反映先
+ctx.RegisterService<IEffectContainerSource>(myContainers);  // 組み込みの Effect.ApplyEffect などが主体からコンテナを探す
+
+EffectApplyResult r = container.ApplyEffect(buff, ctx, level: 1, source: casterId);   // Applied / Stacked / Refreshed / BlockedBy…
+container.Tick(1f, ctx);                                     // 1 時間単位進める：周期の結算、満了の除去
+var mods = new List<ModifierDefinition>();
+container.CollectModifiers("might", mods);                   // アクティブ・非抑制・非周期効果のスケール済みモディファイア → ModifierStackEvaluator へ
+container.RemoveEffectsWithTags(new GameplayTagContainer("Status.Buff"), ctx);   // 解除
+var save = container.ExportState();                          // セーブ；ImportState(state, definitions, ctx) で静かに復元
+```
+
+- **適用パイプライン**：免疫（アクティブかつ非抑制の効果の免疫タグが新来者の `assetTags` にヒット）→ 適用タグ要件 → 適用条件（`Subject` = ターゲット）→ 確率 → 持続時間の評価（≤ 0 は `Invalid`）→ 瞬時：モディファイアを `IEffectAttributeSink.ApplyPermanent` で反映 + `onApply`、コンテナには入れない / スタック：同キーのインスタンスに 1 層追加（上限では `Refreshed` を返し、ポリシーに従い更新のみ）+ `onStack` / 新インスタンス：タグ付与 + `onApply` + 適用即結算 → タグ指定で他の効果を除去。
+- **Tick**：周期を満了より先に処理；delta が複数周期にまたがれば複数回結算し余りを保持；抑制中は周期を凍結するが**持続時間は進む**；満了はポリシーに従い全消去 / 1 層減らして更新 / 更新のみ、その後 `onExpire` → `onRemove`。
+- **抑制**（`ongoingTagRequirements` 不成立）：モディファイアは集約されず、周期は凍結、付与タグは撤回；`OwnedTags` のあらゆる変化（付与 / `AddLooseTag` / ホストの直接書き込み）で自動的に再評価。
+- **値と事の分担**：持続 / 無限効果のモディファイアは `CollectModifiers` で一時的に集約（モディファイア 1 件につきスタック数でスケールした `ModifierDefinition` 1 件、ソース `effect:{id}#{handle}`）；瞬時効果と周期結算のモディファイアは Sink で**永久反映**——**周期効果は `CollectModifiers` に参加しません**。さもないと「毎周期 +10 かつ持続 +10」が二重計上されます。
+- 契約：`IEffectDefinitionSource`（+ 集約する `EffectDefinitionRegistry.Default`、データベース横断の id 参照用）、`IEffectContainerSource`、`IEffectAttributeSource`（AttributeBased 振幅は現在値を読む）、`IEffectAttributeSink`、`IEffectRandomSource`、`IEffectCueSink`（Applied / Executed / Removed で `cueTags` を受け取る）、`IEffectExecutionInfo`（実行器は `ctx.GetService` で現在の定義 / インスタンス / ソース / レベル / フェーズを取得）；`EffectApplier.Apply(effectId, ctx)` で id 指定の適用。イベント：`OnEffectAdded / Removed / StackChanged / InhibitedChanged / PeriodicExecuted / OnModifiersChanged`。エディター：`EffectDefinitionDrawer` はセクションを条件付きで表示；ホストは `EffectDefinitionDrawerHooks.AttributeIdField` を注入して属性 id を自前のドロップダウンで描画できます。
+
+> **UE5 GAS との対応**：`EffectDefinition` ≙ GameplayEffect（Duration / Period / Stacking / Tags / Modifiers / Executions / Cues）、`EffectContainer` ≙ AbilitySystemComponent のアクティブ効果とタグの部分、`EffectExpression` + `[EffectExecutor]` ≙ Executions。未実装：カーブテーブルの振幅、非スナップショットの属性キャプチャ（振幅は適用 / スタック時にスナップショット）、ネットワーク複製。**モディファイアは「値」を、実行器は「事」を、コンテナは「寿命」を管理します。**
 
 ### エディター基盤
 

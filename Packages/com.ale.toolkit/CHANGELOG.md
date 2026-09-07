@@ -6,6 +6,42 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.9.0] - 2026-09-07
+
+**效果系统补齐 UE5 GAS `GameplayEffect` 的全貌，并新增层级标签系统；属性修饰器抽成独立的引擎无关程序集。** 此前效果系统只是一个「一次性派发层」（阶段组 + 执行器 + 门控），GAS 里让它成为「系统」的两根支柱——带句柄 / 时长 / 叠加的活动效果容器，以及 Gameplay Tag——都不存在，而 `ModifierDefinition` 上的时长 / 叠加字段也从未有运行时解释它们。三个宿主对 `Ale.Effect` 零引用、无序列化资产，正是补齐设计的时机。既有 `EffectExpression` / 执行器 / 门控原样保留（它们正对应 GAS 的 Executions），14 个既有测试一字未动；本版新增 94 个测试（共 180）。
+
+### 破坏性变更
+
+- **属性修饰器三型（`ModifierDefinition` / `ModifierStackEvaluator` / `EModifierOperation` 等三枚举）迁至新程序集 `Ale.Modifier.Core`，命名空间 `Ale.Toolkit.Runtime` → `Ale.Modifier`。** 起因：`Ale.Effect.Core` 是引擎无关程序集，不能引用引擎绑定的 `Ale.Toolkit.Runtime`，而效果的持续修饰器要直接产出 `ModifierDefinition` 交给宿主汇流，只能把修饰器也变成引擎无关。消费方需在 asmdef 加 `Ale.Modifier.Core` 并改 `using Ale.Modifier;`。文件保留 GUID、`[Serializable]` 类按字段内联序列化，**已存 YAML / JSON / DTO 不受影响**。`duration` / `durationDays` / `stackLimit` / `stackRule` 四个惰性字段原样保留（求值器与效果 GAS 层均不读取；时长 / 周期 / 叠加改由效果定义承载），宿主自建的修饰器运行时可继续按需解释。
+
+### 新增
+
+- **标签系统 · GameplayTag System**（四个程序集 `Ale.GameplayTags.Core` / `.Condition` / `.Runtime` / `.Editor`，命名空间 `Ale.GameplayTags`）。
+  - `GameplayTag`：只读结构体包一条已归一的点分名，`MatchesTag(parent)` 为「自身或后代」（`Status.Debuff.Mental` 匹配 `Status`，纯前缀 `AB` 不匹配 `A`）。**序数大小写敏感**——与 toolkit 全部字符串键一致，中文段无折叠意义，仅大小写不同的手误交给注册表在配置期抓出。**不参与序列化**：容器存 `List<string>`、单标签字段存 `string`，对 DTO / 二进制 / Newtonsoft 零迁移。
+  - ⚠️ **归一规则是数据格式，发布后冻结**（有测试钉住）：整体与逐段 Trim；空段（`A..B` / `.A` / `A.`）非法；段内空白与 `/` 非法（编辑器菜单以 `/` 分层）；CJK 等其余字符允许。
+  - `GameplayTagContainer`（`[Serializable]`；层级 / 精确查询、`RemoveTag` 精确而 `RemoveTagsMatching` 移子树、`Filter`、`Normalize`；`HasAll(空) = true`、`HasAny(空) = false`）、`GameplayTagCountContainer`（运行时；显式计数 + 隐式祖先计数，O(1) 层级查询，`OnTagCountChanged` 先更新完全部计数再逐个通知）、`GameplayTagRequirements`（require 全持有且 ignore 一个不持有；`Validate` 对 require ∩ ignore 报错）、`GameplayTagDefinition`、`IGameplayTagOwner` / `IGameplayTagSource`。
+  - **咨询性注册表** `GameplayTagRegistry`：登记自动补祖先；`Validate` 对未登记给警告、对仅大小写不同的已登记项指名；**运行时匹配永不查注册表**，未登记标签照常合法——它只服务编辑器下拉与配置期校验。
+  - 条件桥 `Ale.GameplayTags.Condition`：`Condition.HasGameplayTag(tag, exact)`、`Condition.GameplayTags(tags[], 任一 / 全部 / 皆无, exact)`（模式标签同 `ConditionCompare.Labels` 的禁令：是通信格式，不本地化不调序）。**放桥程序集而非让 `Ale.Condition.Core` 引用标签**：保住其「零引用」承诺，只用条件系统的宿主（VN 桥 / 动画模拟器）不被强加标签依赖；`AutoRegisterFromAssemblies` 扫全 AppDomain，桥程序集 `autoReferenced` 必被加载。**不做 TagQuery**——与或非组合交给 `ConditionExpression`。
+  - Unity 桥：`GameplayTagTable` 资产（`Resources` 下启动时自动登记；也可 `GameplayTagRuntime.Register` 显式登记）、`[GameplayTagField]`；编辑器：目录（注册表 ∪ 工程内全部表资产，惰性构建，表资产变动与注册表变化时失效）、标签树下拉（有子级的标签自身放子菜单首项）、容器 / 要求 / 单标签绘制器（提交即归一，非法红底、未登记黄底）、表 Inspector（校验 / 排序 / 登记预览）、Welcome。
+  - 命名陷阱：命名空间取**复数** `Ale.GameplayTags`——若叫 `Ale.GameplayTag`，`namespace Ale.*` 下写 `GameplayTag t` 会先命中命名空间（CS0118）；特性叫 `GameplayTagFieldAttribute`（`[GameplayTagField]`），避免 `[GameplayTag]` 与类型二义（CS1614）。
+- **效果系统 GAS 层**（`Ale.Effect.Core` 引用 += `Ale.GameplayTags.Core`、`Ale.Modifier.Core`；新目录 `Runtime/Effect/Core/Gameplay/`）。
+  - `EffectDefinition`（≙ GameplayEffect）：`durationPolicy`（Instant / HasDuration / Infinite）、`duration` / `period` + `executePeriodicOnApplication`、叠加（`stackingType` 按来源 / 按目标聚合、`stackLimit`、刷新时长 / 重置周期 / 到期三策略）、标签（`assetTags` / `grantedTags` / `removeEffectsWithTags` / `grantedApplicationImmunityTags`、施加 / 持续标签要求）、`applicationCondition`（Condition）、`chanceToApply`、`modifiers`（`EffectModifier` + `EffectMagnitude`：Scalable / AttributeBased / SetByCaller，施加与叠层时快照）、`executions`（复用 `EffectExpression`；阶段常量 `EffectPhases.OnApply / OnStack / OnPeriod / OnExpire / OnRemove`）、`cueTags`；`Clone` / `Normalize` / `Validate`（错误与「警告:」前缀的警告：瞬时效果配了不生效的授予标签 / 周期 / 叠加、叠加等于未配、授予标签命中持续要求的禁止标签会自我抑制、非内置阶段…）。
+  - ⚠️ `EffectRunner` 把**空 phase 当通配**，直接放进定义会在每周期 / 移除时重复执行——`Normalize()` 把空阶段改写为 `onApply`；`EffectJson.DefinitionFromJson` 反序列化后自动 `Normalize`。
+  - `EffectContainer`（≙ ASC 的效果与标签部分；纯 C#）：施加管线「免疫 → 施加标签要求 → 施加条件（`Subject` = 目标）→ 概率 → 时长求值（≤ 0 为 `Invalid`，配置错误要暴露而不是「施加即到期」）→ 瞬时落地 / 叠加 / 新实例 → 按标签移除他者」；`Tick`（周期先于到期；跨多周期多次结算、余数保留、单次上限 1000；抑制中周期冻结、时长照走；到期三策略；`onExpire` → `onRemove`）；抑制（`OwnedTags` 任何变化自动重评，循环至收敛、振荡告警；抑制撤回授予标签、不汇流）；`CollectModifiers`（激活、未抑制、**非周期**）；按句柄 / 标签（assetTags ∪ grantedTags，不含自身）/ 来源 / id 移除、`RemoveAll`、静默 `Clear`；`RunPhase` / `SetLevel`；`ExportState` / `ImportState`（覆盖语义、幅度快照、定义缺失或改为瞬时时跳过并告警、句柄延续、**不跑阶段不发事件**）。时间单位由宿主决定。
+  - **值 / 事分工**：持续 / 无限效果的修饰器经 `CollectModifiers` 临时汇流（每条修饰器只产出一条按层数缩放的 `ModifierDefinition`：Add / PercentAdd × S、Multiply (1+m)^S − 1、Override 原值，来源 `effect:{id}#{handle}`）；瞬时与周期结算经 `IEffectAttributeSink.ApplyPermanent` 永久落地——**周期效果不参与 `CollectModifiers`**，否则「每周期 +10 且持续 +10」被双算。
+  - 契约：`IEffectDefinitionSource` + 聚合的 `EffectDefinitionRegistry.Default`（跨库按 id 引用；`EffectRuntime.Install` 每次播放清空）、`IEffectContainerSource`、`IEffectAttributeSource` / `IEffectAttributeSink`、`IEffectRandomSource`（缺服务用 `EffectContainer.DefaultRandom`）、`IEffectCueSink`（Applied / Executed / Removed；顺序先 Applied 再施加即结算的 Executed）、`IEffectExecutionInfo`（容器把宿主上下文包成 `Subject` = 目标的执行上下文，执行器经 `ctx.GetService` 取当前定义 / 实例 / 来源 / 等级 / 阶段）；`EffectContext : ConditionContext` + `SubjectEffectContext`；`EffectApplier.Apply(effectId, ctx)`（容器 ← 上下文容器源或主体本身；定义 ← 请求 → 上下文定义源 → 全局注册表）。
+  - 内置执行器 `Effect.ApplyEffect(effectId, level, sourceTag)`（来源沿用外层执行信息）、`Effect.RemoveEffectsWithTag(tag)`、`Effect.RemoveEffectById(effectId)`；`EffectRegistry.EnsureAutoRegistered()`（与 Condition 侧对齐，`Clear()` 复位标志）；`EffectJson` 增定义往返。
+  - 编辑器：`EffectDefinitionDrawer`（分节显隐；**量算与绘制共用同一布局代码**，不错位）、`EffectMagnitudeDrawer` / `EffectModifierDrawer`、宿主注入点 `EffectDefinitionDrawerHooks.AttributeIdField`、`EffectDefinitionAsset` + 校验 / 归一 Inspector、`EffectExpressionDrawer` 阶段下拉、Welcome 说明。
+
+### 修复
+
+- `ToolkitInfo.Version` 自 1.8.1 起与 `package.json` 漂移（仍为 `"1.8.0"`），本次改为 `"1.9.0"`。
+
+### 说明
+
+- 标签 / 效果的编辑器与条件 / 效果既有编辑器同款：硬编码中文、不引用 `Ale.Toolkit.Editor` 的三语服务，避免把 TMP / Localization 依赖链带进子系统；三个子系统如需三语可作为后续独立项统一接入。
+- 有意不做：曲线表幅度（`perLevel` 线性即够，后续可加 kind 而不破坏数据）、非快照的属性捕获、网络复制；Cue 只是 `cueTags` + 一个接口三次回调，缺服务即无操作。
+
 ## [1.8.1] - 2026-08-17
 
 **世界坐标 → UI 坐标的换算不再自己猜相机。** 换算方法新增可选的 `worldCamera` 形参，配套一个「直接把 `RectTransform` 摆到世界点」的便捷方法；三个相机来源全空时报警，而不再静默退化。既有调用方零改动——新形参可选，不传时行为与 1.8.0 逐位一致。

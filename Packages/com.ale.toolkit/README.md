@@ -14,7 +14,7 @@
 - [程序集](#程序集)
 - [用法与主要 API](#用法与主要-api)
   - [属性系统](#属性系统) · [排序](#排序) · [UI](#ui) · [对象池](#对象池) · [Tween（中央缓动）](#tween中央缓动)
-  - [属性修饰器](#属性修饰器) · [条件系统 · Condition System](#条件系统--condition-system) · [效果系统 · Effect System](#效果系统--effect-system)
+  - [属性修饰器](#属性修饰器) · [标签系统 · GameplayTag System](#标签系统--gameplaytag-system) · [条件系统 · Condition System](#条件系统--condition-system) · [效果系统 · Effect System](#效果系统--effect-system)
   - [编辑器框架](#编辑器框架) · [编辑器多语言](#编辑器多语言) · [可选依赖支持层](#可选依赖支持层) · [编辑器入口与全局设置](#编辑器入口与全局设置) · [通用工具窗口](#通用工具窗口)
 - [许可](#许可)
 
@@ -29,16 +29,17 @@
 | **UI** | 虚拟滚动列表（网格 / 顺序，对象池 + 仅渲染可见区；单元格分配 / 回收淡入淡出经 `UiwListFadeCell` + 引擎默认 hook 通用驱动）、页签栏、过滤栏、Tooltip 基类、子项实例池等通用控件 |
 | **对象池** | 通用 GameObject 预制体池（`Spawn`/`Despawn` + `IPoolable` 回调、预热 / 容量回收 / 延迟归还 / 跨场景）与纯 C# 引用类型池 `ToolkitClassPool<T>`（降 GC），可替代 Lean.Pool 一类第三方池 |
 | **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` 淡入淡出，`TintGraphic` 整色过渡，`MoveTransform` / `RotateTransform` / `ScaleTransform` 位移·旋转·缩放，`DelayedCall` 延时回调，`Kill(target)` 按目标打断；返回值类型可打断句柄；缓动最小集 `EToolkitEase` |
-| **属性修饰器** | GAS 式修饰器求值：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。任何「基础值 + 一叠加成 → 当前值」的数值汇流都用它 |
+| **属性修饰器** | GAS 式修饰器求值（引擎无关程序集 `Ale.Modifier.Core`，命名空间 `Ale.Modifier`）：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。任何「基础值 + 一叠加成 → 当前值」的数值汇流都用它；效果系统的持续修饰器也直接产出它 |
+| **标签系统（GameplayTag System）** | UE GameplayTag 范式的层级标签：`GameplayTag`（`Status.Debuff.Mental`，持有后代即匹配祖先）、配置容器 `GameplayTagContainer`、运行时计数容器 `GameplayTagCountContainer`、标签要求 `GameplayTagRequirements`、咨询性注册表 + 标签表资产 + 编辑器标签树下拉；条件桥 `Condition.HasGameplayTag` / `Condition.GameplayTags` |
 | **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现，并可直接复用现成的比较符范式与判定上下文。引擎无关 Core 可上服务端 |
-| **效果系统（Effect System）** | 条件系统的写侧镜像：数据驱动的离散触发式突变（阶段组 + 每项可选条件门控）；上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core |
+| **效果系统（Effect System）** | UE5 GAS `GameplayEffect` 范式的完整效果系统：`EffectDefinition`（时长策略 / 周期 / 叠加 / 标签 / 施加条件与概率 / 修饰器 / 各阶段执行 / 线索）+ 运行时 `EffectContainer`（施加管线、Tick、抑制、免疫、按标签移除、汇流、存档）；执行层仍是数据驱动的阶段组 + 每项可选条件门控，上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core |
 | **编辑器框架** | 三列布局页签基类、数据库窗口外壳基类、主列表面板、实体列表面板、工具窗口基类，均对数据库类型泛型化 |
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
 | **可选依赖支持层** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）的宏开关与适配 |
 | **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；宏只由欢迎窗口显式开关，插件不会自动改写 PlayerSettings |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
-> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**。完整变更见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**；**1.9.0 起新增层级标签系统（`Ale.GameplayTags`），效果系统补齐 GAS `GameplayEffect` 全貌（`EffectDefinition` + `EffectContainer`），属性修饰器抽成引擎无关的 `Ale.Modifier.Core`（⚠️ 命名空间改为 `Ale.Modifier`）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 
@@ -46,20 +47,25 @@
 
 | Assembly Definition | 说明 | 宏门控 |
 | --- | --- | --- |
-| `Ale.Toolkit.Runtime` | 属性系统、排序、资源加载抽象、通用序列化、对象池、中央 Tween、属性修饰器求值 | — |
+| `Ale.Toolkit.Runtime` | 属性系统、排序、资源加载抽象、通用序列化、对象池、中央 Tween | — |
 | `Ale.Toolkit.UI` | 虚拟滚动列表与通用 UI 控件 | — |
 | `Ale.Toolkit.UI.Localization` | Unity Localization 适配组件 | `ATK_LOCALIZATION` |
 | `Ale.Toolkit.Addressables.Runtime` | Addressables 资源加载与句柄管理 | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | 编辑器框架、数据库窗口外壳基类、属性绘制器、多语言服务、宏开关 | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables 编辑器工具 | `ATK_ADDRESSABLE` |
+| `Ale.Modifier.Core` | 属性修饰器 · `ModifierDefinition` / `ModifierStackEvaluator` / 三枚举（`noEngineReferences`；1.9.0 自 `Ale.Toolkit.Runtime` 抽出，命名空间 `Ale.Modifier`） | — |
+| `Ale.GameplayTags.Core` | 标签系统 · 引擎无关模型：标签 / 容器 / 计数容器 / 要求 / 注册表（`noEngineReferences`，无引用） | — |
+| `Ale.GameplayTags.Condition` | 标签系统 · 条件桥：内置判定器 `Condition.HasGameplayTag` / `Condition.GameplayTags` | 引用 `Ale.Condition.Core` + `Ale.GameplayTags.Core` |
+| `Ale.GameplayTags.Runtime` | 标签系统 · Unity 桥（`GameplayTagTable` 资产 + 启动登记 + `[GameplayTagField]`） | — |
+| `Ale.GameplayTags.Editor` | 标签系统 · 目录 / 标签树下拉 / 容器与要求绘制器 / 表 Inspector / 欢迎窗口 | — |
 | `Ale.Condition.Core` | 条件系统 · 引擎无关模型 / 判定引擎 / 注册与反射发现 / JSON，以及供宿主复用的比较符范式 `ConditionCompare` 与通用判定上下文 `ConditionContext`（`noEngineReferences`，可上服务端） | 引用 Newtonsoft |
 | `Ale.Condition.Runtime` | 条件系统 · Unity 桥（`ConditionAsset` + 启动自动注册） | — |
 | `Ale.Condition.Editor` | 条件系统 · 内联绘制器 / 目录 / 欢迎窗口 | — |
-| `Ale.Effect.Core` | 效果系统 · 引擎无关模型 / 执行运行器 / 注册与反射发现 / JSON（`noEngineReferences`） | 引用 `Ale.Condition.Core` + Newtonsoft |
-| `Ale.Effect.Runtime` | 效果系统 · Unity 桥（`EffectAsset` + 启动自动注册） | — |
-| `Ale.Effect.Editor` | 效果系统 · 内联绘制器 / 目录 / 欢迎窗口 | — |
+| `Ale.Effect.Core` | 效果系统 · 引擎无关模型（`EffectDefinition` / `EffectExpression`）/ 运行时容器 `EffectContainer` / 执行运行器 / 注册与反射发现 / JSON（`noEngineReferences`） | 引用 `Ale.Condition.Core` + `Ale.GameplayTags.Core` + `Ale.Modifier.Core` + Newtonsoft |
+| `Ale.Effect.Runtime` | 效果系统 · Unity 桥（`EffectAsset` / `EffectDefinitionAsset` + 启动自动注册） | — |
+| `Ale.Effect.Editor` | 效果系统 · 定义 / 幅度 / 修饰器 / 表达式绘制器、宿主属性下拉钩子、目录、欢迎窗口 | — |
 
-依赖方向单向：宿主插件 → `Ale.Toolkit.*` / `Ale.Condition.*` / `Ale.Effect.*`，本包不反向引用任何宿主插件。条件 / 效果两子系统命名空间独立（`Ale.Condition` / `Ale.Effect`），`Ale.Effect.Core` 单向引用 `Ale.Condition.Core`（供效果项的可选条件门控）。
+依赖方向单向：宿主插件 → `Ale.Toolkit.*` / `Ale.Modifier.*` / `Ale.GameplayTags.*` / `Ale.Condition.*` / `Ale.Effect.*`，本包不反向引用任何宿主插件。各子系统命名空间独立（`Ale.Modifier` / `Ale.GameplayTags` / `Ale.Condition` / `Ale.Effect`）；`Ale.Modifier.Core`、`Ale.GameplayTags.Core`、`Ale.Condition.Core` 三者互不引用，`Ale.GameplayTags.Condition` 与 `Ale.Effect.Core` 是汇合点（层次：标签 < 条件 < 效果）。
 
 ---
 
@@ -167,7 +173,7 @@ var delay = ToolkitTween.DelayedCall(1.5f, () => Play(), owner: this);
 
 ### 属性修饰器
 
-GAS 式修饰器求值（`Ale.Toolkit.Runtime`）。声明式 `ModifierDefinition` 汇入一个属性，`ModifierStackEvaluator` 按固定顺序分组结算出「当前值 + 逐来源明细」。静态、无状态、无 Unity 依赖；**不含**时长到期 / 叠层的运行时循环（配置携带，宿主运行时结算后把有效修饰器喂进来）。
+GAS 式修饰器求值（程序集 `Ale.Modifier.Core`，命名空间 `Ale.Modifier`；**1.9.0 前位于 `Ale.Toolkit.Runtime`**——升级后请在 asmdef 加引用并改 `using Ale.Modifier;`，已存数据不受影响）。声明式 `ModifierDefinition` 汇入一个属性，`ModifierStackEvaluator` 按固定顺序分组结算出「当前值 + 逐来源明细」。静态、无状态、无 Unity 依赖；**不含**时长到期 / 叠层的运行时循环——那是[效果系统](#效果系统--effect-system)的事：持续效果的 `EffectContainer.CollectModifiers` 产出的就是本类型，宿主把它与自己的其它来源一起喂进求值器。
 
 ```csharp
 var mods = new List<ModifierDefinition> {
@@ -181,9 +187,42 @@ foreach (var c in r.Breakdown)                    // 逐来源：SourceTag / Ope
     Debug.Log($"{c.SourceTag} {c.Operation} {c.Delta}");
 ```
 
-- `ModifierDefinition`：`targetAttributeId`（不透明键，求值器不解释）/ `operation` / `magnitude` / `duration` / `durationDays` / `sourceTag`（来源明细 + 分组撤销）/ `stackLimit` / `stackRule`。
+- `ModifierDefinition`：`targetAttributeId`（不透明键，求值器不解释）/ `operation` / `magnitude` / `sourceTag`（来源明细 + 分组撤销）；另有四个仅承载配置的惰性字段 `duration` / `durationDays` / `stackLimit` / `stackRule`——求值器与效果系统均不读取，时长 / 周期 / 叠加由 `EffectDefinition` 承载。
 - `ModifierStackEvaluator.Evaluate(baseValue, min, max, modifiers, collectBreakdown = true)` → `ModifierEvaluation{ BaseValue, RawValue, Value, Breakdown }`；轻量 `EvaluateValue(...)` 只出最终值。结算顺序固定：`base → +ΣAdd → ×(1+ΣPercentAdd) → 逐项 ×(1+magnitude) Multiply → 末位 Override 覆盖 → clamp[min,max]`。调用方需先按 `targetAttributeId` 分组；时长 / 叠层由运行时结算后再传入。
 - 枚举：`EModifierOperation`（`Add`/`PercentAdd`/`Multiply`/`Override`）、`EModifierDuration`（`Instant`/`Timed`/`Permanent`）、`EStackRule`（`Refresh`/`Add`/`EveryXStacks`/`OnMaxStacks`）。
+
+### 标签系统 · GameplayTag System
+
+UE GameplayTag 范式的层级标签（命名空间 `Ale.GameplayTags`，程序集 `Ale.GameplayTags.Core` / `.Condition` / `.Runtime` / `.Editor`）。点分名表达层级：`Status.Debuff.Mental` 匹配 `Status.Debuff` 与 `Status`（**持有后代即匹配祖先**），纯前缀不算（`AB` 不匹配 `A`）。序数比较、大小写敏感——与 toolkit 其它字符串键一致；归一规则（整体与逐段 Trim、空段 / 段内空白 / `/` 非法）是数据格式，发布后冻结并有测试钉住。
+
+```csharp
+using Ale.GameplayTags;
+
+// 配置侧：容器存 List<string>，Unity / Newtonsoft 直接往返；[GameplayTagField] 让 string 字段得到标签树下拉
+public GameplayTagContainer assetTags = new GameplayTagContainer();
+[GameplayTagField] public string cueTag;
+
+// 运行时：拥有者的计数容器（显式计数 + 隐式祖先计数，O(1) 层级查询）
+var owned = new GameplayTagCountContainer();
+owned.AddTag(new GameplayTag("Status.Debuff.Mental"));
+bool mental = owned.HasMatchingTag(new GameplayTag("Status.Debuff"));   // true：持有后代
+owned.OnTagCountChanged += (tag, count) => { /* 效果容器据此重评抑制 */ };
+
+// 要求：必须持有全部 requireTags 且不持有任一 ignoreTags
+var req = new GameplayTagRequirements();
+req.requireTags.AddTag("State.Alive");
+req.ignoreTags.AddTag("Immunity.Mental");
+bool ok = req.IsMet(owned);
+```
+
+- `GameplayTag`（只读结构体，**不参与序列化**）：`IsValid` / `Depth` / `Parent` / `Root` / `Leaf`、`MatchesTag(parent)` / `MatchesTagExact` / `IsDescendantOf`、`Normalize` / `TryParse` / `Parse`。
+- `GameplayTagContainer`（`[Serializable]`，唯一字段 `List<string> tags`）：`AddTag` / `RemoveTag`（精确）/ `RemoveTagsMatching`（子树）、`HasTag`（层级）/ `HasTagExact` / `HasAny` / `HasAll`（空集：All 为 true、Any 为 false）/ `Filter`、`Normalize` / `Clone`。
+- `GameplayTagCountContainer`（运行时）：`AddTag/RemoveTag(tag, count)`、`AddTags/RemoveTags(container)`、`HasMatchingTag` / `HasExactTag` / `GetTagCount`、`GetExplicitTags`、事件 `OnTagCountChanged`。
+- `GameplayTagRequirements`：`requireTags` / `ignoreTags`、`IsMet(...)`、`Validate`（require ∩ ignore 报错）。
+- **注册表是咨询性的**：`GameplayTagRegistry.Default`（登记自动补祖先；`Validate` 抓未登记 / 仅大小写不同的手误）只服务编辑器下拉与配置期校验，**运行时匹配永不查注册表**，未登记标签照常匹配。来源：`Resources` 下的 `GameplayTagTable` 资产（`Create > Ale > GameplayTag > Gameplay Tag Table`，启动时自动登记）、宿主经 `GameplayTagRuntime.Register(...)` 显式登记（如数据库里的自定义标签）。
+- **条件桥**（`Ale.GameplayTags.Condition`）：内置判定器 `Condition.HasGameplayTag(tag, exact)`、`Condition.GameplayTags(tags[], 任一 / 全部 / 皆无, exact)`，主体标签经上下文的 `IGameplayTagSource` 服务或 `Subject as IGameplayTagOwner` 解析。**不另造 TagQuery**——与或非组合交给 `ConditionExpression`。桥放在独立程序集而不让 `Ale.Condition.Core` 引用标签，保住其「零引用」承诺。
+- 编辑器：`GameplayTagContainer` / `GameplayTagRequirements` / `[GameplayTagField]` 三个绘制器（标签树下拉、非法红底、未登记黄底）、标签表 Inspector（校验 / 排序）、`Tools > Ale Toolkit > GameplayTag System > Welcome`。
+- 命名提示：命名空间取复数 `Ale.GameplayTags`——若叫 `Ale.GameplayTag`，`namespace Ale.*` 下写 `GameplayTag t` 会先命中命名空间（CS0118）；特性叫 `[GameplayTagField]` 以免与类型二义（CS1614）。
 
 ### 条件系统 · Condition System
 
@@ -259,7 +298,7 @@ bool okForHero = expr.Evaluate(new SubjectConditionContext(ctx, hero)).Passed;
 
 ### 效果系统 · Effect System
 
-条件系统的**写侧镜像**（命名空间 `Ale.Effect`）：数据驱动、参数化的**离散触发式突变**，按「阶段组」组织、每项可挂可选条件门控。数值加成（buff）由上面的**属性修饰器**负责；效果只做离散动作（授予 / 移除、置标志、发事件、点燃…）。同样「声明 `EffectExpression` 字段即在 Inspector 配置」，上层实现 `[EffectExecutor]` 执行器被自动发现。三个程序集：`Ale.Effect.Core`（引用 `Ale.Condition.Core` 供门控）/ `.Runtime` / `.Editor`。
+UE5 GAS `GameplayEffect` 范式的效果系统（命名空间 `Ale.Effect`），分两层：**定义层** `EffectDefinition` + **运行时容器** `EffectContainer`（1.9.0 起，对应 GAS 的 GameplayEffect + ASC 效果部分：时长 / 周期 / 叠加 / 标签 / 免疫 / 抑制 / 修饰器 / 存档），以及**执行层** `EffectExpression`（1.4.0 起，对应 GAS 的 Executions：阶段组 + 每项可选条件门控的离散动作）。「声明字段即在 Inspector 配置」，上层实现 `[EffectExecutor]` 执行器被自动发现。三个程序集：`Ale.Effect.Core`（引用 `Ale.Condition.Core` / `Ale.GameplayTags.Core` / `Ale.Modifier.Core`，引擎无关）/ `.Runtime` / `.Editor`。先讲执行层（定义层的 `executions` 字段就是它），再讲定义与容器。
 
 **结构**：`EffectExpression → EffectGroup(phase 时机标签) → EffectItem(key + 参数 + 可选 gate)`。同一字段里可放多个阶段组（如 `onGained` / `onLost`），组内**按序执行**，运行时按 `phase` 过滤（空 phase 组为通配，任意 phase 都执行）。
 
@@ -320,9 +359,43 @@ Debug.Log($"应用 {rep.Applied} / 跳过 {rep.Skipped} / 失败 {rep.Failed}");
 
 每项若配了 gate（一个内嵌 `ConditionExpression`，编辑器里就地展开配置），运行器先走 `ConditionEngine` 求值，不满足即 `Skipped`。运行时 `EffectRuntime` 于 `[RuntimeInitializeOnLoadMethod]` 自动注册所有执行器。
 
-**内置执行器**：`Effect.NoOp`、`Effect.SetFlag`（`IEffectFlagSink`）、`Effect.AdjustNumber`（`IEffectNumberSink`）——分别是条件系统 `HasFlag` / `NumberCompare` 的写侧对偶。**JSON**：`EffectJson.ToJson/FromJson`（内嵌 gate 随图往返）。**总览**：`Tools > Ale Toolkit > Effect System > Welcome`。
+**内置执行器**：`Effect.NoOp`、`Effect.SetFlag`（`IEffectFlagSink`）、`Effect.AdjustNumber`（`IEffectNumberSink`）——分别是条件系统 `HasFlag` / `NumberCompare` 的写侧对偶；`Effect.ApplyEffect(effectId, level)` / `Effect.RemoveEffectsWithTag(tag)` / `Effect.RemoveEffectById(effectId)`——效果组合与驱散（容器与定义从上下文解析）。**JSON**：`EffectJson.ToJson/FromJson`（表达式）与 `ToJson(EffectDefinition)/DefinitionFromJson`（内嵌 gate / 条件 / 标签随图往返）。**总览**：`Tools > Ale Toolkit > Effect System > Welcome`。
 
-> **与 UE5 GAS 的边界**：GAS `GameplayEffect` 的数值侧（Modifiers / Duration / Stacking）由上面的**属性修饰器**覆盖；效果系统对应其执行侧（Executions / Cues / Conditional Effects）——离散触发动作。二者分工清晰：**修饰器管「值」，效果管「事」**。
+**④ 效果定义与容器（GAS 层）**
+
+`EffectDefinition` 是一份可复用的「效果长什么样」：`durationPolicy`（Instant / HasDuration / Infinite）、`duration` / `period` + `executePeriodicOnApplication`、叠加（`stackingType` 按来源 / 按目标聚合、`stackLimit`、刷新时长 / 重置周期 / 到期三策略）、标签（`assetTags` / `grantedTags` / `removeEffectsWithTags` / `grantedApplicationImmunityTags`、`applicationTagRequirements` / `ongoingTagRequirements`）、`applicationCondition`（Condition）、`chanceToApply`、`modifiers`（`EffectModifier`：属性 id + 运算 + `EffectMagnitude`——Scalable / AttributeBased / SetByCaller）、`executions`（上面的 `EffectExpression`，阶段常量 `EffectPhases.OnApply / OnStack / OnPeriod / OnExpire / OnRemove`）、`cueTags`。宿主把定义放在数据库**顶层列表**、以 id 引用（嵌套已达 8 层，再多包两层会触及 Unity 序列化深度上限）；纯 toolkit 用户可用 `EffectDefinitionAsset`。`Normalize()` 会把空阶段改写为 `onApply`（`EffectRunner` 视空 phase 为通配，否则会在每周期 / 移除时重复执行）；`Validate(errors)` 报错误与「警告:」前缀的警告。
+
+```csharp
+using Ale.Effect; using Ale.Modifier; using Ale.GameplayTags;
+
+// 定义：30「天」的 +10 战力 Buff，按目标聚合最多 3 层，授予 Status.Buff.Might
+var buff = new EffectDefinition("battle_focus", EDurationPolicy.HasDuration) {
+    duration = EffectMagnitude.Scalable(30f), stackingType = EEffectStackingType.AggregateByTarget, stackLimit = 3,
+};
+buff.modifiers.Add(new EffectModifier("might", EModifierOperation.Add, 10f));
+buff.grantedTags.AddTag("Status.Buff.Might");
+
+// 每个拥有者一个容器；宿主时间单位（世界日 / 秒…）与定义里的时长同单位
+var container = new EffectContainer(owner: heroId);
+var ctx = new EffectContext { Subject = heroId };            // ConditionContext 的服务袋：按接口登记
+ctx.RegisterService<IEffectAttributeSink>(mySink);          // 瞬时 / 周期修饰器永久落地处
+ctx.RegisterService<IEffectContainerSource>(myContainers);  // 内置 Effect.ApplyEffect 等按主体找容器
+
+EffectApplyResult r = container.ApplyEffect(buff, ctx, level: 1, source: casterId);   // Applied / Stacked / Refreshed / BlockedBy…
+container.Tick(1f, ctx);                                     // 推进 1 个时间单位：周期结算、到期移除
+var mods = new List<ModifierDefinition>();
+container.CollectModifiers("might", mods);                   // 激活、未抑制、非周期效果的缩放修饰器 → 交给 ModifierStackEvaluator 汇流
+container.RemoveEffectsWithTags(new GameplayTagContainer("Status.Buff"), ctx);   // 驱散
+var save = container.ExportState();                          // 存档；ImportState(state, definitions, ctx) 静默恢复
+```
+
+- **施加管线**：免疫（激活且未抑制效果的免疫标签命中来者 `assetTags`）→ 施加标签要求 → 施加条件（`Subject` = 目标）→ 概率 → 时长求值（≤ 0 为 `Invalid`）→ 瞬时：修饰器经 `IEffectAttributeSink.ApplyPermanent` 落地 + `onApply`，不入容器 / 叠加：同键实例加层（封顶返回 `Refreshed`，仍按策略刷新）+ `onStack` / 新实例：授予标签 + `onApply` + 施加即结算 → 按标签移除他者。
+- **Tick**：周期先于到期；跨多周期多次结算、余数保留；抑制中周期冻结、**时长照走**；到期按策略整清 / 减一层刷新 / 只刷新，`onExpire` → `onRemove`。
+- **抑制**（`ongoingTagRequirements` 不满足）：修饰器不汇流、周期冻结、授予标签撤回；`OwnedTags` 任何变化（授予 / `AddLooseTag` / 宿主直写）都会自动重评。
+- **值 / 事分工**：持续 / 无限效果的修饰器经 `CollectModifiers` 临时汇流（每条修饰器一条按层数缩放的 `ModifierDefinition`，来源 `effect:{id}#{handle}`）；瞬时与周期结算的修饰器经 Sink **永久落地**——**周期效果不参与 `CollectModifiers`**，否则「每周期 +10 且持续 +10」双算。
+- 契约：`IEffectDefinitionSource`（+ 聚合的 `EffectDefinitionRegistry.Default`，供跨库按 id 引用）、`IEffectContainerSource`、`IEffectAttributeSource`（AttributeBased 幅度读当前值）、`IEffectAttributeSink`、`IEffectRandomSource`、`IEffectCueSink`（随 Applied / Executed / Removed 收到 `cueTags`）、`IEffectExecutionInfo`（执行器经 `ctx.GetService` 取当前定义 / 实例 / 来源 / 等级 / 阶段）；`EffectApplier.Apply(effectId, ctx)` 按 id 施加。事件：`OnEffectAdded / Removed / StackChanged / InhibitedChanged / PeriodicExecuted / OnModifiersChanged`。编辑器：`EffectDefinitionDrawer` 分节显隐；宿主可注入 `EffectDefinitionDrawerHooks.AttributeIdField` 把属性 id 画成自己的下拉。
+
+> **与 UE5 GAS 的对照**：`EffectDefinition` ≙ GameplayEffect（Duration / Period / Stacking / Tags / Modifiers / Executions / Cues），`EffectContainer` ≙ AbilitySystemComponent 的活动效果与标签部分，`EffectExpression` + `[EffectExecutor]` ≙ Executions。未做：曲线表幅度、非快照的属性捕获（幅度在施加 / 叠层时快照）、网络复制。**修饰器管「值」，执行器管「事」，容器管「生命周期」。**
 
 ### 编辑器框架
 

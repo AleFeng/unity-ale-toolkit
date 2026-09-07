@@ -14,7 +14,7 @@ A **general-purpose foundation library** for Unity plugin development. It carrie
 - [Assemblies](#assemblies)
 - [Usage & Main APIs](#usage--main-apis)
   - [Attribute system](#attribute-system) · [Sorting](#sorting) · [UI](#ui) · [Object pool](#object-pool) · [Tween](#tween)
-  - [Attribute modifier](#attribute-modifier) · [Condition System](#condition-system) · [Effect System](#effect-system)
+  - [Attribute modifier](#attribute-modifier) · [GameplayTag System](#gameplaytag-system) · [Condition System](#condition-system) · [Effect System](#effect-system)
   - [Editor framework](#editor-framework) · [Editor localization](#editor-localization) · [Optional dependency support](#optional-dependency-support) · [Editor entry & global settings](#editor-entry--global-settings) · [General tool windows](#general-tool-windows)
 - [License](#license)
 
@@ -29,16 +29,17 @@ A **general-purpose foundation library** for Unity plugin development. It carrie
 | **UI** | Virtual scrolling lists (grid / sequential, object pool + visible-region-only rendering; cell assign / recycle fade-in-out driven generically by `UiwListFadeCell` + the engine's default hooks), tab strips, filter bars, tooltip base classes, widget pools |
 | **Object pool** | A general-purpose GameObject/prefab pool (`Spawn`/`Despawn` + `IPoolable` callbacks; preload / capacity-recycle / delayed despawn / cross-scene) plus a plain-C# reference-type pool `ToolkitClassPool<T>` (lower GC) — a drop-in replacement for third-party pools like Lean.Pool |
 | **Tween** | A lightweight central tween (DOTween-style single-Update polling, pooled jobs, near-zero GC): `FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` for alpha, `TintGraphic` for full colour, `MoveTransform` / `RotateTransform` / `ScaleTransform`, `DelayedCall`, and `Kill(target)` to kill by target; returns a killable value-type handle; minimal easing set `EToolkitEase` |
-| **Attribute modifier** | GAS-style modifier evaluation: `ModifierDefinition` + `ModifierStackEvaluator` settle by group (Add→PercentAdd→Multiply→Override + clamp + source breakdown). Use it for any "base value + a stack of bonuses → current value" numeric convergence |
+| **Attribute modifier** | GAS-style modifier evaluation (engine-agnostic assembly `Ale.Modifier.Core`, namespace `Ale.Modifier`): `ModifierDefinition` + `ModifierStackEvaluator` settle by group (Add→PercentAdd→Multiply→Override + clamp + source breakdown). Use it for any "base value + a stack of bonuses → current value" numeric convergence; the Effect System's duration modifiers produce it directly |
+| **GameplayTag System** | UE-GameplayTag-style hierarchical tags: `GameplayTag` (`Status.Debuff.Mental` — owning a descendant matches the ancestor), the config container `GameplayTagContainer`, the runtime `GameplayTagCountContainer`, `GameplayTagRequirements`, an advisory registry + tag-table assets + an editor tag-tree dropdown; condition bridge `Condition.HasGameplayTag` / `Condition.GameplayTags` |
 | **Condition System** | Data-driven two-level AND/OR conditions: declare a `ConditionExpression` field to configure it inline in the Inspector; upper layers implement `[ConditionEvaluator]` evaluators that are auto-discovered, and can reuse the ready-made comparison-operator kit and evaluation context. The engine-agnostic Core is server-side ready |
-| **Effect System** | The write-side mirror of the Condition System: data-driven discrete trigger-style mutations (phase groups + an optional per-item condition gate); upper layers implement `[EffectExecutor]` executors that are auto-discovered. Engine-agnostic Core |
+| **Effect System** | A complete UE5-GAS-`GameplayEffect`-style effect system: `EffectDefinition` (duration policy / period / stacking / tags / application condition & chance / modifiers / per-phase executions / cues) + the runtime `EffectContainer` (application pipeline, Tick, inhibition, immunity, remove-by-tag, modifier collection, save state); the execution layer is still data-driven phase groups + an optional per-item condition gate, with upper-layer `[EffectExecutor]` executors auto-discovered. Engine-agnostic Core |
 | **Editor framework** | Three-column tab base class, database window shell base class, master list panel, entity list panel and tool window base — all generic over the database type |
 | **Editor localization** | 中文 / English / 日本語 service, keyed by the Chinese source string, falling back automatically when a translation is missing |
 | **Optional dependency support** | Macro toggles and adapters for TextMeshPro (`ATK_TMP`), Unity Localization (`ATK_LOCALIZATION`) and Addressables (`ATK_ADDRESSABLE`) |
 | **Editor entry & global settings** | The Ale Toolkit Welcome Window (`Tools > Ale Toolkit > Welcome`): editor UI language / enum translation / the three optional feature macros / wizard default & localized fonts + general-tool entries + an "auto-show on startup" toggle; project-level settings such as the wizard fonts are saved to `ProjectSettings/AleToolkitSettings.asset` (committed with the repo, asset references stored by GUID), while language / auto-show are per-user (EditorPrefs); macros are only ever toggled explicitly from the Welcome window — the package never rewrites PlayerSettings on its own |
 | **General tool windows** | Walk every `AttributeValue` of any data asset (`ScriptableObject`) for batch processing: Addressable migration (Object ↔ GUID) and localization key generation, under `Tools > Ale Toolkit`, reusable by upper-layer plugins |
 
-> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**; **since 1.5.1 it adds generic cell fade-in/out for the virtual-scroll list (`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`, driven by `UiwVirtualListBase`'s default hooks) plus `ToolkitTween.FadeGraphic`**; **since 1.6.0 the central tween gains `SpriteRenderer` fading, `Graphic` full-colour tinting, `Transform` move / rotate / scale, delayed callbacks and kill-by-target, so it can take over DOTween's common single-tween usage (still no sequences)**; **since 1.8.0 the Condition System moves three "every host writes its own" facilities into Core — the comparison-operator kit `ConditionCompare`, the general-purpose contexts `ConditionContext` / `SubjectConditionContext`, and the idempotent `ConditionRegistry.EnsureAutoRegistered()`**. See the [CHANGELOG](CHANGELOG.md) for details.
+> All modules above are in place — since 1.1.0 the three optional-dependency support layers (TMP / Localization / Addressables) are complete and the editor UI is trilingual even in a toolkit-only project; **since 1.2.0 it owns the project-level global settings (language / macros) and provides general tool windows that work on any data asset**; **since 1.3.0 it adds a general-purpose object pool (GameObject pool + plain-C# class pool) and a lightweight central tween**; **since 1.4.0 it adds attribute-modifier evaluation, a database window shell base class, and two independent subsystems — the Condition System (`Ale.Condition`) and the Effect System (`Ale.Effect`)**; **since 1.5.0 it adds the lightweight display-text value `TextValue` (fallback + optional native localization — a standalone lightweight version of `AttributeValue`'s `Text` type)**; **since 1.5.1 it adds generic cell fade-in/out for the virtual-scroll list (`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`, driven by `UiwVirtualListBase`'s default hooks) plus `ToolkitTween.FadeGraphic`**; **since 1.6.0 the central tween gains `SpriteRenderer` fading, `Graphic` full-colour tinting, `Transform` move / rotate / scale, delayed callbacks and kill-by-target, so it can take over DOTween's common single-tween usage (still no sequences)**; **since 1.8.0 the Condition System moves three "every host writes its own" facilities into Core — the comparison-operator kit `ConditionCompare`, the general-purpose contexts `ConditionContext` / `SubjectConditionContext`, and the idempotent `ConditionRegistry.EnsureAutoRegistered()`**; **since 1.9.0 it adds the hierarchical GameplayTag System (`Ale.GameplayTags`), completes the Effect System into a full GAS `GameplayEffect` (`EffectDefinition` + `EffectContainer`), and extracts attribute modifiers into the engine-agnostic `Ale.Modifier.Core` (⚠️ namespace is now `Ale.Modifier`)**. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 
@@ -46,20 +47,25 @@ A **general-purpose foundation library** for Unity plugin development. It carrie
 
 | Assembly Definition | Purpose | Macro constraint |
 | --- | --- | --- |
-| `Ale.Toolkit.Runtime` | Attribute system, sorting, asset-loading abstraction, shared serialization, object pool, central tween, attribute-modifier evaluation | — |
+| `Ale.Toolkit.Runtime` | Attribute system, sorting, asset-loading abstraction, shared serialization, object pool, central tween | — |
 | `Ale.Toolkit.UI` | Virtual scrolling lists and general UI widgets | — |
 | `Ale.Toolkit.UI.Localization` | Unity Localization adapter components | `ATK_LOCALIZATION` |
 | `Ale.Toolkit.Addressables.Runtime` | Addressables loading and handle management | `ATK_ADDRESSABLE` |
 | `Ale.Toolkit.Editor` | Editor framework, database window shell base class, attribute drawers, localization service, macro toggles | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables editor tooling | `ATK_ADDRESSABLE` |
+| `Ale.Modifier.Core` | Attribute modifier · `ModifierDefinition` / `ModifierStackEvaluator` / the three enums (`noEngineReferences`; extracted from `Ale.Toolkit.Runtime` in 1.9.0, namespace `Ale.Modifier`) | — |
+| `Ale.GameplayTags.Core` | GameplayTag System · engine-agnostic model: tag / container / count container / requirements / registry (`noEngineReferences`, no references) | — |
+| `Ale.GameplayTags.Condition` | GameplayTag System · condition bridge: built-in evaluators `Condition.HasGameplayTag` / `Condition.GameplayTags` | References `Ale.Condition.Core` + `Ale.GameplayTags.Core` |
+| `Ale.GameplayTags.Runtime` | GameplayTag System · Unity bridge (`GameplayTagTable` asset + registration on startup + `[GameplayTagField]`) | — |
+| `Ale.GameplayTags.Editor` | GameplayTag System · catalog / tag-tree dropdown / container & requirements drawers / table inspector / Welcome window | — |
 | `Ale.Condition.Core` | Condition System · engine-agnostic model / evaluation engine / registry & reflection discovery / JSON, plus the reusable comparison-operator kit `ConditionCompare` and the general-purpose `ConditionContext` (`noEngineReferences`, server-side ready) | References Newtonsoft |
 | `Ale.Condition.Runtime` | Condition System · Unity bridge (`ConditionAsset` + auto-register on startup) | — |
 | `Ale.Condition.Editor` | Condition System · inline drawer / catalog / Welcome window | — |
-| `Ale.Effect.Core` | Effect System · engine-agnostic model / execution runner / registry & reflection discovery / JSON (`noEngineReferences`) | References `Ale.Condition.Core` + Newtonsoft |
-| `Ale.Effect.Runtime` | Effect System · Unity bridge (`EffectAsset` + auto-register on startup) | — |
-| `Ale.Effect.Editor` | Effect System · inline drawer / catalog / Welcome window | — |
+| `Ale.Effect.Core` | Effect System · engine-agnostic model (`EffectDefinition` / `EffectExpression`) / runtime `EffectContainer` / execution runner / registry & reflection discovery / JSON (`noEngineReferences`) | References `Ale.Condition.Core` + `Ale.GameplayTags.Core` + `Ale.Modifier.Core` + Newtonsoft |
+| `Ale.Effect.Runtime` | Effect System · Unity bridge (`EffectAsset` / `EffectDefinitionAsset` + auto-register on startup) | — |
+| `Ale.Effect.Editor` | Effect System · definition / magnitude / modifier / expression drawers, host attribute-dropdown hook, catalog, Welcome window | — |
 
-Dependencies flow one way: host plugin → `Ale.Toolkit.*` / `Ale.Condition.*` / `Ale.Effect.*`; this package never references a host plugin. The Condition and Effect subsystems have independent namespaces (`Ale.Condition` / `Ale.Effect`), and `Ale.Effect.Core` references `Ale.Condition.Core` one-way (for the optional condition gate on effect items).
+Dependencies flow one way: host plugin → `Ale.Toolkit.*` / `Ale.Modifier.*` / `Ale.GameplayTags.*` / `Ale.Condition.*` / `Ale.Effect.*`; this package never references a host plugin. Each subsystem has its own namespace (`Ale.Modifier` / `Ale.GameplayTags` / `Ale.Condition` / `Ale.Effect`); `Ale.Modifier.Core`, `Ale.GameplayTags.Core` and `Ale.Condition.Core` never reference one another, while `Ale.GameplayTags.Condition` and `Ale.Effect.Core` are the convergence points (layering: tags < conditions < effects).
 
 ---
 
@@ -166,7 +172,7 @@ Three differences from DOTween are worth noting: **(1) no overwrite management**
 
 ### Attribute modifier
 
-GAS-style modifier evaluation (`Ale.Toolkit.Runtime`). Declarative `ModifierDefinition`s feed into one attribute, and `ModifierStackEvaluator` settles them by group in a fixed order to produce "the current value + a per-source breakdown". Static, stateless, no Unity dependency; it does **not** include the runtime loop for duration expiry / stacking (the config carries those; the host settles them at runtime and feeds in the effective modifiers).
+GAS-style modifier evaluation (assembly `Ale.Modifier.Core`, namespace `Ale.Modifier`; **before 1.9.0 it lived in `Ale.Toolkit.Runtime`** — after upgrading, add the asmdef reference and switch to `using Ale.Modifier;`; stored data is unaffected). Declarative `ModifierDefinition`s feed into one attribute, and `ModifierStackEvaluator` settles them by group in a fixed order to produce "the current value + a per-source breakdown". Static, stateless, no Unity dependency; it does **not** include the runtime loop for duration expiry / stacking — that is the [Effect System](#effect-system)'s job: a duration effect's `EffectContainer.CollectModifiers` produces exactly this type, and the host feeds it into the evaluator together with its other sources.
 
 ```csharp
 var mods = new List<ModifierDefinition> {
@@ -180,9 +186,42 @@ foreach (var c in r.Breakdown)                    // per source: SourceTag / Ope
     Debug.Log($"{c.SourceTag} {c.Operation} {c.Delta}");
 ```
 
-- `ModifierDefinition`: `targetAttributeId` (an opaque key the evaluator does not interpret) / `operation` / `magnitude` / `duration` / `durationDays` / `sourceTag` (source breakdown + grouped removal) / `stackLimit` / `stackRule`.
+- `ModifierDefinition`: `targetAttributeId` (an opaque key the evaluator does not interpret) / `operation` / `magnitude` / `sourceTag` (source breakdown + grouped removal); plus four config-only inert fields `duration` / `durationDays` / `stackLimit` / `stackRule` — neither the evaluator nor the Effect System reads them; duration / period / stacking are carried by `EffectDefinition`.
 - `ModifierStackEvaluator.Evaluate(baseValue, min, max, modifiers, collectBreakdown = true)` → `ModifierEvaluation{ BaseValue, RawValue, Value, Breakdown }`; the lightweight `EvaluateValue(...)` returns only the final value. The settlement order is fixed: `base → +ΣAdd → ×(1+ΣPercentAdd) → per-item ×(1+magnitude) Multiply → final Override → clamp[min,max]`. The caller must group by `targetAttributeId` first; duration / stacking are settled at runtime before being passed in.
 - Enums: `EModifierOperation` (`Add`/`PercentAdd`/`Multiply`/`Override`), `EModifierDuration` (`Instant`/`Timed`/`Permanent`), `EStackRule` (`Refresh`/`Add`/`EveryXStacks`/`OnMaxStacks`).
+
+### GameplayTag System
+
+UE-GameplayTag-style hierarchical tags (namespace `Ale.GameplayTags`; assemblies `Ale.GameplayTags.Core` / `.Condition` / `.Runtime` / `.Editor`). Dotted names express the hierarchy: `Status.Debuff.Mental` matches `Status.Debuff` and `Status` (**owning a descendant matches the ancestor**); a bare prefix does not count (`AB` does not match `A`). Ordinal, case-sensitive — consistent with every other string key in the toolkit; the normalization rules (trim the whole and each segment; empty segments, whitespace inside a segment and `/` are invalid) are a data format, frozen at release and pinned by tests.
+
+```csharp
+using Ale.GameplayTags;
+
+// Config side: the container stores List<string> and round-trips through Unity / Newtonsoft as-is; [GameplayTagField] gives a string field the tag-tree dropdown
+public GameplayTagContainer assetTags = new GameplayTagContainer();
+[GameplayTagField] public string cueTag;
+
+// Runtime: the owner's count container (explicit counts + implicit ancestor counts, O(1) hierarchical queries)
+var owned = new GameplayTagCountContainer();
+owned.AddTag(new GameplayTag("Status.Debuff.Mental"));
+bool mental = owned.HasMatchingTag(new GameplayTag("Status.Debuff"));   // true: a descendant is owned
+owned.OnTagCountChanged += (tag, count) => { /* the effect container re-evaluates inhibition on this */ };
+
+// Requirements: must own all requireTags and none of the ignoreTags
+var req = new GameplayTagRequirements();
+req.requireTags.AddTag("State.Alive");
+req.ignoreTags.AddTag("Immunity.Mental");
+bool ok = req.IsMet(owned);
+```
+
+- `GameplayTag` (readonly struct, **never serialized**): `IsValid` / `Depth` / `Parent` / `Root` / `Leaf`, `MatchesTag(parent)` / `MatchesTagExact` / `IsDescendantOf`, `Normalize` / `TryParse` / `Parse`.
+- `GameplayTagContainer` (`[Serializable]`, its only field is `List<string> tags`): `AddTag` / `RemoveTag` (exact) / `RemoveTagsMatching` (subtree), `HasTag` (hierarchical) / `HasTagExact` / `HasAny` / `HasAll` (empty set: All is true, Any is false) / `Filter`, `Normalize` / `Clone`.
+- `GameplayTagCountContainer` (runtime): `AddTag/RemoveTag(tag, count)`, `AddTags/RemoveTags(container)`, `HasMatchingTag` / `HasExactTag` / `GetTagCount`, `GetExplicitTags`, event `OnTagCountChanged`.
+- `GameplayTagRequirements`: `requireTags` / `ignoreTags`, `IsMet(...)`, `Validate` (errors on require ∩ ignore).
+- **The registry is advisory**: `GameplayTagRegistry.Default` (registering auto-adds ancestors; `Validate` catches unregistered names and case-only typos) only serves the editor dropdown and config-time validation — **runtime matching never consults the registry**, unregistered tags match as usual. Sources: `GameplayTagTable` assets under `Resources` (`Create > Ale > GameplayTag > Gameplay Tag Table`, registered on startup) and explicit `GameplayTagRuntime.Register(...)` by the host (e.g. custom tags in a database).
+- **Condition bridge** (`Ale.GameplayTags.Condition`): built-in evaluators `Condition.HasGameplayTag(tag, exact)` and `Condition.GameplayTags(tags[], any / all / none, exact)`; the subject's tags are resolved through the context's `IGameplayTagSource` service or `Subject as IGameplayTagOwner`. **No separate TagQuery** — and/or/not composition is left to `ConditionExpression`. The bridge is its own assembly rather than a reference from `Ale.Condition.Core`, preserving that assembly's "zero references" promise.
+- Editor: drawers for `GameplayTagContainer` / `GameplayTagRequirements` / `[GameplayTagField]` (tag-tree dropdown; red tint for invalid names, yellow for unregistered ones), a tag-table inspector (validate / sort), `Tools > Ale Toolkit > GameplayTag System > Welcome`.
+- Naming note: the namespace is the plural `Ale.GameplayTags` — with `Ale.GameplayTag`, writing `GameplayTag t` inside `namespace Ale.*` would resolve to the namespace first (CS0118); the attribute is `[GameplayTagField]` to avoid ambiguity with the type (CS1614).
 
 ### Condition System
 
@@ -258,7 +297,7 @@ At runtime `ConditionRuntime` fills `ConditionRegistry.Default` via reflection i
 
 ### Effect System
 
-The **write-side mirror** of the Condition System (namespace `Ale.Effect`): data-driven, parameterized **discrete trigger-style mutations**, organized by "phase groups", each item optionally gated by a condition. Numeric bonuses (buffs) are handled by the **attribute modifiers** above; effects do only discrete actions (grant / remove, set flag, raise event, ignite…). Likewise "declare an `EffectExpression` field to configure it in the Inspector", and upper-layer `[EffectExecutor]` executors are auto-discovered. Three assemblies: `Ale.Effect.Core` (references `Ale.Condition.Core` for gating) / `.Runtime` / `.Editor`.
+A UE5-GAS-`GameplayEffect`-style effect system (namespace `Ale.Effect`) in two layers: the **definition layer** `EffectDefinition` + the **runtime container** `EffectContainer` (since 1.9.0; the counterpart of GAS's GameplayEffect + the effect part of the ASC: duration / period / stacking / tags / immunity / inhibition / modifiers / save state), and the **execution layer** `EffectExpression` (since 1.4.0; the counterpart of GAS Executions: phase groups of discrete actions, each optionally gated by a condition). "Declare a field and configure it in the Inspector"; upper-layer `[EffectExecutor]` executors are auto-discovered. Three assemblies: `Ale.Effect.Core` (references `Ale.Condition.Core` / `Ale.GameplayTags.Core` / `Ale.Modifier.Core`; engine-agnostic) / `.Runtime` / `.Editor`. The execution layer comes first (a definition's `executions` field is exactly that), then definitions and the container.
 
 **Structure**: `EffectExpression → EffectGroup(phase timing tag) → EffectItem(key + params + optional gate)`. A single field can hold multiple phase groups (e.g. `onGained` / `onLost`); items within a group **execute in order**, and the runtime filters by `phase` (an empty-phase group is a wildcard that runs for any phase).
 
@@ -319,9 +358,43 @@ Debug.Log($"applied {rep.Applied} / skipped {rep.Skipped} / failed {rep.Failed}"
 
 If an item has a gate (an embedded `ConditionExpression`, configured inline in the editor), the runner first evaluates it via `ConditionEngine` and marks the item `Skipped` when unmet. At runtime `EffectRuntime` auto-registers all executors in `[RuntimeInitializeOnLoadMethod]`.
 
-**Built-in executors**: `Effect.NoOp`, `Effect.SetFlag` (`IEffectFlagSink`), `Effect.AdjustNumber` (`IEffectNumberSink`) — the write-side duals of the Condition System's `HasFlag` / `NumberCompare` respectively. **JSON**: `EffectJson.ToJson/FromJson` (embedded gates round-trip with the graph). **Overview**: `Tools > Ale Toolkit > Effect System > Welcome`.
+**Built-in executors**: `Effect.NoOp`, `Effect.SetFlag` (`IEffectFlagSink`), `Effect.AdjustNumber` (`IEffectNumberSink`) — the write-side duals of the Condition System's `HasFlag` / `NumberCompare` respectively; `Effect.ApplyEffect(effectId, level)` / `Effect.RemoveEffectsWithTag(tag)` / `Effect.RemoveEffectById(effectId)` — effect composition and dispelling (container and definition resolved from the context). **JSON**: `EffectJson.ToJson/FromJson` (expressions) and `ToJson(EffectDefinition)/DefinitionFromJson` (embedded gates / conditions / tags round-trip with the graph). **Overview**: `Tools > Ale Toolkit > Effect System > Welcome`.
 
-> **Boundary with UE5 GAS**: The numeric side of GAS's `GameplayEffect` (Modifiers / Duration / Stacking) is covered by the **attribute modifiers** above; the Effect System corresponds to its execution side (Executions / Cues / Conditional Effects) — discrete triggered actions. The division is clean: **modifiers manage "values", effects manage "events"**.
+**④ Effect definitions and the container (the GAS layer)**
+
+An `EffectDefinition` is a reusable "what the effect looks like": `durationPolicy` (Instant / HasDuration / Infinite), `duration` / `period` + `executePeriodicOnApplication`, stacking (`stackingType` aggregate by source / by target, `stackLimit`, the duration-refresh / period-reset / expiration policies), tags (`assetTags` / `grantedTags` / `removeEffectsWithTags` / `grantedApplicationImmunityTags`, `applicationTagRequirements` / `ongoingTagRequirements`), `applicationCondition` (Condition), `chanceToApply`, `modifiers` (`EffectModifier`: attribute id + operation + `EffectMagnitude` — Scalable / AttributeBased / SetByCaller), `executions` (the `EffectExpression` above; phase constants `EffectPhases.OnApply / OnStack / OnPeriod / OnExpire / OnRemove`) and `cueTags`. Hosts keep definitions in a **top-level list** of their database and reference them by id (the nesting is already 8 levels deep; two more wrappers would hit Unity's serialization depth limit); toolkit-only users can use `EffectDefinitionAsset`. `Normalize()` rewrites an empty phase to `onApply` (`EffectRunner` treats an empty phase as a wildcard, which would otherwise re-run on every period / removal); `Validate(errors)` reports errors plus warnings prefixed with `警告:`.
+
+```csharp
+using Ale.Effect; using Ale.Modifier; using Ale.GameplayTags;
+
+// Definition: a 30-"day" +10 might buff, aggregated by target up to 3 stacks, granting Status.Buff.Might
+var buff = new EffectDefinition("battle_focus", EDurationPolicy.HasDuration) {
+    duration = EffectMagnitude.Scalable(30f), stackingType = EEffectStackingType.AggregateByTarget, stackLimit = 3,
+};
+buff.modifiers.Add(new EffectModifier("might", EModifierOperation.Add, 10f));
+buff.grantedTags.AddTag("Status.Buff.Might");
+
+// One container per owner; the host's time unit (world days / seconds…) is the unit of the definition's durations
+var container = new EffectContainer(owner: heroId);
+var ctx = new EffectContext { Subject = heroId };            // ConditionContext's service bag: register by interface
+ctx.RegisterService<IEffectAttributeSink>(mySink);          // where instant / periodic modifiers land permanently
+ctx.RegisterService<IEffectContainerSource>(myContainers);  // built-ins like Effect.ApplyEffect find containers by subject
+
+EffectApplyResult r = container.ApplyEffect(buff, ctx, level: 1, source: casterId);   // Applied / Stacked / Refreshed / BlockedBy…
+container.Tick(1f, ctx);                                     // advance one time unit: periodic execution, expiry removal
+var mods = new List<ModifierDefinition>();
+container.CollectModifiers("might", mods);                   // scaled modifiers of active, uninhibited, non-periodic effects → feed ModifierStackEvaluator
+container.RemoveEffectsWithTags(new GameplayTagContainer("Status.Buff"), ctx);   // dispel
+var save = container.ExportState();                          // save; ImportState(state, definitions, ctx) restores silently
+```
+
+- **Application pipeline**: immunity (an active, uninhibited effect's immunity tags match the newcomer's `assetTags`) → application tag requirements → application condition (`Subject` = target) → chance → duration evaluation (≤ 0 is `Invalid`) → Instant: modifiers land through `IEffectAttributeSink.ApplyPermanent` + `onApply`, never stored / Stack: the matching instance gains a stack (at the cap it returns `Refreshed` and still refreshes per policy) + `onStack` / New instance: granted tags + `onApply` + execute-on-application → remove other effects by tag.
+- **Tick**: periods before expiry; multiple executions when the delta spans several periods, remainder kept; while inhibited the period is frozen but **duration keeps running**; expiry clears the stack / removes one stack and refreshes / only refreshes, per policy, then `onExpire` → `onRemove`.
+- **Inhibition** (`ongoingTagRequirements` unmet): modifiers are excluded, the period freezes, granted tags are revoked; any change to `OwnedTags` (grants / `AddLooseTag` / direct host writes) re-evaluates automatically.
+- **Values vs. events**: duration / infinite effects contribute temporary modifiers through `CollectModifiers` (one stack-scaled `ModifierDefinition` per modifier, source `effect:{id}#{handle}`); instant effects and periodic executions land **permanently** through the sink — **periodic effects do not participate in `CollectModifiers`**, otherwise "+10 every period and +10 while active" would be double-counted.
+- Contracts: `IEffectDefinitionSource` (+ the aggregating `EffectDefinitionRegistry.Default` for cross-database references by id), `IEffectContainerSource`, `IEffectAttributeSource` (AttributeBased magnitudes read current values), `IEffectAttributeSink`, `IEffectRandomSource`, `IEffectCueSink` (receives `cueTags` on Applied / Executed / Removed), `IEffectExecutionInfo` (executors call `ctx.GetService` to get the current definition / instance / source / level / phase); `EffectApplier.Apply(effectId, ctx)` applies by id. Events: `OnEffectAdded / Removed / StackChanged / InhibitedChanged / PeriodicExecuted / OnModifiersChanged`. Editor: `EffectDefinitionDrawer` shows sections conditionally; hosts can inject `EffectDefinitionDrawerHooks.AttributeIdField` to draw attribute ids as their own dropdown.
+
+> **Mapping to UE5 GAS**: `EffectDefinition` ≙ GameplayEffect (Duration / Period / Stacking / Tags / Modifiers / Executions / Cues), `EffectContainer` ≙ the active-effect and tag part of the AbilitySystemComponent, `EffectExpression` + `[EffectExecutor]` ≙ Executions. Not done: curve-table magnitudes, non-snapshot attribute capture (magnitudes are snapshotted on apply / stack), network replication. **Modifiers manage "values", executors manage "events", the container manages "lifetime".**
 
 ### Editor framework
 
