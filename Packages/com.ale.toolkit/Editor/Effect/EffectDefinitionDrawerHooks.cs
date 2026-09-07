@@ -14,6 +14,12 @@ namespace Ale.Effect.Editor
         /// <summary>属性 id 字段绘制回调；null = 文本框。</summary>
         public static Func<Rect, string, string> AttributeIdField;
 
+        /// <summary>
+        /// 是否绘制「基本」节（id / 显示名两行）。宿主把定义包在自带 id / 名称的实体里、由实体同步这两个字段时，
+        /// 在绘制前置 false、绘制后还原，避免出现两处可编辑却被同步覆盖的字段。默认 true。
+        /// </summary>
+        public static bool ShowIdentityFields = true;
+
         /// <summary>按当前钩子绘制属性 id 字段。</summary>
         public static string DrawAttributeId(Rect rect, string current)
         {

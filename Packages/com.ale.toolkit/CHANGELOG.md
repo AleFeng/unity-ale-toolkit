@@ -31,7 +31,7 @@
   - **值 / 事分工**：持续 / 无限效果的修饰器经 `CollectModifiers` 临时汇流（每条修饰器只产出一条按层数缩放的 `ModifierDefinition`：Add / PercentAdd × S、Multiply (1+m)^S − 1、Override 原值，来源 `effect:{id}#{handle}`）；瞬时与周期结算经 `IEffectAttributeSink.ApplyPermanent` 永久落地——**周期效果不参与 `CollectModifiers`**，否则「每周期 +10 且持续 +10」被双算。
   - 契约：`IEffectDefinitionSource` + 聚合的 `EffectDefinitionRegistry.Default`（跨库按 id 引用；`EffectRuntime.Install` 每次播放清空）、`IEffectContainerSource`、`IEffectAttributeSource` / `IEffectAttributeSink`、`IEffectRandomSource`（缺服务用 `EffectContainer.DefaultRandom`）、`IEffectCueSink`（Applied / Executed / Removed；顺序先 Applied 再施加即结算的 Executed）、`IEffectExecutionInfo`（容器把宿主上下文包成 `Subject` = 目标的执行上下文，执行器经 `ctx.GetService` 取当前定义 / 实例 / 来源 / 等级 / 阶段）；`EffectContext : ConditionContext` + `SubjectEffectContext`；`EffectApplier.Apply(effectId, ctx)`（容器 ← 上下文容器源或主体本身；定义 ← 请求 → 上下文定义源 → 全局注册表）。
   - 内置执行器 `Effect.ApplyEffect(effectId, level, sourceTag)`（来源沿用外层执行信息）、`Effect.RemoveEffectsWithTag(tag)`、`Effect.RemoveEffectById(effectId)`；`EffectRegistry.EnsureAutoRegistered()`（与 Condition 侧对齐，`Clear()` 复位标志）；`EffectJson` 增定义往返。
-  - 编辑器：`EffectDefinitionDrawer`（分节显隐；**量算与绘制共用同一布局代码**，不错位）、`EffectMagnitudeDrawer` / `EffectModifierDrawer`、宿主注入点 `EffectDefinitionDrawerHooks.AttributeIdField`、`EffectDefinitionAsset` + 校验 / 归一 Inspector、`EffectExpressionDrawer` 阶段下拉、Welcome 说明。
+  - 编辑器：`EffectDefinitionDrawer`（分节显隐；**量算与绘制共用同一布局代码**，不错位）、`EffectMagnitudeDrawer` / `EffectModifierDrawer`、宿主注入点 `EffectDefinitionDrawerHooks.AttributeIdField`（属性 id 下拉）/ `ShowIdentityFields`（宿主实体自带 id / 名称时隐藏「基本」节）、`EffectDefinitionAsset` + 校验 / 归一 Inspector、`EffectExpressionDrawer` 阶段下拉、Welcome 说明。
 
 ### 修复
 

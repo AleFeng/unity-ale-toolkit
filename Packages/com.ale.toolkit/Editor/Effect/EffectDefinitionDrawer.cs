@@ -86,10 +86,13 @@ namespace Ale.Effect.Editor
 
             int addModifier = 0, delModifier = -1;
 
-            // ① 基本
-            Section(c, "基本");
-            Field(c, p.FindPropertyRelative("id"), "id");
-            Field(c, p.FindPropertyRelative("displayName"), "显示名");
+            // ① 基本（宿主实体自带 id / 名称并同步进定义时可经钩子隐藏）
+            if (EffectDefinitionDrawerHooks.ShowIdentityFields)
+            {
+                Section(c, "基本");
+                Field(c, p.FindPropertyRelative("id"), "id");
+                Field(c, p.FindPropertyRelative("displayName"), "显示名");
+            }
 
             // ② 时长与周期
             Section(c, "时长与周期");
