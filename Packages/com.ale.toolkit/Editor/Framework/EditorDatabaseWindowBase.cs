@@ -67,10 +67,26 @@ namespace Ale.Toolkit.Editor
         /// <summary>工具栏「数据文件」字段之后、导出按钮之前的额外内容（默认空）。</summary>
         protected virtual void DrawExtraToolbar(TDb db) { }
 
+        /// <summary>
+        /// 指定系统页签是否需要数据库资产才能绘制（默认 true：无数据库时改画「创建新的数据文件」占位页）。
+        /// 内容与数据库无关的页签（如「扫描代码里的实现」这类目录页）覆写为 false，即可在没有数据库时照常工作。
+        /// </summary>
+        protected virtual bool TabRequiresDatabase(int tabIndex) => true;
+
         // ── 访问器 ────────────────────────────────────────────────────────────────
 
         /// <summary>当前数据库（可能为 null）。</summary>
         protected TDb Db => _db;
+
+        /// <summary>当前系统页签索引（已夹到 <see cref="SystemTabs"/> 的有效范围）。</summary>
+        protected int CurrentSystemTab => ClampTab(_systemTab);
+
+        /// <summary>切换到指定系统页签（越界自动夹取，并记忆到 EditorPrefs）。</summary>
+        protected void SelectSystemTab(int index)
+        {
+            SetSystemTab(ClampTab(index));
+            Repaint();
+        }
 
         /// <summary>把窗口缓存标记为需刷新（下个 Layout 阶段调用 <see cref="RefreshCaches"/>）。</summary>
         protected void MarkCachesDirty() => _cachesDirty = true;
@@ -117,6 +133,8 @@ namespace Ale.Toolkit.Editor
             minSize = MinWindowSize;
             Undo.undoRedoPerformed += OnUndoRedoPerformed;
 
+            _systemTab = EditorPrefs.GetInt(TabPrefKey, 0);
+
             string path = EditorPrefs.GetString(EditorPrefKey, string.Empty);
             if (!string.IsNullOrEmpty(path))
             {
@@ -160,11 +178,30 @@ namespace Ale.Toolkit.Editor
 
             var bodyRect = new Rect(0, ToolbarHeight + TabRowHeight, position.width,
                 position.height - ToolbarHeight - TabRowHeight - StatusBarHeight);
-            if (!_db) DrawNoDatabase(bodyRect);
-            else      DrawBody(bodyRect);
+            int idx = ClampTab(_systemTab);
+            if (!_db && TabRequiresDatabase(idx)) DrawNoDatabase(bodyRect);
+            else                                  DrawBody(bodyRect, idx);
 
             DrawStatusBar();
         }
+
+        /// <summary>把页签索引夹到 <see cref="SystemTabs"/> 的有效范围（无页签时返回 0）。</summary>
+        private int ClampTab(int index)
+        {
+            var tabs = SystemTabs;
+            int count = tabs != null ? tabs.Length : 0;
+            return count <= 0 ? 0 : Mathf.Clamp(index, 0, count - 1);
+        }
+
+        /// <summary>写入页签索引并记忆（仅在真的变化时落 EditorPrefs，避免每帧写盘）。</summary>
+        private void SetSystemTab(int index)
+        {
+            if (_systemTab == index) return;
+            _systemTab = index;
+            EditorPrefs.SetInt(TabPrefKey, index);
+        }
+
+        private string TabPrefKey => EditorPrefKey + ".SystemTab";
 
         private void DrawToolbar()
         {
@@ -198,16 +235,15 @@ namespace Ale.Toolkit.Editor
             if (labels != null && labels.Length > 0)
             {
                 _systemTab = Mathf.Clamp(_systemTab, 0, labels.Length - 1);
-                _systemTab = GUILayout.Toolbar(_systemTab, labels, GUILayout.Height(TabRowHeight - 2));
+                SetSystemTab(GUILayout.Toolbar(_systemTab, labels, GUILayout.Height(TabRowHeight - 2)));
             }
             GUILayout.EndArea();
         }
 
-        private void DrawBody(Rect rect)
+        private void DrawBody(Rect rect, int idx)
         {
             var tabs = SystemTabs;
             if (tabs == null || tabs.Length == 0) return;
-            int idx = Mathf.Clamp(_systemTab, 0, tabs.Length - 1);
             GUILayout.BeginArea(rect);
             tabs[idx]?.OnGUI(new Rect(0, 0, rect.width, rect.height), this);
             GUILayout.EndArea();

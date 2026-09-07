@@ -10,13 +10,27 @@ using static Ale.Toolkit.Editor.ToolkitEditorL10n;
 namespace Ale.Effect.Editor
 {
     /// <summary>
-    /// 效果编辑器主窗口（IMGUI）：所有上层系统共用的效果库 <see cref="EffectDatabase"/> 在此配置——效果条目（显示字段 / 自定义属性 / GAS 式定义）、
-    /// 效果模板、Gameplay 标签、枚举类型。外壳（数据文件字段 / 页签 / 导出按钮 / 状态栏 / Undo / 路径记忆 / 缓存刷新编排）来自
-    /// toolkit 的 <see cref="EditorDatabaseWindowBase{TDb}"/>；上层系统的 Inspector 经 <see cref="EditorEffectRefListDrawer"/> 引用效果并跳转到本窗口。
+    /// 效果编辑器主窗口（IMGUI），两个页签：
+    /// <list type="number">
+    /// <item><b>Effect Executors</b>——工程里全部效果实现（<see cref="IEffectExecutor"/>）的目录：搜索 / 分类 / 源码跳转 /
+    /// 静默失效诊断 / 配置引用交叉核对。内容来自代码，<b>不需要效果库资产</b>。</item>
+    /// <item><b>Effect Database</b>——所有上层系统共用的效果库 <see cref="EffectDatabase"/>（可选）：效果条目
+    /// （显示字段 / 自定义属性 / GAS 式定义）、效果模板、Gameplay 标签、枚举类型。</item>
+    /// </list>
+    /// 外壳（数据文件字段 / 页签 / 导出按钮 / 状态栏 / Undo / 路径与页签记忆）来自 toolkit 的
+    /// <see cref="EditorDatabaseWindowBase{TDb}"/>；上层系统的 Inspector 经 <see cref="EditorEffectRefListDrawer"/>
+    /// 引用效果并跳转到本窗口的 Effect Database 页。
     /// </summary>
     public sealed class EffectEditorWindow : EditorDatabaseWindowBase<EffectDatabase>, IEffectEditorContext
     {
-        private readonly EffectSystemTab _effectTab = new EffectSystemTab();
+        /// <summary>页签索引：执行器目录（不需要效果库）。</summary>
+        private const int TabExecutors = 0;
+
+        /// <summary>页签索引：效果库配置。</summary>
+        private const int TabDatabase = 1;
+
+        private readonly EffectExecutorTab _executorTab = new EffectExecutorTab();
+        private readonly EffectSystemTab   _effectTab   = new EffectSystemTab();
         private IEditorSystemTab<EffectDatabase>[] _tabs;
 
         private Dictionary<EEffectEntityKind, HashSet<string>> _duplicateIds;
@@ -27,19 +41,29 @@ namespace Ale.Effect.Editor
         [MenuItem("Tools/Ale Toolkit/Effect System/Effect Editor", priority = 3002)]
         public static void Open() => OpenWindow();
 
-        /// <summary>打开窗口并载入指定效果库。</summary>
+        /// <summary>打开窗口并切到「Effect Executors」页（执行器目录；不需要效果库）。</summary>
+        public static void OpenExecutors()
+        {
+            var window = OpenWindow();
+            window.SelectSystemTab(TabExecutors);
+            window.Focus();
+        }
+
+        /// <summary>打开窗口、切到「Effect Database」页并载入指定效果库。</summary>
         public static void Open(EffectDatabase db)
         {
             var window = OpenWindow();
             if (db) window.SetDatabase(db);
+            window.SelectSystemTab(TabDatabase);
             window.Focus();
         }
 
-        /// <summary>打开窗口、载入效果库并定位到指定效果（下一帧 Layout 激活右列 Inspector）。</summary>
+        /// <summary>打开窗口、切到「Effect Database」页、载入效果库并定位到指定效果（下一帧 Layout 激活右列 Inspector）。</summary>
         public static void Open(EffectDatabase db, string effectId)
         {
             var window = OpenWindow();
             if (db) window.SetDatabase(db);
+            window.SelectSystemTab(TabDatabase);
             var entry = db ? db.GetEffect(effectId) : null;
             if (entry != null) window._effectTab.RequestSelect(entry);
             window.Focus();
@@ -80,10 +104,14 @@ namespace Ale.Effect.Editor
 
         protected override string EditorPrefKey => "EffectSystem.DatabasePath";
 
-        protected override string[] SystemTabLabels => new[] { "效果" };
+        // 两个页签名是与类型名对齐的英文专名（EffectDatabase / IEffectExecutor），不走 Tr()。
+        protected override string[] SystemTabLabels => new[] { "Effect Executors", "Effect Database" };
 
         protected override IEditorSystemTab<EffectDatabase>[] SystemTabs
-            => _tabs ??= new IEditorSystemTab<EffectDatabase>[] { _effectTab };
+            => _tabs ??= new IEditorSystemTab<EffectDatabase>[] { _executorTab, _effectTab };
+
+        /// <summary>执行器目录读的是代码而非资产，没有效果库时照样可用。</summary>
+        protected override bool TabRequiresDatabase(int tabIndex) => tabIndex != TabExecutors;
 
         protected override string EmptyDatabaseHint => Tr("请创建或选择一个 EffectDatabase 效果库");
 

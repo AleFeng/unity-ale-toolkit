@@ -109,6 +109,66 @@ namespace Ale.Effect.Editor
             Add("新建效果库", "New Effect Database", "エフェクトデータベースを新規作成");
             Add("（未选择）", "(none)", "（未選択）");
             Add("（未知）", " (unknown)", "（不明）");
+
+            // ── 执行器目录页签（Effect Executors）─────────────────────────────────
+            Add("只看有问题", "Issues only", "問題のみ");
+            Add("刷新", "Refresh", "更新");
+            Add("已发现 {0} / 共 {1}", "{0} discovered / {1} total", "検出 {0} / 全 {1}");
+            Add("⚠ 配置里有 {0} 个执行器键没有对应实现（运行时会报「未注册的执行器键」）",
+                "⚠ {0} executor key(s) referenced by configuration have no implementation (the runtime logs an unregistered-executor-key warning)",
+                "⚠ 設定から参照されている実装のない実行器キーが {0} 件あります（ランタイムで未登録の実行器キーとして警告されます）");
+            Add("{0} 处引用", "{0} reference(s)", "参照 {0} 件");
+            Add("没有匹配的执行器", "No matching executor", "一致する実行器がありません");
+            Add("从左侧选择一个执行器", "Select an executor on the left", "左から実行器を選択してください");
+            Add("分类 {0} · 被引用 {1} 处", "Category {0} · {1} reference(s)", "カテゴリ {0} · 参照 {1} 件");
+            Add("分类 {0} · 未被任何配置引用", "Category {0} · not referenced by any configuration",
+                "カテゴリ {0} · どの設定からも参照されていません");
+            Add("实现", "Type", "実装");
+            Add("程序集", "Assembly", "アセンブリ");
+            Add("脚本", "Script", "スクリプト");
+            Add("无源码（来自程序集 {0}）", "No source (from assembly {0})", "ソースなし（アセンブリ {0}）");
+            Add("打开脚本", "Open Script", "スクリプトを開く");
+            Add("在 Project 中定位", "Show in Project", "Project で表示");
+            Add("复制 Key", "Copy Key", "Key をコピー");
+            Add("参数（{0}）", "Parameters ({0})", "パラメータ（{0}）");
+            Add("无参数", "No parameters", "パラメータなし");
+            Add("被引用（{0}）", "References ({0})", "参照（{0}）");
+            Add("尚未被任何效果配置引用", "Not referenced by any effect configuration yet",
+                "まだどのエフェクト設定からも参照されていません");
+            Add("跳转", "Go", "移動");
+            Add("诊断", "Diagnostics", "診断");
+            Add("找不到 {0} 的源码脚本", "Source script for {0} not found", "{0} のソーススクリプトが見つかりません");
+
+            // 诊断文案
+            Add("实现了 IEffectExecutor 却没打 [EffectExecutor] 特性：编辑器目录与运行时注册表都发现不了它。",
+                "Implements IEffectExecutor but is not marked with [EffectExecutor]: neither the editor catalog nor the runtime registry can discover it.",
+                "IEffectExecutor を実装していますが [EffectExecutor] 属性がありません。エディタのカタログにもランタイムのレジストリにも検出されません。");
+            Add("特性里写的是 '{0}'，实际生效的是 Key 属性的 '{1}'——特性字符串从不被读取，请改成一致。",
+                "The attribute says '{0}' but the effective key is the Key property's '{1}' — the attribute string is never read; please make them match.",
+                "属性には '{0}'、実際に有効なのは Key プロパティの '{1}' です。属性の文字列は読まれません。一致させてください。");
+            Add("键 '{0}' 有多个实现：编辑器目录取先发现的、运行时注册表取后注册的，两边可能不是同一个。",
+                "Key '{0}' has multiple implementations: the editor catalog keeps the first one found while the runtime registry keeps the last one registered — they may not be the same.",
+                "キー '{0}' に複数の実装があります。エディタのカタログは最初に見つかったもの、ランタイムのレジストリは最後に登録されたものを採用するため、一致しない可能性があります。");
+            Add("Key 属性为空：目录与注册表都会跳过它。",
+                "The Key property is empty: both the catalog and the registry skip it.",
+                "Key プロパティが空です。カタログもレジストリもスキップします。");
+            Add("抽象类，不会被实例化（作为执行器基类时属正常）。",
+                "Abstract class, never instantiated (normal for an executor base class).",
+                "抽象クラスのためインスタンス化されません（実行器の基底クラスなら正常です）。");
+            Add("缺少公开无参构造：目录与注册表都会跳过它。",
+                "No public parameterless constructor: both the catalog and the registry skip it.",
+                "public な引数なしコンストラクタがありません。カタログもレジストリもスキップします。");
+            Add("实例化失败：请检查构造函数与静态初始化。",
+                "Instantiation failed: check the constructor and static initialization.",
+                "インスタンス化に失敗しました。コンストラクタと静的初期化を確認してください。");
+
+            // 速查区
+            Add("新增执行器速查", "New Executor Cheat Sheet", "実行器の追加ガイド");
+            Add("内置阶段：{0}（空阶段组视为通配，Normalize() 会改写为 onApply；宿主自定义阶段经 EffectContainer.RunPhase 触发）",
+                "Built-in phases: {0} (an empty phase group is a wildcard and Normalize() rewrites it to onApply; host-defined phases are triggered via EffectContainer.RunPhase)",
+                "組み込みフェーズ：{0}（空のフェーズグループはワイルドカードで、Normalize() が onApply に書き換えます。ホスト独自のフェーズは EffectContainer.RunPhase で発火します）");
+            Add("最小实现模板", "Minimal implementation template", "最小実装テンプレート");
+            Add("复制模板", "Copy Template", "テンプレートをコピー");
         }
     }
 }

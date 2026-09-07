@@ -4,14 +4,12 @@ using UnityEngine;
 namespace Ale.Effect.Editor
 {
     /// <summary>
-    /// 效果系统的设置 / 概览窗口：说明两层用法（效果定义 GameplayEffect 层 / 阶段组执行层）、内置阶段常量、
-    /// 刷新执行器目录、列出当前发现的执行器（按 Category 分组）。
-    /// 效果系统本身<b>不需要独立的配置 EditorWindow</b>——效果在各字段处内联编辑；本窗口只作总览与设置入口。
+    /// 效果系统的概览 / 入口窗口：说明两层用法（效果定义 GameplayEffect 层 / 阶段组执行层）、内置阶段常量，
+    /// 并给出通往 <see cref="EffectEditorWindow"/> 两个页签的入口。
+    /// 效果既可在各字段处内联编辑，也可集中放进效果库；执行器清单见 Effect Editor 的「Effect Executors」页。
     /// </summary>
     public class EffectWelcomeWindow : EditorWindow
     {
-        private Vector2 _scroll;
-
         [MenuItem("Tools/Ale Toolkit/Effect System/Welcome", priority = 3001)]
         public static void Open()
         {
@@ -50,33 +48,17 @@ namespace Ale.Effect.Editor
                     EffectEditorWindow.CreateDatabaseAsset();
             }
 
-            EditorGUILayout.Space(4);
+            EditorGUILayout.Space(6);
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField($"已发现执行器：{EffectExecutorCatalog.All.Count}", EditorStyles.miniBoldLabel);
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("刷新目录", GUILayout.Width(80)))
-                    EffectExecutorCatalog.Rebuild();
+                if (GUILayout.Button("查看全部执行器", GUILayout.Width(120), GUILayout.Height(22)))
+                    EffectEditorWindow.OpenExecutors();
             }
-
-            _scroll = EditorGUILayout.BeginScrollView(_scroll, EditorStyles.helpBox);
-            string lastCat = null;
-            foreach (var ex in EffectExecutorCatalog.All)
-            {
-                string cat = string.IsNullOrEmpty(ex.Category) ? "其它" : ex.Category;
-                if (cat != lastCat)
-                {
-                    EditorGUILayout.Space(4);
-                    EditorGUILayout.LabelField(cat, EditorStyles.boldLabel);
-                    lastCat = cat;
-                }
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField(ex.DisplayName, GUILayout.Width(160));
-                    EditorGUILayout.LabelField(ex.Key, EditorStyles.miniLabel);
-                }
-            }
-            EditorGUILayout.EndScrollView();
+            EditorGUILayout.LabelField(
+                "（Effect Editor 的「Effect Executors」页：搜索 / 分类过滤 / 跳转源码 / 实现体检 / 配置引用交叉核对）",
+                EditorStyles.wordWrappedMiniLabel);
         }
     }
 }
