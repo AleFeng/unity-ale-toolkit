@@ -2,7 +2,9 @@
     "name": "Ale.Effect.Core",
     "rootNamespace": "Ale.Effect",
     "references": [
-        "Ale.Condition.Core"
+        "Ale.Condition.Core",
+        "Ale.GameplayTags.Core",
+        "Ale.Modifier.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

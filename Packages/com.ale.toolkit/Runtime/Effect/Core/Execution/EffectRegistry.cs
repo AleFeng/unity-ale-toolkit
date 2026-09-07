@@ -12,6 +12,9 @@ namespace Ale.Effect
     {
         private readonly Dictionary<string, IEffectExecutor> _map = new Dictionary<string, IEffectExecutor>();
 
+        /// <summary>是否已经跑过一次自动注册（供 <see cref="EnsureAutoRegistered"/> 判重）。</summary>
+        private bool _autoRegistered;
+
         /// <summary>共享默认实例（运行时由 Unity 桥在启动时 AutoRegister；服务端可手动填充）。</summary>
         public static EffectRegistry Default { get; } = new EffectRegistry();
 
@@ -41,19 +44,42 @@ namespace Ale.Effect
             return _map.TryGetValue(key, out executor);
         }
 
-        /// <summary>清空。</summary>
-        public void Clear() => _map.Clear();
+        /// <summary>
+        /// 清空。
+        /// <para>⚠️ 一并复位「已自动注册」标志，否则 <see cref="EnsureAutoRegistered"/> 在清空之后会
+        /// 静默变成空操作，注册表永久为空。</para>
+        /// </summary>
+        public void Clear()
+        {
+            _map.Clear();
+            _autoRegistered = false;
+        }
 
         /// <summary>触发缺失键回调（运行器内部用）。</summary>
         internal void NotifyMissing(string key) => MissingKeyWarning?.Invoke(key);
 
         /// <summary>
+        /// 幂等的自动注册兜底：首次调用等价于 <see cref="AutoRegisterFromAssemblies"/>，此后直接返回 false。
+        /// 返回本次是否真的执行了扫描。与 <c>ConditionRegistry.EnsureAutoRegistered</c> 同款：
+        /// Unity 侧的 <c>EffectRuntime</c> 只在运行时启动阶段填表，编辑器工具在非播放态执行 / 预览时注册表是空的，宿主据此兜底一次即可。
+        /// <para><see cref="Clear"/> 会复位标志，因此「清空 → 再 Ensure」能正常重扫。</para>
+        /// </summary>
+        public bool EnsureAutoRegistered()
+        {
+            if (_autoRegistered) return false;
+            AutoRegisterFromAssemblies();
+            return true;
+        }
+
+        /// <summary>
         /// 反射扫描当前 AppDomain 所有程序集，实例化并注册：带 <see cref="EffectExecutorAttribute"/>、
         /// 实现 <see cref="IEffectExecutor"/>、且有公开无参构造的具体类。返回「新增」注册数（覆盖不计）。
         /// 纯 <see cref="System.Reflection"/>，引擎无关。
+        /// <para>每次调用都全量重扫；只想兜底一次用 <see cref="EnsureAutoRegistered"/>。</para>
         /// </summary>
         public int AutoRegisterFromAssemblies()
         {
+            _autoRegistered = true;
             int added = 0;
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
