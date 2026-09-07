@@ -5,7 +5,8 @@ namespace Ale.Effect
 {
     /// <summary>
     /// 运行时桥：游戏启动时把纯 C# 的 <see cref="EffectRegistry.Default"/> 填满——反射扫描所有程序集里
-    /// 带 <see cref="EffectExecutorAttribute"/> 的执行器，并把缺失键告警接到 <see cref="Debug"/>（去重）。
+    /// 带 <see cref="EffectExecutorAttribute"/> 的执行器，并把缺失键告警接到 <see cref="Debug"/>（去重）；
+    /// 同时清空 <see cref="EffectDefinitionRegistry.Default"/>（关闭 Domain Reload 时不把上一次播放登记的定义源带进本次）。
     /// </summary>
     public static class EffectRuntime
     {
@@ -15,6 +16,7 @@ namespace Ale.Effect
         private static void Install()
         {
             _warned.Clear();
+            EffectDefinitionRegistry.Default.Clear();
             var reg = EffectRegistry.Default;
             reg.AutoRegisterFromAssemblies();
             reg.MissingKeyWarning = key =>
