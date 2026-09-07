@@ -64,7 +64,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` 淡入淡出，`TintGraphic` 整色过渡，`MoveTransform` / `RotateTransform` / `ScaleTransform` 位移·旋转·缩放，`DelayedCall` 延时回调，`Kill(target)` 按目标打断；返回值类型可打断句柄 |
 | **属性修饰器** | GAS 式修饰器求值：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。数值汇流「基础值 + 一叠加成 → 当前值」 |
 | **条件系统（`Ale.Condition`）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现。引擎无关 Core 可上服务端 |
-| **效果系统（`Ale.Effect`）** | 条件系统的写侧镜像：数据驱动的离散触发式突变（阶段组 + 每项可选条件门控）；上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core |
+| **效果系统（`Ale.Effect`）** | UE5 GAS `GameplayEffect` 范式的效果系统：`EffectDefinition`（时长 / 周期 / 叠加 / 标签 / 修饰器 / 阶段执行）+ 运行时 `EffectContainer`；1.10.0 起附带所有上层系统共用的效果库 `EffectDatabase` 与 Effect Editor，上层只存效果 id 并各自实现 `[EffectExecutor]` 执行器（自动发现）。引擎无关 Core |
 | **编辑器框架** | 数据库窗口外壳基类、三列布局页签基类、主列表面板、实体列表面板、工具窗口基类，均对数据库类型泛型化 |
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
 | **UGUI 预制体工具箱** | 与领域无关的 UGUI 原语与文本 / 按钮搭建（供各插件的一键生成向导复用） |
@@ -85,7 +85,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | `Ale.Toolkit.Editor` | 编辑器框架、数据库窗口外壳基类、属性绘制器、多语言服务、预制体工具箱、宏开关 | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables 编辑器解析器 / 工具窗口 | `ATK_ADDRESSABLE` |
 | `Ale.Condition.Core` / `.Runtime` / `.Editor` | 条件系统：引擎无关模型·引擎·注册·JSON（可上服务端）/ Unity 桥 + 启动自动注册 / 内联绘制器 + 目录 + 欢迎窗口 | Core 引用 Newtonsoft |
-| `Ale.Effect.Core` / `.Runtime` / `.Editor` | 效果系统：引擎无关模型·运行器·注册·JSON / Unity 桥 + 启动自动注册 / 内联绘制器 + 目录 + 欢迎窗口 | Core 引用 `Ale.Condition.Core` + Newtonsoft |
+| `Ale.Effect.Core` / `.Runtime` / `.Editor` | 效果系统：引擎无关模型·容器·运行器·注册·JSON / Unity 桥 + 共用效果库 `EffectDatabase` + 启动引导 / Effect Editor + 目录 + 引用列表绘制器 + 欢迎窗口 | Core 引用 `Ale.Condition.Core` + `Ale.GameplayTags.Core` + `Ale.Modifier.Core` + Newtonsoft；Runtime 引用 `Ale.Toolkit.Runtime`（1.10.0 起） |
 
 依赖方向单向：宿主插件 → `Ale.Toolkit.*` / `Ale.Condition.*` / `Ale.Effect.*`，本包不反向引用任何宿主插件。条件 / 效果两子系统命名空间独立（`Ale.Condition` / `Ale.Effect`）。
 

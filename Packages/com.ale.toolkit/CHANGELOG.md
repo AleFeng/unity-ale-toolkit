@@ -6,6 +6,37 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.10.0] - 2026-09-07
+
+**效果配置从「各宿主自建一份」收拢为 toolkit 的共用效果库 + 共用 Effect Editor。** 1.9.0 之后，Chronicle 与 Inventory 各自在数据库里持有效果列表与 Gameplay 标签，并各有一份结构相同的「效果系统」编辑页（约 1000 行重复代码），效果只能在各宿主库内定义、跨系统共用只能靠全局注册表按 id 碰运气。本版把效果数据与效果编辑器下沉到 toolkit：效果在 `EffectDatabase` 里一处配置、所有上层系统按 id 引用；上层只保留「效果引用列表 + 跳转按钮」，并各自实现 `[EffectExecutor]` 执行器——效果本质是「对某个系统的操作」，系统如何被操作由该系统自己实现，新系统出现时不必改 toolkit。Chronicle 那种带本地化名称 / 描述 / 图标的包装实体 `ChronicleEffect` 上提为 `EffectEntry`，并新增**模板驱动的自定义属性列表**（模板定 schema、条目填值）。本版新增 17 个测试（共 197）。
+
+### 破坏性变更
+
+- ⚠️ **`Ale.Effect.Runtime` 新增引用 `Ale.Toolkit.Runtime` 与 `Ale.GameplayTags.Runtime`**（效果库需要属性系统与标签登记）；`Ale.Effect.Editor` 新增引用 `Ale.Toolkit.Editor`、`Ale.GameplayTags.Editor`、`Ale.GameplayTags.Runtime`。依赖方向不变、无环：`Ale.Toolkit.Runtime` / `Ale.Toolkit.Editor` 不反向引用任何子系统，`Ale.Effect.Core` 仍引擎无关。只引用 `Ale.Effect.Core` 的服务端 / 纯 C# 消费方不受影响；引用 `Ale.Effect.Runtime` 的宿主从此连带 toolkit 全家桶（含 TMP / Localization / Addressables 的可选宏链）——共享库需要属性系统，接受。
+- **运行时引导拆分**：`EffectRuntime` 与 `GameplayTagRuntime` 各拆成 `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]` 清空（效果定义注册表 + 缺键告警集 / 标签注册表）与 `[BeforeSceneLoad]` 只做加法（执行器自动注册 + `Resources` 加载）。此前 `EffectRuntime.Install` 在 BeforeSceneLoad 里清空注册表，宿主若在更早时机 `AddSource` 会被抹掉；现在清空只发生在 SubsystemRegistration，宿主在 BeforeSceneLoad / Awake 登记的来源稳定存活；关闭 Domain Reload 时同样由 SubsystemRegistration 统一复位。
+- `EffectDefinitionRegistry.Default.AddSource` 改为幂等（同一来源不重复登记）；`Clear()` 同时清空来源列表。
+
+### 新增
+
+- **效果库 `EffectDatabase`**（`Ale.Effect.Runtime`，`Runtime/Effect/Unity/Database/`；`Create > Ale > Effect > Effect Database`）：四个顶层列表——`enumTypes`（自定义属性的枚举字段用）、`effectTemplates`、`effects`、`gameplayTags`；实现 `IEnumTypeSource` / `IEffectSchemaSource` / `IEffectDefinitionSource`（显式实现返回条目的 `definition`）；`GetEffect(id)` / `GetTemplate(name)` / `GetEnumType(name)`、`NormalizeAll` / `RebuildAllAttributes` / `AddEnumType` / `CloneFrom`；`Validate(out errors)`：枚举名 / 模板名 / 效果 id 重复、`templateRef` 悬空、定义为空、定义错误（`EffectDefinition.IsWarning` 的警告不阻断）、非法标签名。
+  - **`EffectTemplate : ConfigTemplateBase`**：`name` / `color` / `attributes`（自定义属性 schema）+ `defaultDefinition`（从模板创建效果时深拷贝作为预设）。
+  - **`EffectEntry : AttributeOwner`**（Chronicle `ChronicleEffect` 原样上提 + 模板字段）：`id` / `templateRef` / `displayText` / `descriptionText` / `iconValue`（`AttributeValue` Text / Text / Sprite）/ `values`（按模板 schema 的自定义属性）/ `definition`；`Normalize()` 把 `definition.id` / `displayName` 与条目同步；`RebuildAttributes(IEffectSchemaSource)` 按 schema 对账；`ResolveDisplayName()` / `PlainName()` / `Clone()`。
+  - ⚠️ **序列化深度零余量**：库 → 条目 / 模板 → 定义 → 执行 → 组 → 项 → 门控 → 组 → 项 → 参数已是 9 层，`EffectTemplate.defaultDefinition` 必须是直接字段、`EffectEntry` 必须是顶层列表元素——再包一层即触及 Unity 序列化深度上限。
+- **`EffectDataManager : ToolkitSingleton`**（`IEffectDefinitionSource` / `IEnumTypeSource` / `IEffectSchemaSource`）：`Register(db)`（幂等；`NormalizeAll`；首次登记时 `EffectDefinitionRegistry.Default.AddSource(this)`；标签并入 `GameplayTagRuntime.Register`）/ `Unregister` / `ClearDatabases`（空时从注册表移除）/ `LoadFromBinary(bytes)` / `LoadFromJson(json)`；惰性索引 `GetEffect` / `GetTemplate` / `GetEnumType` / `GetAllEffects`。`EffectRuntime.AutoLoadFromResources`（静态开关，默认 true）为真时启动自动 `Resources.LoadAll<EffectDatabase>` 逐个登记。
+- **`EffectConfigSerializer`**（命名空间 `Ale.Effect.Serialization`）：魔数 `EFDB`、`Version = 1`；JSON（`JsonUtility`，定义直接内嵌）与二进制（定义以 `EffectJson` 串写入，属性值经 `ToolkitBinaryCodec` / `ToolkitDtoMapper`）的 `Export` / `Import` / `ImportInto` 往返；`IAssetRefResolver` 沿用 toolkit（运行时 `LoadFromBinary` 用空解析器，图标不解析）。
+- **Effect Editor**（`Ale.Effect.Editor`，`Editor/Effect/Database/`；菜单 `Tools > Ale Toolkit > Effect System > Effect Editor`）：`EditorDatabaseWindowBase<EffectDatabase>` 外壳 + 一个三列「效果」页——左列子页签 **效果模板**（名称 / 色点 / 内联默认定义 / schema 绘制器）、**Gameplay 标签**（自 Chronicle 上提；名称非法红框、列出隐式登记的祖先）、**枚举类型**（`EditorEnumTypePanel` 闭合）；中列效果列表（模板过滤 / 搜索 / 从模板添加 = 克隆 `defaultDefinition` + 按 schema 建属性 / 快速添加；行列 ID / 名称 / 策略 / 内容摘要）；右列 Inspector（ID 查重、名称 / 描述 / 图标、只读来源模板、按 schema 的自定义属性（枚举经库解析）、内联 `EffectDefinition`（`ShowIdentityFields = false`，首次自动展开）、校验摘要）。查重（效果 id / 模板 name / 枚举 name）阻断导出；导出 JSON / 二进制经 `Validate` 拦截。`EffectEditorWindow.Open()` / `Open(db)` / `Open(db, effectId)`（定位到指定效果）/ `CreateDatabaseAsset()`。三语（`EffectEditorL10nTables`，`[InitializeOnLoad]` 登记到 `ToolkitEditorL10n`）。
+- **`EffectEditorCatalog`**：汇总工程内全部 `EffectDatabase` 资产（`AssetPostprocessor` 失效重建）：`Databases` / `All` / `TryFind(id)` / `Find(id)` / `LabelOf` / `BuildMenu`（按库分组，同 id 先扫到者优先）；并作为 provider 把各库的 Gameplay 标签并入 `GameplayTagEditorCatalog`——编辑态不再往运行时注册表灌标签。
+- **`EditorEffectRefListDrawer.Draw(ctx, refs, drag, header, noun, hint)`**：供宿主 Inspector 使用的效果 id 引用列表——「+」目录菜单、拖拽重排 / 删除、命中目录的行附「打开」按钮跳转到 Effect Editor 并定位、未命中标「未找到」（不阻断，运行时按 id 经全局注册表解析）、底部自由输入。
+- **属性 id 目录 provider**：`IEffectAttributeCatalogProvider { SystemName; GetAttributes() → (id, display) }` + `EffectDefinitionDrawerHooks.RegisterAttributeProvider / UnregisterAttributeProvider / ClearAttributeProviders / CollectAttributeCandidates`；`DrawAttributeId` 顺序：整字段委托 `AttributeIdField`（保留、优先）→ provider 下拉（多系统按系统名分组，同 id 先登记者优先；悬空 / 未选择项保留在首位）→ 文本框。
+- **框架**：`EditorEntityListPanel.RequestSelect(entity)` / `EditorThreeColumnTab.RequestSelect(entity)`（须在数据库设定之后调用；下一帧 Layout 激活右列 Inspector，实体不在列表则忽略）；`GameplayTagEditorCatalog.RegisterProvider / UnregisterProvider`。
+- `EffectDatabase` 资产 Inspector（「在 Effect Editor 中编辑」+ 概览 + 原始数据视图）；效果系统欢迎窗口加「打开效果编辑器 / 新建效果库」。
+- 测试：`EffectDatabaseTests`（15：Normalize / RebuildAttributes / Validate 各分支 / JSON 与二进制往返 / 数据管理器登记·注册表·标签·清空·幂等）、`EffectEditorCatalogTests`（2：索引构建、provider 登记 / 汇总 / 注销）；测试程序集新增引用 `Ale.Toolkit.Editor`。
+
+### 说明
+
+- 宿主迁移路径（Chronicle 0.5.0 / Inventory 1.13.0 落地）：宿主库里已存的效果与标签保留为隐藏 legacy 字段一个版本 + 一键迁移菜单搬入 `EffectDatabase`（id 冲突跳过并报告）；宿主的效果引用列表改用 `EditorEffectRefListDrawer`，属性候选经 provider 登记，执行器不变。
+- Effect Editor 与引用绘制器走 toolkit 三语；既有的定义 / 幅度 / 修饰器 / 表达式绘制器仍为硬编码中文（不变）。
+
 ## [1.9.0] - 2026-09-07
 
 **效果系统补齐 UE5 GAS `GameplayEffect` 的全貌，并新增层级标签系统；属性修饰器抽成独立的引擎无关程序集。** 此前效果系统只是一个「一次性派发层」（阶段组 + 执行器 + 门控），GAS 里让它成为「系统」的两根支柱——带句柄 / 时长 / 叠加的活动效果容器，以及 Gameplay Tag——都不存在，而 `ModifierDefinition` 上的时长 / 叠加字段也从未有运行时解释它们。三个宿主对 `Ale.Effect` 零引用、无序列化资产，正是补齐设计的时机。既有 `EffectExpression` / 执行器 / 门控原样保留（它们正对应 GAS 的 Executions），14 个既有测试一字未动；本版新增 94 个测试（共 180）。

@@ -32,14 +32,14 @@
 | **属性修饰器** | GAS 式修饰器求值（引擎无关程序集 `Ale.Modifier.Core`，命名空间 `Ale.Modifier`）：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。任何「基础值 + 一叠加成 → 当前值」的数值汇流都用它；效果系统的持续修饰器也直接产出它 |
 | **标签系统（GameplayTag System）** | UE GameplayTag 范式的层级标签：`GameplayTag`（`Status.Debuff.Mental`，持有后代即匹配祖先）、配置容器 `GameplayTagContainer`、运行时计数容器 `GameplayTagCountContainer`、标签要求 `GameplayTagRequirements`、咨询性注册表 + 标签表资产 + 编辑器标签树下拉；条件桥 `Condition.HasGameplayTag` / `Condition.GameplayTags` |
 | **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现，并可直接复用现成的比较符范式与判定上下文。引擎无关 Core 可上服务端 |
-| **效果系统（Effect System）** | UE5 GAS `GameplayEffect` 范式的完整效果系统：`EffectDefinition`（时长策略 / 周期 / 叠加 / 标签 / 施加条件与概率 / 修饰器 / 各阶段执行 / 线索）+ 运行时 `EffectContainer`（施加管线、Tick、抑制、免疫、按标签移除、汇流、存档）；执行层仍是数据驱动的阶段组 + 每项可选条件门控，上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core |
+| **效果系统（Effect System）** | UE5 GAS `GameplayEffect` 范式的完整效果系统：`EffectDefinition`（时长策略 / 周期 / 叠加 / 标签 / 施加条件与概率 / 修饰器 / 各阶段执行 / 线索）+ 运行时 `EffectContainer`（施加管线、Tick、抑制、免疫、按标签移除、汇流、存档）；执行层仍是数据驱动的阶段组 + 每项可选条件门控，上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core；**1.10.0 起**附带所有上层系统共用的效果库 `EffectDatabase`（效果条目 = 显示名 / 描述 / 图标 + 模板驱动的自定义属性 + GAS 定义；效果模板 / Gameplay 标签 / 枚举）与 Effect Editor，上层系统只保留效果 id 引用列表 + 跳转 |
 | **编辑器框架** | 三列布局页签基类、数据库窗口外壳基类、主列表面板、实体列表面板、工具窗口基类，均对数据库类型泛型化 |
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
 | **可选依赖支持层** | TextMeshPro（`ATK_TMP`）、Unity Localization（`ATK_LOCALIZATION`）、Addressables（`ATK_ADDRESSABLE`）的宏开关与适配 |
 | **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；宏只由欢迎窗口显式开关，插件不会自动改写 PlayerSettings |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
-> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**；**1.9.0 起新增层级标签系统（`Ale.GameplayTags`），效果系统补齐 GAS `GameplayEffect` 全貌（`EffectDefinition` + `EffectContainer`），属性修饰器抽成引擎无关的 `Ale.Modifier.Core`（⚠️ 命名空间改为 `Ale.Modifier`）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**；**1.9.0 起新增层级标签系统（`Ale.GameplayTags`），效果系统补齐 GAS `GameplayEffect` 全貌（`EffectDefinition` + `EffectContainer`），属性修饰器抽成引擎无关的 `Ale.Modifier.Core`（⚠️ 命名空间改为 `Ale.Modifier`）**；**1.10.0 起新增所有上层系统共用的效果库 `EffectDatabase` 与 Effect Editor（效果条目带显示名 / 描述 / 图标与模板驱动的自定义属性；上层只保留效果 id 引用列表 + 跳转；⚠️ `Ale.Effect.Runtime` 新增依赖 `Ale.Toolkit.Runtime` / `Ale.GameplayTags.Runtime`）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 
@@ -62,10 +62,10 @@
 | `Ale.Condition.Runtime` | 条件系统 · Unity 桥（`ConditionAsset` + 启动自动注册） | — |
 | `Ale.Condition.Editor` | 条件系统 · 内联绘制器 / 目录 / 欢迎窗口 | — |
 | `Ale.Effect.Core` | 效果系统 · 引擎无关模型（`EffectDefinition` / `EffectExpression`）/ 运行时容器 `EffectContainer` / 执行运行器 / 注册与反射发现 / JSON（`noEngineReferences`） | 引用 `Ale.Condition.Core` + `Ale.GameplayTags.Core` + `Ale.Modifier.Core` + Newtonsoft |
-| `Ale.Effect.Runtime` | 效果系统 · Unity 桥（`EffectAsset` / `EffectDefinitionAsset` + 启动自动注册） | — |
-| `Ale.Effect.Editor` | 效果系统 · 定义 / 幅度 / 修饰器 / 表达式绘制器、宿主属性下拉钩子、目录、欢迎窗口 | — |
+| `Ale.Effect.Runtime` | 效果系统 · Unity 桥：共用效果库 `EffectDatabase`（效果条目 / 模板 / Gameplay 标签 / 枚举）+ `EffectDataManager` + `EffectConfigSerializer`（JSON / 二进制）、`EffectAsset` / `EffectDefinitionAsset`、启动引导（清空 + 加法） | 引用 `Ale.Toolkit.Runtime` + `Ale.GameplayTags.Runtime`（1.10.0 起） |
+| `Ale.Effect.Editor` | 效果系统 · Effect Editor（效果 / 模板 / 标签 / 枚举）、效果目录 `EffectEditorCatalog`、宿主用引用列表绘制器 `EditorEffectRefListDrawer`、定义 / 幅度 / 修饰器 / 表达式绘制器、属性 id 目录 provider、欢迎窗口 | 引用 `Ale.Toolkit.Editor` + `Ale.GameplayTags.Editor`（1.10.0 起） |
 
-依赖方向单向：宿主插件 → `Ale.Toolkit.*` / `Ale.Modifier.*` / `Ale.GameplayTags.*` / `Ale.Condition.*` / `Ale.Effect.*`，本包不反向引用任何宿主插件。各子系统命名空间独立（`Ale.Modifier` / `Ale.GameplayTags` / `Ale.Condition` / `Ale.Effect`）；`Ale.Modifier.Core`、`Ale.GameplayTags.Core`、`Ale.Condition.Core` 三者互不引用，`Ale.GameplayTags.Condition` 与 `Ale.Effect.Core` 是汇合点（层次：标签 < 条件 < 效果）。
+依赖方向单向：宿主插件 → `Ale.Toolkit.*` / `Ale.Modifier.*` / `Ale.GameplayTags.*` / `Ale.Condition.*` / `Ale.Effect.*`，本包不反向引用任何宿主插件。各子系统命名空间独立（`Ale.Modifier` / `Ale.GameplayTags` / `Ale.Condition` / `Ale.Effect`）；`Ale.Modifier.Core`、`Ale.GameplayTags.Core`、`Ale.Condition.Core` 三者互不引用，`Ale.GameplayTags.Condition` 与 `Ale.Effect.Core` 是汇合点（层次：标签 < 条件 < 效果）。1.10.0 起 `Ale.Effect.Runtime` 引用 `Ale.Toolkit.Runtime`（效果库需要属性系统）与 `Ale.GameplayTags.Runtime`，`Ale.Effect.Editor` 引用 `Ale.Toolkit.Editor` / `Ale.GameplayTags.Editor`；`Ale.Toolkit.*` 不反向引用任何子系统，各 `*.Core` 仍引擎无关、无环。
 
 ---
 
@@ -298,7 +298,7 @@ bool okForHero = expr.Evaluate(new SubjectConditionContext(ctx, hero)).Passed;
 
 ### 效果系统 · Effect System
 
-UE5 GAS `GameplayEffect` 范式的效果系统（命名空间 `Ale.Effect`），分两层：**定义层** `EffectDefinition` + **运行时容器** `EffectContainer`（1.9.0 起，对应 GAS 的 GameplayEffect + ASC 效果部分：时长 / 周期 / 叠加 / 标签 / 免疫 / 抑制 / 修饰器 / 存档），以及**执行层** `EffectExpression`（1.4.0 起，对应 GAS 的 Executions：阶段组 + 每项可选条件门控的离散动作）。「声明字段即在 Inspector 配置」，上层实现 `[EffectExecutor]` 执行器被自动发现。三个程序集：`Ale.Effect.Core`（引用 `Ale.Condition.Core` / `Ale.GameplayTags.Core` / `Ale.Modifier.Core`，引擎无关）/ `.Runtime` / `.Editor`。先讲执行层（定义层的 `executions` 字段就是它），再讲定义与容器。
+UE5 GAS `GameplayEffect` 范式的效果系统（命名空间 `Ale.Effect`），分两层：**定义层** `EffectDefinition` + **运行时容器** `EffectContainer`（1.9.0 起，对应 GAS 的 GameplayEffect + ASC 效果部分：时长 / 周期 / 叠加 / 标签 / 免疫 / 抑制 / 修饰器 / 存档），以及**执行层** `EffectExpression`（1.4.0 起，对应 GAS 的 Executions：阶段组 + 每项可选条件门控的离散动作）。「声明字段即在 Inspector 配置」，上层实现 `[EffectExecutor]` 执行器被自动发现。三个程序集：`Ale.Effect.Core`（引用 `Ale.Condition.Core` / `Ale.GameplayTags.Core` / `Ale.Modifier.Core`，引擎无关）/ `.Runtime`（1.10.0 起承载共用效果库，引用 `Ale.Toolkit.Runtime` + `Ale.GameplayTags.Runtime`）/ `.Editor`（引用 `Ale.Toolkit.Editor` + `Ale.GameplayTags.Editor`）。先讲执行层（定义层的 `executions` 字段就是它），再讲定义与容器。
 
 **结构**：`EffectExpression → EffectGroup(phase 时机标签) → EffectItem(key + 参数 + 可选 gate)`。同一字段里可放多个阶段组（如 `onGained` / `onLost`），组内**按序执行**，运行时按 `phase` 过滤（空 phase 组为通配，任意 phase 都执行）。
 
@@ -363,7 +363,7 @@ Debug.Log($"应用 {rep.Applied} / 跳过 {rep.Skipped} / 失败 {rep.Failed}");
 
 **④ 效果定义与容器（GAS 层）**
 
-`EffectDefinition` 是一份可复用的「效果长什么样」：`durationPolicy`（Instant / HasDuration / Infinite）、`duration` / `period` + `executePeriodicOnApplication`、叠加（`stackingType` 按来源 / 按目标聚合、`stackLimit`、刷新时长 / 重置周期 / 到期三策略）、标签（`assetTags` / `grantedTags` / `removeEffectsWithTags` / `grantedApplicationImmunityTags`、`applicationTagRequirements` / `ongoingTagRequirements`）、`applicationCondition`（Condition）、`chanceToApply`、`modifiers`（`EffectModifier`：属性 id + 运算 + `EffectMagnitude`——Scalable / AttributeBased / SetByCaller）、`executions`（上面的 `EffectExpression`，阶段常量 `EffectPhases.OnApply / OnStack / OnPeriod / OnExpire / OnRemove`）、`cueTags`。宿主把定义放在数据库**顶层列表**、以 id 引用（嵌套已达 8 层，再多包两层会触及 Unity 序列化深度上限）；纯 toolkit 用户可用 `EffectDefinitionAsset`。`Normalize()` 会把空阶段改写为 `onApply`（`EffectRunner` 视空 phase 为通配，否则会在每周期 / 移除时重复执行）；`Validate(errors)` 报错误与「警告:」前缀的警告。
+`EffectDefinition` 是一份可复用的「效果长什么样」：`durationPolicy`（Instant / HasDuration / Infinite）、`duration` / `period` + `executePeriodicOnApplication`、叠加（`stackingType` 按来源 / 按目标聚合、`stackLimit`、刷新时长 / 重置周期 / 到期三策略）、标签（`assetTags` / `grantedTags` / `removeEffectsWithTags` / `grantedApplicationImmunityTags`、`applicationTagRequirements` / `ongoingTagRequirements`）、`applicationCondition`（Condition）、`chanceToApply`、`modifiers`（`EffectModifier`：属性 id + 运算 + `EffectMagnitude`——Scalable / AttributeBased / SetByCaller）、`executions`（上面的 `EffectExpression`，阶段常量 `EffectPhases.OnApply / OnStack / OnPeriod / OnExpire / OnRemove`）、`cueTags`。定义的存放：**推荐直接用 1.10.0 的共用效果库 `EffectDatabase`（见 ⑤）**；宿主自建库时须把定义放在数据库**顶层列表**、以 id 引用（嵌套已达 8 层，再多包两层会触及 Unity 序列化深度上限）；纯 toolkit 用户也可用单定义资产 `EffectDefinitionAsset`。`Normalize()` 会把空阶段改写为 `onApply`（`EffectRunner` 视空 phase 为通配，否则会在每周期 / 移除时重复执行）；`Validate(errors)` 报错误与「警告:」前缀的警告。
 
 ```csharp
 using Ale.Effect; using Ale.Modifier; using Ale.GameplayTags;
@@ -393,7 +393,25 @@ var save = container.ExportState();                          // 存档；ImportS
 - **Tick**：周期先于到期；跨多周期多次结算、余数保留；抑制中周期冻结、**时长照走**；到期按策略整清 / 减一层刷新 / 只刷新，`onExpire` → `onRemove`。
 - **抑制**（`ongoingTagRequirements` 不满足）：修饰器不汇流、周期冻结、授予标签撤回；`OwnedTags` 任何变化（授予 / `AddLooseTag` / 宿主直写）都会自动重评。
 - **值 / 事分工**：持续 / 无限效果的修饰器经 `CollectModifiers` 临时汇流（每条修饰器一条按层数缩放的 `ModifierDefinition`，来源 `effect:{id}#{handle}`）；瞬时与周期结算的修饰器经 Sink **永久落地**——**周期效果不参与 `CollectModifiers`**，否则「每周期 +10 且持续 +10」双算。
-- 契约：`IEffectDefinitionSource`（+ 聚合的 `EffectDefinitionRegistry.Default`，供跨库按 id 引用）、`IEffectContainerSource`、`IEffectAttributeSource`（AttributeBased 幅度读当前值）、`IEffectAttributeSink`、`IEffectRandomSource`、`IEffectCueSink`（随 Applied / Executed / Removed 收到 `cueTags`）、`IEffectExecutionInfo`（执行器经 `ctx.GetService` 取当前定义 / 实例 / 来源 / 等级 / 阶段）；`EffectApplier.Apply(effectId, ctx)` 按 id 施加。事件：`OnEffectAdded / Removed / StackChanged / InhibitedChanged / PeriodicExecuted / OnModifiersChanged`。编辑器：`EffectDefinitionDrawer` 分节显隐；宿主可注入 `EffectDefinitionDrawerHooks.AttributeIdField` 把属性 id 画成自己的下拉。
+- 契约：`IEffectDefinitionSource`（+ 聚合的 `EffectDefinitionRegistry.Default`，供跨库按 id 引用）、`IEffectContainerSource`、`IEffectAttributeSource`（AttributeBased 幅度读当前值）、`IEffectAttributeSink`、`IEffectRandomSource`、`IEffectCueSink`（随 Applied / Executed / Removed 收到 `cueTags`）、`IEffectExecutionInfo`（执行器经 `ctx.GetService` 取当前定义 / 实例 / 来源 / 等级 / 阶段）；`EffectApplier.Apply(effectId, ctx)` 按 id 施加。事件：`OnEffectAdded / Removed / StackChanged / InhibitedChanged / PeriodicExecuted / OnModifiersChanged`。编辑器：`EffectDefinitionDrawer` 分节显隐；属性 id 字段的候选来自宿主登记的 `IEffectAttributeCatalogProvider`（`EffectDefinitionDrawerHooks.RegisterAttributeProvider`，多系统按系统名分组，1.10.0 起）或整字段接管委托 `AttributeIdField`（优先）；宿主实体自带 id / 名称时把 `ShowIdentityFields` 置 false 隐藏「基本」节。
+
+**⑤ 效果库与 Effect Editor（1.10.0 起）**
+
+所有上层系统共用的效果配置载体 `EffectDatabase`（`Create > Ale > Effect > Effect Database`）：四个顶层列表——**效果条目** `EffectEntry`（`id` + 显示名 / 描述 / 图标三个 `AttributeValue` + 按模板 schema 的自定义属性 `values` + 内嵌 `definition`；`Normalize()` 把定义的 id / 显示名与条目同步）、**效果模板** `EffectTemplate`（`name` / `color` / 自定义属性 schema + `defaultDefinition`，从模板创建时深拷贝作预设）、**Gameplay 标签**、**枚举类型**（自定义属性的枚举字段用）。上层系统只存效果 id、各自实现 `[EffectExecutor]` 执行器——效果本质是「对某个系统的操作」，系统如何被操作由该系统自己实现。
+
+```csharp
+// 运行时：放在 Resources 下随启动自动登记（EffectRuntime.AutoLoadFromResources，默认 true），或显式登记
+EffectDataManager.Instance.Register(effectDatabase);         // 幂等；NormalizeAll + 并入全局效果注册表 + 登记 Gameplay 标签
+EffectEntry e = EffectDataManager.Instance.GetEffect("regen_draught");
+string name   = e.ResolveDisplayName();                      // 本地化显示名（缺省回退 id）
+int power     = e.GetAttributeValue("power").GetInt(0);      // 模板 schema 定义的自定义属性
+EffectApplier.Apply("regen_draught", ctx);                   // 定义经 EffectDefinitionRegistry.Default 按 id 解析
+EffectDataManager.Instance.LoadFromBinary(bytes);            // 或 EffectConfigSerializer.ExportJson / Export 的产物
+```
+
+- 引导：`[SubsystemRegistration]` 清空注册表 → `[BeforeSceneLoad]` 只做加法（执行器 + `Resources`），宿主在 Awake 里 `Register` 的库稳定存活。⚠️ 序列化深度零余量：`EffectEntry` 必须是顶层列表元素、`defaultDefinition` 必须是直接字段。
+- **Effect Editor**（`Tools > Ale Toolkit > Effect System > Effect Editor`，或资产 Inspector 的「在 Effect Editor 中编辑」）：左列 效果模板 / Gameplay 标签 / 枚举类型，中列效果列表（模板过滤 / 搜索 / 从模板添加 / 快速添加），右列 ID 查重 + 名称 / 描述 / 图标 + 自定义属性 + 内联定义 + 校验摘要；查重阻断导出，导出 JSON / 二进制。`EffectEditorWindow.Open(db, effectId)` 定位到指定效果。
+- **宿主接入**（Inspector 一行代码）：`EditorEffectRefListDrawer.Draw(ctx, skill.onUseEffectRefs, drag, "使用时施加的效果", "效果")`——目录菜单（`EffectEditorCatalog`，按库分组）、拖拽重排、「打开」跳转、「未找到」标注（不阻断）、自由输入；属性 id 候选经 `EffectDefinitionDrawerHooks.RegisterAttributeProvider(IEffectAttributeCatalogProvider)` 登记（多系统按系统名分组下拉）；宿主自己的标签目录经 `GameplayTagEditorCatalog.RegisterProvider` 贡献。
 
 > **与 UE5 GAS 的对照**：`EffectDefinition` ≙ GameplayEffect（Duration / Period / Stacking / Tags / Modifiers / Executions / Cues），`EffectContainer` ≙ AbilitySystemComponent 的活动效果与标签部分，`EffectExpression` + `[EffectExecutor]` ≙ Executions。未做：曲线表幅度、非快照的属性捕获（幅度在施加 / 叠层时快照）、网络复制。**修饰器管「值」，执行器管「事」，容器管「生命周期」。**
 
@@ -402,7 +420,7 @@ var save = container.ExportState();                          // 存档；ImportS
 `Ale.Toolkit.Editor`，均对数据库类型泛型化，宿主插件继承后覆写少量抽象成员即可搭出编辑器。
 
 - **数据库窗口外壳** `EditorDatabaseWindowBase<TDb>`：内建「DB 资产对象字段 + 顶部页签条 + 校验 / 导出按钮钩子 + 查重扫描编排 + 状态栏 + Undo 订阅 + 上次 DB 路径记忆（EditorPrefs）」，实现 `IEditorDbContext<TDb>`；宿主窗口只提供页签集合 / 导出·校验回调 / 查重种类即可大幅变薄。
-- **三列页签** `EditorThreeColumnTab<TDb,TEntity>`：左列子页签 + 主列表、中列实体列表、右列上下文 Inspector。子类覆写 `LeftPanels` / `EntityNoun` / `EntityList` / `DrawEntityList` / `DrawEntityInspector` 等。
+- **三列页签** `EditorThreeColumnTab<TDb,TEntity>`：左列子页签 + 主列表、中列实体列表、右列上下文 Inspector。子类覆写 `LeftPanels` / `EntityNoun` / `EntityList` / `DrawEntityList` / `DrawEntityInspector` 等；`RequestSelect(entity)` 供外部定位（1.10.0 起；须在数据库设定之后调用，下一帧 Layout 激活右列 Inspector）。
 - **主列表面板** `EditorMasterListPanel<TDb,T>`（+ `IEditorMasterListPanel<TDb>`）、**实体列表面板** `EditorEntityListPanel<TDb,TEntity,TTemplate>`。
 - **工具窗口基类** `EditorToolWindowBase<TDb>`：内建「选数据库 + 逐帧时间预算步进 + 进度条 + 日志 + 取消 + 完成收尾」；子类覆写 `DrawOperations`（用 `RunSteps` 启动逐帧步骤）/ `OnRunComplete` / `OnRunFinished`。
 - 上下文 `IEditorContext` / `IEditorDbContext<TDb>`；辅助控件 `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles`。

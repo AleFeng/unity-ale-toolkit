@@ -64,7 +64,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` の alpha フェード、`TintGraphic` の全色トランジション、`MoveTransform` / `RotateTransform` / `ScaleTransform`、`DelayedCall`、ターゲット単位の `Kill(target)`。中断可能な値型ハンドルを返す |
 | **属性修飾子** | GAS 風の修飾子評価：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース内訳）。数値を「基礎値 + 一連の加算 → 現在値」へと合流させる |
 | **条件システム（`Ale.Condition`）** | データ駆動の 2 段 AND/OR 条件：`ConditionExpression` フィールドを 1 つ宣言するだけで Inspector 内にインライン設定できる。上位側で `[ConditionEvaluator]` 判定器を実装すると自動的に発見される。エンジン非依存の Core はサーバー側でも利用可能 |
-| **効果システム（`Ale.Effect`）** | 条件システムの書き込み側ミラー：データ駆動の離散トリガー型ミューテーション（ステージグループ + 各項目に任意の条件ゲート）。上位側で `[EffectExecutor]` 実行器を実装すると自動的に発見される。エンジン非依存の Core |
+| **効果システム（`Ale.Effect`）** | UE5 GAS `GameplayEffect` 流の効果システム：`EffectDefinition`（持続 / 周期 / スタック / タグ / モディファイア / フェーズ実行）+ ランタイムの `EffectContainer`。1.10.0 からはすべての上位システムが共用する効果ライブラリ `EffectDatabase` と Effect Editor を同梱し、上位側は効果 id だけを保存して各自の `[EffectExecutor]` 実行器を実装（自動発見）。エンジン非依存の Core |
 | **エディタフレームワーク** | データベースウィンドウシェル基底、3 カラムレイアウトタブ基底、マスターリストパネル、エンティティリストパネル、ツールウィンドウ基底。いずれもデータベース型でジェネリック化 |
 | **エディタ多言語** | 中国語 / English / 日本語のサービス。中国語原文をキーとし、訳が無い場合は自動フォールバック |
 | **UGUI プレハブツールボックス** | ドメイン非依存の UGUI プリミティブとテキスト / ボタン構築（各プラグインのワンクリック生成ウィザードで再利用可能） |
@@ -85,7 +85,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | `Ale.Toolkit.Editor` | エディタフレームワーク、データベースウィンドウシェル基底、属性ドロワー、多言語サービス、プレハブツールボックス、マクロ切り替え | — |
 | `Ale.Toolkit.Addressables.Editor` | Addressables のエディタリゾルバ / ツールウィンドウ | `ATK_ADDRESSABLE` |
 | `Ale.Condition.Core` / `.Runtime` / `.Editor` | 条件システム：エンジン非依存モデル・エンジン・登録・JSON（サーバー側で利用可能）/ Unity ブリッジ + 起動時自動登録 / インラインドロワー + カタログ + ウェルカムウィンドウ | Core は Newtonsoft を参照 |
-| `Ale.Effect.Core` / `.Runtime` / `.Editor` | 効果システム：エンジン非依存モデル・ランナー・登録・JSON / Unity ブリッジ + 起動時自動登録 / インラインドロワー + カタログ + ウェルカムウィンドウ | Core は `Ale.Condition.Core` + Newtonsoft を参照 |
+| `Ale.Effect.Core` / `.Runtime` / `.Editor` | 効果システム：エンジン非依存モデル・コンテナ・ランナー・登録・JSON / Unity ブリッジ + 共用効果ライブラリ `EffectDatabase` + 起動ブートストラップ / Effect Editor + カタログ + 参照リストドロワー + ウェルカムウィンドウ | Core は `Ale.Condition.Core` + `Ale.GameplayTags.Core` + `Ale.Modifier.Core` + Newtonsoft を参照；Runtime は `Ale.Toolkit.Runtime` を参照（1.10.0 から） |
 
 依存方向は一方向：ホストプラグイン → `Ale.Toolkit.*` / `Ale.Condition.*` / `Ale.Effect.*`。本パッケージがホストプラグインを逆参照することはありません。条件 / 効果の 2 サブシステムは名前空間が独立しています（`Ale.Condition` / `Ale.Effect`）。
 
