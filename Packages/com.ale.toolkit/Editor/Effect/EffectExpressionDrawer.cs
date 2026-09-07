@@ -97,7 +97,24 @@ namespace Ale.Effect.Editor
                 EditorGUI.LabelField(new Rect(cx, gh.y, 46f, LH), $"阶段{gi + 1}"); cx += 48;
                 EditorGUI.LabelField(new Rect(cx, gh.y, 32f, LH), "时机"); cx += 34;
                 float phaseRight = gh.xMax - 130f;
-                phase.stringValue = EditorGUI.TextField(new Rect(cx, gh.y, Mathf.Max(60f, phaseRight - cx), LH), phase.stringValue);
+                float phaseW = Mathf.Max(60f, phaseRight - cx - 22f);
+                phase.stringValue = EditorGUI.TextField(new Rect(cx, gh.y, phaseW, LH), phase.stringValue);
+                // 阶段下拉：内置阶段常量（EffectPhases.All）+ 清空（通配）；仍可自由输入宿主自定义阶段。
+                var phaseBtn = new Rect(cx + phaseW + 2f, gh.y, 20f, LH);
+                if (GUI.Button(phaseBtn, new GUIContent("▾", "选择内置阶段"), EditorStyles.miniButton))
+                {
+                    var so = property.serializedObject;
+                    string phasePath = phase.propertyPath, current = phase.stringValue;
+                    var menu = new GenericMenu();
+                    foreach (var ph in EffectPhases.All)
+                    {
+                        string value = ph;
+                        menu.AddItem(new GUIContent(value), current == value, () => SetPhase(so, phasePath, value));
+                    }
+                    menu.AddSeparator(string.Empty);
+                    menu.AddItem(new GUIContent("（清空 = 通配）"), string.IsNullOrEmpty(current), () => SetPhase(so, phasePath, string.Empty));
+                    menu.DropDown(phaseBtn);
+                }
                 if (GUI.Button(new Rect(gh.xMax - 126f, gh.y, 60f, LH), "+ 效果", EditorStyles.miniButton)) addItemGroup = gi;
                 if (GUI.Button(new Rect(gh.xMax - 62f, gh.y, 62f, LH), "删除组", EditorStyles.miniButton)) delGroup = gi;
 
@@ -267,6 +284,14 @@ namespace Ale.Effect.Editor
             for (int gi = 0; gi < groups.arraySize; gi++)
                 n += groups.GetArrayElementAtIndex(gi).FindPropertyRelative("items").arraySize;
             return n;
+        }
+
+        private static void SetPhase(SerializedObject so, string phasePath, string value)
+        {
+            so.Update();
+            var p = so.FindProperty(phasePath);
+            if (p != null) p.stringValue = value;
+            so.ApplyModifiedProperties();
         }
 
         private static void InitGroup(SerializedProperty g)

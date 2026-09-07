@@ -6,6 +6,8 @@
         "Ale.Modifier.Core",
         "Ale.Condition.Core",
         "Ale.Effect.Core",
+        "Ale.Effect.Runtime",
+        "Ale.Effect.Editor",
         "Ale.GameplayTags.Core",
         "Ale.GameplayTags.Condition",
         "Ale.GameplayTags.Runtime",
