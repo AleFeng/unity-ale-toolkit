@@ -1,4 +1,4 @@
-namespace Ale.Toolkit.Runtime
+namespace Ale.Modifier
 {
     /// <summary>
     /// 修饰器对目标数值的运算方式。求值时按固定分组顺序结算（见 <see cref="ModifierStackEvaluator"/>）：

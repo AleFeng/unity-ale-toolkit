@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Ale.Toolkit.Runtime
+namespace Ale.Modifier
 {
     /// <summary>
     /// 某条修饰器对最终值的「边际贡献」，用于「基础 → 当前」明细展示与调试追溯。

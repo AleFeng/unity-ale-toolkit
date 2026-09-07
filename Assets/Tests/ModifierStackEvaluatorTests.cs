@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Ale.Toolkit.Runtime;
+using Ale.Modifier;
 
 namespace Ale.Toolkit.Tests
 {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Ale.Toolkit.Runtime
+namespace Ale.Modifier
 {
     /// <summary>
     /// 一条属性修饰器的配置定义（GAS / ModiBuff 范式）：对某个「目标数值」施加可叠加、可撤销的增减。
@@ -10,6 +10,11 @@ namespace Ale.Toolkit.Runtime
     ///
     /// <para><b>领域无关</b>：本类不认识「角色 / 属性系统」等上层概念。<see cref="targetAttributeId"/>
     /// 只是一个由使用方约定的字符串键；使用方（如角色系统的属性汇流）负责把修饰器按目标键分组后交给求值器。</para>
+    ///
+    /// <para><b>程序集</b>：自 toolkit 1.9.0 起位于引擎无关的 <c>Ale.Modifier.Core</c>（命名空间 <c>Ale.Modifier</c>），
+    /// 以便同为引擎无关的效果系统（<c>Ale.Effect.Core</c>）直接产出本类型。<see cref="duration"/> / <see cref="durationDays"/> /
+    /// <see cref="stackLimit"/> / <see cref="stackRule"/> 四个字段仅承载配置数据，求值器与效果系统的 GAS 层（<c>EffectDefinition</c>）
+    /// 均<b>不读取</b>它们——时长 / 周期 / 叠加由效果定义承载，宿主自建的修饰器运行时可继续按需解释。</para>
     /// </summary>
     [Serializable]
     public class ModifierDefinition
