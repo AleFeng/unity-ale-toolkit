@@ -56,6 +56,26 @@ namespace Ale.GameplayTags.Editor
             _parents  = null;
         }
 
+        // ── 标签提供者（编辑态其它目录 / 数据库贡献的标签；不经运行时注册表）──────────
+        private static readonly List<Func<IEnumerable<GameplayTagDefinition>>> _providers
+            = new List<Func<IEnumerable<GameplayTagDefinition>>>();
+
+        /// <summary>登记一个标签提供者（去重），随即失效目录。宿主数据库 / 效果库在编辑态经此贡献标签，无需往运行时注册表灌数据。</summary>
+        public static void RegisterProvider(Func<IEnumerable<GameplayTagDefinition>> provider)
+        {
+            if (provider == null || _providers.Contains(provider)) return;
+            _providers.Add(provider);
+            Rebuild();
+        }
+
+        /// <summary>移除一个标签提供者，随即失效目录。</summary>
+        public static bool UnregisterProvider(Func<IEnumerable<GameplayTagDefinition>> provider)
+        {
+            bool removed = _providers.Remove(provider);
+            if (removed) Rebuild();
+            return removed;
+        }
+
         /// <summary>
         /// 构建标签树菜单：路径按 <c>.</c> → <c>/</c> 分层；有子级的标签自身放进其子菜单首项「（叶名）」，避免同名叶项与文件夹并列。
         /// <paramref name="disabled"/> 中的标签以禁用项显示（容器「+ 从目录」用来标出已有项）。
@@ -108,6 +128,24 @@ namespace Ale.GameplayTags.Editor
                 var table = AssetDatabase.LoadAssetAtPath<GameplayTagTable>(AssetDatabase.GUIDToAssetPath(guid));
                 if (!table) continue;
                 foreach (var e in table.Entries)
+                {
+                    if (e == null) continue;
+                    var tag = new GameplayTag(e.name);
+                    if (!tag.IsValid) continue;
+                    for (var a = tag; a.IsValid; a = a.Parent)
+                        if (!_comments.ContainsKey(a)) _comments[a] = null;
+                    if (!string.IsNullOrEmpty(e.comment)) _comments[tag] = e.comment;
+                }
+            }
+
+            // ③ 编辑态提供者（效果库 / 宿主数据库声明的标签）
+            foreach (var provider in _providers)
+            {
+                IEnumerable<GameplayTagDefinition> defs;
+                try { defs = provider(); }
+                catch (Exception ex) { Debug.LogWarning("[GameplayTagEditorCatalog] 标签提供者异常：" + ex.Message); continue; }
+                if (defs == null) continue;
+                foreach (var e in defs)
                 {
                     if (e == null) continue;
                     var tag = new GameplayTag(e.name);

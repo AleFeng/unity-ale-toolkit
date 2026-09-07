@@ -230,6 +230,9 @@ namespace Ale.Toolkit.Editor
             return e;
         }
 
+        /// <summary>登记「待选中」条目（外部定位：下一帧 Layout 由所属页签经 <see cref="ConsumePendingSelect"/> 消费并激活右列 Inspector）。</summary>
+        public void RequestSelect(TEntity entity) => _pendingSelect = entity;
+
         private void ShowAddFromTemplateMenu(IEditorDbContext<TDb> ctx)
         {
             var templates = Templates(ctx.Database);

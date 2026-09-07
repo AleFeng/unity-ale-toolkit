@@ -36,6 +36,20 @@ namespace Ale.Effect.Editor
             EditorGUILayout.LabelField("内置阶段：" + string.Join(" / ", EffectPhases.All) +
                                        "（空阶段组视为通配，Normalize() 会改写为 onApply；宿主自定义阶段经 RunPhase 触发）", EditorStyles.wordWrappedMiniLabel);
 
+            EditorGUILayout.Space(6);
+            EditorGUILayout.HelpBox(
+                "效果库（EffectDatabase）：所有上层系统共用的效果配置——效果条目（显示名 / 描述 / 图标 + 模板驱动的自定义属性 + GAS 式定义）、" +
+                "效果模板、Gameplay 标签、枚举类型。放在 Resources 下随启动自动注册，或由 EffectDataManager.Register 显式注册；" +
+                "上层系统以效果 id 引用（EditorEffectRefListDrawer），并各自实现 [EffectExecutor] 执行器。",
+                MessageType.None);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("打开效果编辑器", GUILayout.Height(26)))
+                    EffectEditorWindow.Open();
+                if (GUILayout.Button("新建效果库", GUILayout.Width(110), GUILayout.Height(26)))
+                    EffectEditorWindow.CreateDatabaseAsset();
+            }
+
             EditorGUILayout.Space(4);
             using (new EditorGUILayout.HorizontalScope())
             {

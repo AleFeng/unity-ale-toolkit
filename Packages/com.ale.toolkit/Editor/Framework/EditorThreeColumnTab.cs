@@ -30,6 +30,7 @@ namespace Ale.Toolkit.Editor
         private bool    _entityMode;        // true = 右列画中列实体；false = 画左列子面板
         private Vector2 _leftScroll, _rightScroll;
         private bool    _pendingDeleteEntity;
+        private TEntity _requestedSelect;   // 外部定位请求（RequestSelect），Layout 帧消费
 
         #region 子类契约
 
@@ -98,6 +99,9 @@ namespace Ale.Toolkit.Editor
             foreach (var p in Panels) p.Invalidate();
         }
 
+        /// <summary>请求选中并在右列展示某个中列实体（须在数据库设定之后调用；下一帧 Layout 生效，实体不在列表中则忽略）。</summary>
+        public void RequestSelect(TEntity entity) => _requestedSelect = entity;
+
         public virtual void OnUndoRedo()
         {
             foreach (var p in Panels) p.Invalidate();
@@ -123,6 +127,14 @@ namespace Ale.Toolkit.Editor
                         ctx.MarkDirty();
                     }
                     ActivateLeft();
+                }
+
+                if (_requestedSelect != null)
+                {
+                    var requested = _requestedSelect;
+                    _requestedSelect = null;
+                    var list = EntityList(ctx.Database);
+                    if (list != null && list.Contains(requested)) ActivateEntity(requested);
                 }
 
                 var pending = ConsumePendingSelect();

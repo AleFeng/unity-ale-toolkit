@@ -4,6 +4,10 @@
     "references": [
         "Ale.Effect.Core",
         "Ale.Effect.Runtime",
+        "Ale.Toolkit.Runtime",
+        "Ale.Toolkit.Editor",
+        "Ale.GameplayTags.Runtime",
+        "Ale.GameplayTags.Editor",
         "Ale.Condition.Core",
         "Ale.GameplayTags.Core",
         "Ale.Modifier.Core"
