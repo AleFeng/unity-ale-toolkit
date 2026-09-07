@@ -1,0 +1,19 @@
+{
+    "name": "Ale.GameplayTags.Editor",
+    "rootNamespace": "Ale.GameplayTags.Editor",
+    "references": [
+        "Ale.GameplayTags.Core",
+        "Ale.GameplayTags.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

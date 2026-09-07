@@ -1,0 +1,16 @@
+{
+    "name": "Ale.GameplayTags.Runtime",
+    "rootNamespace": "Ale.GameplayTags",
+    "references": [
+        "Ale.GameplayTags.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
