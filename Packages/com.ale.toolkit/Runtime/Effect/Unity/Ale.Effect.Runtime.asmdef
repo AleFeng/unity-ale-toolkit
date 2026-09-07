@@ -3,6 +3,8 @@
     "rootNamespace": "Ale.Effect",
     "references": [
         "Ale.Effect.Core",
+        "Ale.Toolkit.Runtime",
+        "Ale.GameplayTags.Runtime",
         "Ale.Condition.Core",
         "Ale.GameplayTags.Core",
         "Ale.Modifier.Core"
