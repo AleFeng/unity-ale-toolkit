@@ -80,7 +80,9 @@ namespace Ale.Toolkit.Runtime.UI
         protected override void OnInit()
             => _rowPool.Configure(rowPrefab, rowContainer ? rowContainer : PanelRect);
 
-        private void OnDestroy() => _rowPool.Clear();
+        // virtual：子类（如库存的 UiwItemContextMenu）也要 OnDestroy 时，必须能 override 后调 base——
+        // 两个类各自声明一个 private OnDestroy 的话，Unity 只会派发到最派生的那个，基类这句静默不执行。
+        protected virtual void OnDestroy() => _rowPool.Clear();
 
         #endregion
 
