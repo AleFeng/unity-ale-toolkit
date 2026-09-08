@@ -6,6 +6,30 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.11.0] - 2026-09-08
+
+**Effect Editor 从「配效果库」扩成「先看实现、再配数据」的两页签窗口。** 1.10.0 把效果配置收拢进 `EffectDatabase` 之后，「这个工程里到底有哪些可用的效果实现」仍然只能在 Effect System 的 Welcome 窗口看到一份不能搜索、不能跳源码的两列清单；执行器键的正确性更是完全没有编辑期保障——`EffectDefinition.Validate` 只检查阶段名，键写错要进 Play 才在控制台看到一行「未注册的执行器键」。而两条发现通道（编辑期 `TypeCache` / 运行期反射）在重复键上行为**相反**（前者先到先得、后者后来覆盖），`[EffectExecutor("A")]` 里的那个字符串更是**从来没有被任何代码读过**（真正生效的是 `Key` 属性）——这些都会静默走偏。本版把 **Effect Executors** 页放到第一位：全工程执行器目录 + 源码跳转 + 静默失效体检 + 「配置 ↔ 实现」双向核对；原页签改名 **Effect Database** 并移至第二位，如实反映它是可选的补充数据层（效果库为空时第一页照样可用）。本版新增 4 个测试（共 202）。
+
+### 新增
+
+- **Effect Executors 页签**（`Ale.Effect.Editor`，`Editor/Effect/Database/EffectExecutorTab.cs`）：工程内全部 `IEffectExecutor` 实现的目录，按 `Category` 分组、可按 键 / 显示名 / 类型全名 / 程序集 搜索、可「只看有问题」；右列给出实现类型、程序集、源码路径与「打开脚本」（定位到类声明行）/「在 Project 中定位」/「复制 Key」（双击行等同打开脚本）、参数 schema（id / 类型 / 数组 / 枚举引用 / 固定选项）、被哪些效果配置引用（点「跳转」切到 Effect Database 页并定位到那条效果）、诊断摘要；顶部横幅列出「配置引用了但没有实现」的悬空键；底部「新增执行器速查」给内置阶段常量与可一键复制的最小实现模板。内容来自代码而非资产，**没有效果库时照常可用**。
+- **`EffectExecutorIndex`**（`Editor/Effect/Database/EffectExecutorIndex.cs`）：`Rows` / `Usages` / `DanglingKeys` / `Categories` / `DiscoveredCount` / `UsagesOf(key)` / `Rebuild()`（`.asset` 增删改经 `AssetPostprocessor` 失效）。候选类型取 `TypeCache.GetTypesDerivedFrom<IEffectExecutor>()` 与 `GetTypesWithAttribute<EffectExecutorAttribute>()` 的**并集**——因此能看见 `EffectExecutorCatalog` 静默丢弃的类型，这正是体检的价值所在。七种诊断标记 `EExecutorIssue`：`MissingAttribute`（实现了接口却没打特性）、`AttributeKeyMismatch`（特性里的键与 `Key` 属性不一致）、`DuplicateKey`（同键多实现，同时标在所有同键行上）、`EmptyKey`、`AbstractType`、`NoDefaultCtor`、`ConstructionFailed`；`Discovered` 表示该实现是否真会被目录与运行时注册表拾取（同键时按候选顺序第一个合格者胜出，与目录的先到先得一致）。引用扫描覆盖 `EffectDatabase` 的每条效果与独立的 `EffectDefinitionAsset`，逐项记录 键 / 资产 / 效果 id / 阶段。`BuildRows` / `CollectKeys` / `Filter` 是不碰 AssetDatabase / TypeCache / GUI 的纯函数，可直接单测。
+- **`EditorScriptLocator`**（`Ale.Toolkit.Editor`，`Editor/Widgets/`）：类型 → `MonoScript` 定位器，`PathOf` / `Find` / `Open`（打开 IDE 并定位到类声明行）/ `Ping`（Project 窗口高亮）/ `ClearCache`，结果带缓存。⚠️ **不能只靠 `MonoScript.GetClass()`**——它对非 `MonoBehaviour` / `ScriptableObject` 的普通类返回 null，而执行器与判定器全是普通类；因此按「`GetClass()` 命中 → 文件名与类型名相同**且**脚本文本里确有该命名空间与声明 → 仅文件名相同」的顺序回退。脚本文本一律取 `MonoScript.text` 而非 `File`：经 `file:` 依赖挂载的包，`Packages/xxx/…` 是虚拟路径，磁盘上并不存在。来自预编译 DLL 的类型返回 null，面板显示「无源码」并禁用按钮。
+- **框架** `EditorDatabaseWindowBase<TDb>`：`TabRequiresDatabase(int)`（虚，默认 true；覆写为 false 的页签在没有数据库资产时照常绘制，而不是被「创建新的数据文件」占位页顶掉）、`SelectSystemTab(int)` / `CurrentSystemTab`（供外部切页与读当前页），以及**系统页签索引记忆**（键为 `EditorPrefKey + ".SystemTab"`，仅在索引真的变化时落盘）。
+- 测试：`EffectExecutorIndexTests`（4：诊断标记与 `Discovered` 判定、抽象 / 缺无参构造 / 空键 / 构造失败、`CollectKeys` 跨阶段组与空键跳过、搜索 / 分类 / 只看有问题的过滤）。
+
+### 变更
+
+- **Effect Editor 顶部页签由 1 个变为 2 个**：`Effect Executors`（第一位）+ `Effect Database`（第二位，原名「效果」）。两个页签名是与类型名对齐的英文专名，不走 `Tr()`。这是纯 UI 变更，不影响任何数据与序列化。
+- `EffectEditorWindow.Open(db)` 与 `Open(db, effectId)` 现在会**显式切到 Effect Database 页**——否则技能 / 道具 Inspector 引用列表的「打开」、`EffectDatabase` 资产 Inspector 的「在 Effect Editor 中编辑」、Chronicle / Inventory 两个迁移窗口的「在 Effect Editor 中打开目标库」都会停在第一页，看起来像没反应。新增 `EffectEditorWindow.OpenExecutors()` 打开并切到第一页。
+- 效果系统 Welcome 窗口（`Tools > Ale Toolkit > Effect System > Welcome`）内联的执行器清单与「刷新目录」按钮精简为一行计数 + 「查看全部执行器」按钮，避免与新页签两处维护同一份清单。
+
+### 说明
+
+- 页签记忆的影响面：只有继承 `EditorDatabaseWindowBase<TDb>` 的窗口——本包的 Effect Editor 与宿主的 Chronicle 编辑器（7 页签，一并受益）；Inventory 编辑器自带外壳，不继承本基类，不受影响。
+- Effect Executors 页只读代码与资产、不写任何数据，也不触碰运行时的 `EffectRegistry`（后者只在进入 Play 模式时由 `[RuntimeInitializeOnLoadMethod]` 填充；编辑期强行预填会污染即将进入 Play 的全局状态）。
+- 「配置引用了但没有实现」目前只在本页以横幅告警呈现，**不**升级为 `EffectDefinition.Validate` 的错误、也不阻断导出——那会改变既有的运行时校验语义。
+
 ## [1.10.0] - 2026-09-07
 
 **效果配置从「各宿主自建一份」收拢为 toolkit 的共用效果库 + 共用 Effect Editor。** 1.9.0 之后，Chronicle 与 Inventory 各自在数据库里持有效果列表与 Gameplay 标签，并各有一份结构相同的「效果系统」编辑页（约 1000 行重复代码），效果只能在各宿主库内定义、跨系统共用只能靠全局注册表按 id 碰运气。本版把效果数据与效果编辑器下沉到 toolkit：效果在 `EffectDatabase` 里一处配置、所有上层系统按 id 引用；上层只保留「效果引用列表 + 跳转按钮」，并各自实现 `[EffectExecutor]` 执行器——效果本质是「对某个系统的操作」，系统如何被操作由该系统自己实现，新系统出现时不必改 toolkit。Chronicle 那种带本地化名称 / 描述 / 图标的包装实体 `ChronicleEffect` 上提为 `EffectEntry`，并新增**模板驱动的自定义属性列表**（模板定 schema、条目填值）。本版新增 17 个测试（共 197）。

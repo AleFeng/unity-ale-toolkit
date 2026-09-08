@@ -39,7 +39,7 @@
 | **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；宏只由欢迎窗口显式开关，插件不会自动改写 PlayerSettings |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
-> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**；**1.9.0 起新增层级标签系统（`Ale.GameplayTags`），效果系统补齐 GAS `GameplayEffect` 全貌（`EffectDefinition` + `EffectContainer`），属性修饰器抽成引擎无关的 `Ale.Modifier.Core`（⚠️ 命名空间改为 `Ale.Modifier`）**；**1.10.0 起新增所有上层系统共用的效果库 `EffectDatabase` 与 Effect Editor（效果条目带显示名 / 描述 / 图标与模板驱动的自定义属性；上层只保留效果 id 引用列表 + 跳转；⚠️ `Ale.Effect.Runtime` 新增依赖 `Ale.Toolkit.Runtime` / `Ale.GameplayTags.Runtime`）**。完整变更见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**；**1.9.0 起新增层级标签系统（`Ale.GameplayTags`），效果系统补齐 GAS `GameplayEffect` 全貌（`EffectDefinition` + `EffectContainer`），属性修饰器抽成引擎无关的 `Ale.Modifier.Core`（⚠️ 命名空间改为 `Ale.Modifier`）**；**1.10.0 起新增所有上层系统共用的效果库 `EffectDatabase` 与 Effect Editor（效果条目带显示名 / 描述 / 图标与模板驱动的自定义属性；上层只保留效果 id 引用列表 + 跳转；⚠️ `Ale.Effect.Runtime` 新增依赖 `Ale.Toolkit.Runtime` / `Ale.GameplayTags.Runtime`）**；**1.11.0 起 Effect Editor 增设「Effect Executors」页——工程内全部 `[EffectExecutor]` 实现的目录（搜索 / 分类 / 参数 schema / 跳转源码 / 静默失效体检 / 配置引用交叉核对），原页签改名 Effect Database 并移至第二位；编辑器窗口外壳新增「本页签是否需要数据库」钩子与页签记忆**。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 
@@ -359,7 +359,7 @@ Debug.Log($"应用 {rep.Applied} / 跳过 {rep.Skipped} / 失败 {rep.Failed}");
 
 每项若配了 gate（一个内嵌 `ConditionExpression`，编辑器里就地展开配置），运行器先走 `ConditionEngine` 求值，不满足即 `Skipped`。运行时 `EffectRuntime` 于 `[RuntimeInitializeOnLoadMethod]` 自动注册所有执行器。
 
-**内置执行器**：`Effect.NoOp`、`Effect.SetFlag`（`IEffectFlagSink`）、`Effect.AdjustNumber`（`IEffectNumberSink`）——分别是条件系统 `HasFlag` / `NumberCompare` 的写侧对偶；`Effect.ApplyEffect(effectId, level)` / `Effect.RemoveEffectsWithTag(tag)` / `Effect.RemoveEffectById(effectId)`——效果组合与驱散（容器与定义从上下文解析）。**JSON**：`EffectJson.ToJson/FromJson`（表达式）与 `ToJson(EffectDefinition)/DefinitionFromJson`（内嵌 gate / 条件 / 标签随图往返）。**总览**：`Tools > Ale Toolkit > Effect System > Welcome`。
+**内置执行器**：`Effect.NoOp`、`Effect.SetFlag`（`IEffectFlagSink`）、`Effect.AdjustNumber`（`IEffectNumberSink`）——分别是条件系统 `HasFlag` / `NumberCompare` 的写侧对偶；`Effect.ApplyEffect(effectId, level)` / `Effect.RemoveEffectsWithTag(tag)` / `Effect.RemoveEffectById(effectId)`——效果组合与驱散（容器与定义从上下文解析）。**JSON**：`EffectJson.ToJson/FromJson`（表达式）与 `ToJson(EffectDefinition)/DefinitionFromJson`（内嵌 gate / 条件 / 标签随图往返）。**总览**：`Tools > Ale Toolkit > Effect System > Welcome`；**已实现执行器的完整清单见 Effect Editor 的「Effect Executors」页（1.11.0 起）**——写完一个执行器可在那里确认它是否真的被发现，并双击行跳回源码。
 
 **④ 效果定义与容器（GAS 层）**
 
@@ -410,7 +410,9 @@ EffectDataManager.Instance.LoadFromBinary(bytes);            // 或 EffectConfig
 ```
 
 - 引导：`[SubsystemRegistration]` 清空注册表 → `[BeforeSceneLoad]` 只做加法（执行器 + `Resources`），宿主在 Awake 里 `Register` 的库稳定存活。⚠️ 序列化深度零余量：`EffectEntry` 必须是顶层列表元素、`defaultDefinition` 必须是直接字段。
-- **Effect Editor**（`Tools > Ale Toolkit > Effect System > Effect Editor`，或资产 Inspector 的「在 Effect Editor 中编辑」）：左列 效果模板 / Gameplay 标签 / 枚举类型，中列效果列表（模板过滤 / 搜索 / 从模板添加 / 快速添加），右列 ID 查重 + 名称 / 描述 / 图标 + 自定义属性 + 内联定义 + 校验摘要；查重阻断导出，导出 JSON / 二进制。`EffectEditorWindow.Open(db, effectId)` 定位到指定效果。
+- **Effect Editor**（`Tools > Ale Toolkit > Effect System > Effect Editor`，或资产 Inspector 的「在 Effect Editor 中编辑」）自 **1.11.0 起有两个页签**：
+  - **Effect Executors**（第一页；内容来自**代码**，没有效果库也能用）：工程内全部 `IEffectExecutor` 实现的目录，按分类分组、可按 键 / 显示名 / 类型全名 / 程序集 搜索、可「只看有问题」。右列给出实现类型 / 程序集 / 源码路径与「打开脚本」（定位到类声明行）、「在 Project 中定位」、「复制 Key」（双击行等同打开脚本），参数 schema，被哪些效果配置引用（点「跳转」切到第二页并定位到那条效果），以及**静默失效体检**——漏打 `[EffectExecutor]`、特性里的键与 `Key` 属性不一致（特性字符串从不被读取）、重复键（编辑器目录先到先得 / 运行时注册表后者覆盖，两边相反）、抽象类 / 缺公开无参构造 / 实例化失败。顶部横幅列出「配置引用了但没有实现」的悬空键（`EffectDefinition.Validate` 不查这个，运行时才报警告）；底部「新增执行器速查」给内置阶段常量与可一键复制的最小实现模板。
+  - **Effect Database**（第二页；效果库是可选项，通常用于给效果条目配置额外数据）：左列 效果模板 / Gameplay 标签 / 枚举类型，中列效果列表（模板过滤 / 搜索 / 从模板添加 / 快速添加），右列 ID 查重 + 名称 / 描述 / 图标 + 自定义属性 + 内联定义 + 校验摘要；查重阻断导出，导出 JSON / 二进制。`EffectEditorWindow.Open(db, effectId)` 切到本页并定位到指定效果，`OpenExecutors()` 切到第一页。
 - **宿主接入**（Inspector 一行代码）：`EditorEffectRefListDrawer.Draw(ctx, skill.onUseEffectRefs, drag, "使用时施加的效果", "效果")`——目录菜单（`EffectEditorCatalog`，按库分组）、拖拽重排、「打开」跳转、「未找到」标注（不阻断）、自由输入；属性 id 候选经 `EffectDefinitionDrawerHooks.RegisterAttributeProvider(IEffectAttributeCatalogProvider)` 登记（多系统按系统名分组下拉）；宿主自己的标签目录经 `GameplayTagEditorCatalog.RegisterProvider` 贡献。
 
 > **与 UE5 GAS 的对照**：`EffectDefinition` ≙ GameplayEffect（Duration / Period / Stacking / Tags / Modifiers / Executions / Cues），`EffectContainer` ≙ AbilitySystemComponent 的活动效果与标签部分，`EffectExpression` + `[EffectExecutor]` ≙ Executions。未做：曲线表幅度、非快照的属性捕获（幅度在施加 / 叠层时快照）、网络复制。**修饰器管「值」，执行器管「事」，容器管「生命周期」。**
@@ -419,11 +421,11 @@ EffectDataManager.Instance.LoadFromBinary(bytes);            // 或 EffectConfig
 
 `Ale.Toolkit.Editor`，均对数据库类型泛型化，宿主插件继承后覆写少量抽象成员即可搭出编辑器。
 
-- **数据库窗口外壳** `EditorDatabaseWindowBase<TDb>`：内建「DB 资产对象字段 + 顶部页签条 + 校验 / 导出按钮钩子 + 查重扫描编排 + 状态栏 + Undo 订阅 + 上次 DB 路径记忆（EditorPrefs）」，实现 `IEditorDbContext<TDb>`；宿主窗口只提供页签集合 / 导出·校验回调 / 查重种类即可大幅变薄。
+- **数据库窗口外壳** `EditorDatabaseWindowBase<TDb>`：内建「DB 资产对象字段 + 顶部页签条 + 校验 / 导出按钮钩子 + 查重扫描编排 + 状态栏 + Undo 订阅 + 上次 DB 路径记忆（EditorPrefs）」，实现 `IEditorDbContext<TDb>`；宿主窗口只提供页签集合 / 导出·校验回调 / 查重种类即可大幅变薄。1.11.0 起：`TabRequiresDatabase(int)` 覆写为 false 的页签在**没有数据库资产时照常绘制**（内容来自代码而非资产的页签用），`SelectSystemTab(int)` / `CurrentSystemTab` 供外部切页与读当前页，页签索引按 `EditorPrefKey` 记忆。
 - **三列页签** `EditorThreeColumnTab<TDb,TEntity>`：左列子页签 + 主列表、中列实体列表、右列上下文 Inspector。子类覆写 `LeftPanels` / `EntityNoun` / `EntityList` / `DrawEntityList` / `DrawEntityInspector` 等；`RequestSelect(entity)` 供外部定位（1.10.0 起；须在数据库设定之后调用，下一帧 Layout 激活右列 Inspector）。
 - **主列表面板** `EditorMasterListPanel<TDb,T>`（+ `IEditorMasterListPanel<TDb>`）、**实体列表面板** `EditorEntityListPanel<TDb,TEntity,TTemplate>`。
 - **工具窗口基类** `EditorToolWindowBase<TDb>`：内建「选数据库 + 逐帧时间预算步进 + 进度条 + 日志 + 取消 + 完成收尾」；子类覆写 `DrawOperations`（用 `RunSteps` 启动逐帧步骤）/ `OnRunComplete` / `OnRunFinished`。
-- 上下文 `IEditorContext` / `IEditorDbContext<TDb>`；辅助控件 `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles`。
+- 上下文 `IEditorContext` / `IEditorDbContext<TDb>`；辅助控件 `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles` / `EditorScriptLocator`（1.11.0 起：类型 → `MonoScript` 定位，可打开 IDE 到类声明行或在 Project 中高亮；对非 `MonoBehaviour` 的普通类同样有效）。
 
 ### 编辑器多语言
 
