@@ -59,7 +59,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | --- | --- |
 | **属性系统** | `AttributeValue` 与 20+ 字段类型、属性定义（schema）、自定义枚举类型、数字格式配置、标签系统（`Tag`）、轻量展示文本 `TextValue`（fallback + 可选原生本地化）。任何需要「配置属性条目」的场合都用它 |
 | **排序** | 与元素类型无关的排序引擎：宿主实现 `ISortContext<TData>` 提供比较所需信息，引擎负责多级优先级与降级比较；主键 / 标签序号排序开箱即用 |
-| **UI** | 虚拟滚动列表（网格 / 顺序，对象池 + 仅渲染可见区）、页签栏、过滤栏、Tooltip 基类、子项实例池等通用控件 |
+| **UI** | 虚拟滚动列表（网格 / 顺序，对象池 + 仅渲染可见区）、页签栏、过滤栏、Tooltip 基类、右键上下文菜单、模态弹窗基类、子项实例池等通用控件 |
 | **对象池** | 通用 GameObject 预制体池 + 纯 C# 引用类型池 `ToolkitClassPool<T>`（`Spawn`/`Despawn`、`IPoolable` 回调、预热 / 容量回收 / 跨场景、降 GC），可替代 Lean.Pool 一类第三方池 |
 | **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` 淡入淡出，`TintGraphic` 整色过渡，`MoveTransform` / `RotateTransform` / `ScaleTransform` 位移·旋转·缩放，`DelayedCall` 延时回调，`Kill(target)` 按目标打断；返回值类型可打断句柄 |
 | **属性修饰器** | GAS 式修饰器求值：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。数值汇流「基础值 + 一叠加成 → 当前值」 |

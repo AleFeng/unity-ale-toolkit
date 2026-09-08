@@ -6,6 +6,21 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.13.0] - 2026-09-08
+
+**补上 UI 层一直缺的两件通用交互件：右键上下文菜单与模态弹窗基类。** 两个仓库此前没有任何 Popup / Modal / Confirm / ContextMenu 实现——唯一的浮窗是 `UiwTooltipBase`，而它在 `Awake` 里写死 `blocksRaycasts = false`（不遮挡下方条目的悬停判定），**结构上就不能承载可点击的菜单与对话框**；`UiwViewBase` 则面向常驻界面（标题文本、抽象 `Unsubscribe` / `Reopen`、`Start` 时 activeInHierarchy 就自动 Open），对弹窗同样不适用。上层系统（如库存的「道具右键 查看 / 使用 / 丢弃」）因此只能各写一遍外壳。本版把外壳收口到 toolkit，上层只负责组装条目与内容。**纯新增，无破坏性变更。**
+
+### 新增
+
+- **`UiwModalPopupBase`**（`Runtime/UI/View/`）：模态弹窗公共基类，承载「全屏遮罩 + 淡入淡出 + Cancel 键关闭 + 关闭按钮 + 根节点启停」整套外壳。`Open()` / `Close()` / `IsOpen` / `event Closed`；子类钩子 `OnInit()`（一次性接线）/ `OnOpening()`（**根节点已激活、尚未淡入**，可安全测量布局与定位）/ `OnClosed()`（完全隐藏后清内容、释放图标句柄）。可配 `panel` / `blocker` / `closeButton` / `canvasGroup` / `fadeDuration` / `closeOnBlockerClick` / `closeOnCancelKey`。
+  - **Cancel 键走 EventSystem 的 `ICancelHandler`**，而非旧版 `UnityEngine.Input`——工程若把 `activeInputHandler` 设为「仅新输入系统」，`Input.GetKeyDown` 会在运行时直接抛异常；用框架原生派发既避开这点，也不必给 `Ale.Toolkit.Runtime.UI` 新增 InputSystem 依赖。代价是弹窗打开期间占用 EventSystem 的当前选中对象，关闭时还原。
+  - 遮罩的点击关闭由运行时挂载的轻量转发器承担（同 `UiwNumberCounter` 对 +/- 按钮的做法），预制体上无需再给遮罩配一个 `Button`。
+- **`UiwContextMenu` + `UiwContextMenuRow` + `UiwContextMenuItem`**（`Runtime/UI/Tool/`）：数据驱动的右键上下文菜单，继承 `UiwModalPopupBase`。`Open(IReadOnlyList<UiwContextMenuItem>, Vector2 screenPos)` 在光标处弹出，条目行经 `UiwWidgetPool<UiwContextMenuRow>` 池化复用。条目为 `TextValue Label` / `Sprite Icon` / `bool Interactable` / `Action OnClick`（文案因而可挂原生本地化条目）。
+  - 定位前**强制 `LayoutRebuilder.ForceRebuildLayoutImmediate`**：菜单高度随条目数变化，不先刷新布局，`UIUtility.PositionAtCursor` 的屏内夹取会按上一次的尺寸算，靠近屏幕边缘时错位。
+  - 条目回调是**先关菜单、再回调**，使回调里可以安全地再弹别的窗。
+- **`UiPrefabBuilder.MakeSlider`**：标准水平 `Slider` 四件套（Background / Fill Area→Fill / Handle Slide Area→Handle）并接线，`wholeNumbers` 默认 true（滑杆在本工具箱的用途是选数量，取整才不会出现 3.7 个）。两个仓库此前**零** Slider 使用，无先例可抄。
+- **`UiPrefabBuilder.MakeFullScreenBlocker`**：全屏遮罩 `Image`（四边拉伸、强制 `raycastTarget = true`），供弹窗 / 菜单拦截下方点击并作为「点击外部关闭」的判定面。
+
 ## [1.12.0] - 2026-09-08
 
 **条件系统补齐到与效果系统对称：新增共用条件库 `ConditionDatabase` 与两页签 Condition Editor。** 条件系统自 1.8.0 起就停在「声明一个 `ConditionExpression` 字段、在 Inspector 内联配」的形态——条件没有 id、不能跨系统复用，同一句「力量 ≥ 10 且拥有勇敢特质」在特质 / 职业 / 头衔 / 技能树里各配一遍；判定器目录也比执行器目录弱一整代（只按特性扫、没有引用统计、没有静默失效诊断、不能跳源码）；参数里的 `attrId` / `traitId` / `titleId` 更是一律裸文本框，打错一个字静默返回 false——`ConditionEngine` 只对**未注册的判定器键**告警，对写错的**参数值**完全无声，而同一个属性 id 在效果编辑器里却是按系统名分组的下拉。本版把 1.10.0～1.11.0 给效果系统铺的那条路原样铺给条件系统：条件成为可按 id 引用的具名条目、Condition Editor 两页签（先看实现、再配数据）、参数候选可由宿主注入。本版新增 18 个测试（共 221）。

@@ -256,6 +256,85 @@ namespace Ale.Toolkit.Editor
             return dropdown;
         }
 
+        /// <summary>
+        /// 构建一个标准水平 <see cref="Slider"/>（Background / Fill Area→Fill / Handle Slide Area→Handle 四件套并接线）。
+        /// 尺寸由调用方另行设定（<see cref="SetRectSize"/> 或 <see cref="SetLayoutElement"/>）。
+        /// <para><paramref name="wholeNumbers"/> 默认为 true：本工具箱的滑杆用于选数量（如丢弃件数），
+        /// 取整才不会出现 3.7 个这种值。</para>
+        /// </summary>
+        /// <param name="goName">根节点名。</param>
+        /// <param name="parent">父节点。</param>
+        /// <param name="wholeNumbers">是否只取整数值。</param>
+        public static Slider MakeSlider(string goName, Transform parent, bool wholeNumbers = true)
+        {
+            var go = ChildGameObject(goName, parent);
+            go.AddComponent<RectTransform>();
+            var slider = go.AddComponent<Slider>();
+
+            // ── Background（整条槽）────────────────────────────────────────────
+            var bgGo = ChildGameObject("Background", go.transform);
+            var bgRt = bgGo.AddComponent<RectTransform>();
+            bgRt.anchorMin = new Vector2(0f, 0.25f);
+            bgRt.anchorMax = new Vector2(1f, 0.75f);
+            bgRt.offsetMin = bgRt.offsetMax = Vector2.zero;
+            var bgImg = bgGo.AddComponent<Image>();
+            bgImg.color = Hex("1C2533");
+
+            // ── Fill Area / Fill（已填充部分）──────────────────────────────────
+            // 左右各让出半个滑块宽度，使填充端点与滑块中心对齐（Unity 默认模板的做法）。
+            var fillAreaGo = ChildGameObject("Fill Area", go.transform);
+            var fillAreaRt = fillAreaGo.AddComponent<RectTransform>();
+            fillAreaRt.anchorMin        = new Vector2(0f, 0.25f);
+            fillAreaRt.anchorMax        = new Vector2(1f, 0.75f);
+            fillAreaRt.sizeDelta        = new Vector2(-20f, 0f);
+            fillAreaRt.anchoredPosition = new Vector2(-5f, 0f);
+
+            var fillGo = ChildGameObject("Fill", fillAreaGo.transform);
+            var fillRt = fillGo.AddComponent<RectTransform>();
+            fillRt.anchorMin = Vector2.zero;
+            fillRt.anchorMax = new Vector2(0f, 1f);
+            fillRt.sizeDelta = new Vector2(10f, 0f);
+            fillGo.AddComponent<Image>().color = Hex("3D6E9E");
+
+            // ── Handle Slide Area / Handle（滑块）─────────────────────────────
+            var handleAreaGo = ChildGameObject("Handle Slide Area", go.transform);
+            var handleAreaRt = handleAreaGo.AddComponent<RectTransform>();
+            Stretch(handleAreaRt);
+            handleAreaRt.sizeDelta = new Vector2(-20f, 0f);
+
+            var handleGo = ChildGameObject("Handle", handleAreaGo.transform);
+            var handleRt = handleGo.AddComponent<RectTransform>();
+            handleRt.anchorMin = Vector2.zero;
+            handleRt.anchorMax = new Vector2(0f, 1f);
+            handleRt.sizeDelta = new Vector2(20f, 0f);
+            var handleImg = handleGo.AddComponent<Image>();
+            handleImg.color = new Color(0.85f, 0.85f, 0.92f);
+
+            // ── 接线 ──────────────────────────────────────────────────────────
+            slider.direction     = Slider.Direction.LeftToRight;
+            slider.fillRect      = fillRt;
+            slider.handleRect    = handleRt;
+            slider.targetGraphic = handleImg;
+            slider.wholeNumbers  = wholeNumbers;
+
+            return slider;
+        }
+
+        /// <summary>
+        /// 构建一张全屏遮罩 <see cref="Image"/>（四边拉伸、接收射线）。用于弹窗 / 菜单挡住下方界面的点击，
+        /// 并作为「点击外部关闭」的判定面（见 <c>UiwModalPopupBase.blocker</c>）。
+        /// <para>默认半透明黑；<paramref name="alpha"/> 传 0 即为完全不可见但仍拦截射线的透明遮罩。</para>
+        /// </summary>
+        public static Image MakeFullScreenBlocker(string goName, Transform parent, float alpha = 0.5f)
+        {
+            var go = ChildGameObject(goName, parent);
+            Stretch(go.AddComponent<RectTransform>());
+            var img = go.AddComponent<Image>();
+            img.color         = new Color(0f, 0f, 0f, alpha);
+            img.raycastTarget = true;                 // 关键：遮罩靠射线拦截点击，不可关
+            return img;
+        }
+
         // 通过 SerializedObject 设置 objectReference 字段（兼容 ATK_TMP 类型差异）
         public static void SetSerializedRef(Component comp, string fieldName, Object value)
         {

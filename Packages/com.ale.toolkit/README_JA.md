@@ -26,7 +26,7 @@ Unity プラグイン開発向けの**汎用基盤ライブラリ**です。特�
 | --- | --- |
 | **属性システム** | 20 種類以上のフィールドタイプを持つ `AttributeValue`、属性定義（スキーマ）、カスタム列挙型、数値フォーマット設定、軽量な表示テキスト `TextValue`（fallback + オプションのネイティブローカライズ）。「属性項目を設定する」場面ではすべてこれを使用します |
 | **ソート** | 要素の型に依存しないソートエンジン。ホスト側が `ISortContext<TData>` を実装して比較に必要な情報を提供し、エンジンが多段優先度とタイブレークを処理します |
-| **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画；セルの割り当て / 回収時のフェードイン・アウトを `UiwListFadeCell` + エンジン既定フックで汎用駆動）、タブバー、フィルターバー、ツールチップ基底クラス、ウィジェットプール |
+| **UI** | バーチャルスクロールリスト（グリッド / 順次、オブジェクトプール + 可視領域のみ描画；セルの割り当て / 回収時のフェードイン・アウトを `UiwListFadeCell` + エンジン既定フックで汎用駆動）、タブバー、フィルターバー、ツールチップ基底クラス、右クリックコンテキストメニュー `UiwContextMenu`、モーダルポップアップ基底クラス `UiwModalPopupBase`（1.13.0 から）、ウィジェットプール |
 | **オブジェクトプール** | 汎用の GameObject / プレハブプール（`Spawn`/`Despawn` + `IPoolable` コールバック、プリロード / 容量リサイクル / 遅延デスポーン / シーン跨ぎ）と、純 C# 参照型プール `ToolkitClassPool<T>`（GC 削減）。Lean.Pool 等のサードパーティ製プールを置き換え可能 |
 | **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` の alpha フェード、`TintGraphic` の全色トランジション、`MoveTransform` / `RotateTransform` / `ScaleTransform`、`DelayedCall`、ターゲット単位の `Kill(target)`。中断可能な値型ハンドルを返す。イージング最小セット `EToolkitEase` |
 | **属性モディファイア** | GAS 風のモディファイア評価（エンジン非依存アセンブリ `Ale.Modifier.Core`、名前空間 `Ale.Modifier`）：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース明細）。「基礎値 + 一連の加算 → 現在値」という数値集約はすべてこれを使用し、効果システムの持続モディファイアも直接この型を産出します |

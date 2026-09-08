@@ -59,7 +59,7 @@ https://github.com/AleFeng/unity-ale-inventory-system.git?path=/Packages/com.ale
 | --- | --- |
 | **属性システム** | `AttributeValue` と 20 種以上のフィールド型、属性定義（スキーマ）、カスタム列挙型、数値フォーマット設定、タグシステム（`Tag`）、軽量な表示テキスト `TextValue`（fallback + 任意のネイティブローカライズ）。「属性項目を設定する」あらゆる場面で使用 |
 | **ソート** | 要素の型に依存しないソートエンジン。ホストが `ISortContext<TData>` を実装して比較に必要な情報を提供し、エンジンが多段優先度とタイブレークを処理。主キー / タグ順ソートは標準対応 |
-| **UI** | 仮想スクロールリスト（グリッド / 順次、プール + 可視領域のみ描画）、タブバー、フィルターバー、Tooltip 基底、アイテムプールなどの汎用ウィジェット |
+| **UI** | 仮想スクロールリスト（グリッド / 順次、プール + 可視領域のみ描画）、タブバー、フィルターバー、Tooltip 基底、右クリックコンテキストメニュー、モーダルポップアップ基底、アイテムプールなどの汎用ウィジェット |
 | **オブジェクトプール** | 汎用 GameObject / プレハブプール + 純 C# 参照型プール `ToolkitClassPool<T>`（`Spawn`/`Despawn`、`IPoolable` コールバック、プリロード / 容量リサイクル / シーン跨ぎ、GC 削減）。Lean.Pool 等を置き換え可能 |
 | **Tween** | 軽量な中央 Tween（DOTween 風の単一 Update ポーリング、ジョブをプール化して GC ほぼゼロ）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` の alpha フェード、`TintGraphic` の全色トランジション、`MoveTransform` / `RotateTransform` / `ScaleTransform`、`DelayedCall`、ターゲット単位の `Kill(target)`。中断可能な値型ハンドルを返す |
 | **属性修飾子** | GAS 風の修飾子評価：`ModifierDefinition` + `ModifierStackEvaluator` によるグループ集計（Add→PercentAdd→Multiply→Override + clamp + ソース内訳）。数値を「基礎値 + 一連の加算 → 現在値」へと合流させる |
