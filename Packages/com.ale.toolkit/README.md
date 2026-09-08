@@ -31,7 +31,7 @@
 | **Tween** | 轻量中央 Tween（DOTween 式单 Update 轮询、作业池化近零 GC）：`FadeCanvasGroup` / `FadeGraphic` / `FadeSpriteRenderer` 淡入淡出，`TintGraphic` 整色过渡，`MoveTransform` / `RotateTransform` / `ScaleTransform` 位移·旋转·缩放，`DelayedCall` 延时回调，`Kill(target)` 按目标打断；返回值类型可打断句柄；缓动最小集 `EToolkitEase` |
 | **属性修饰器** | GAS 式修饰器求值（引擎无关程序集 `Ale.Modifier.Core`，命名空间 `Ale.Modifier`）：`ModifierDefinition` + `ModifierStackEvaluator` 分组结算（Add→PercentAdd→Multiply→Override + clamp + 来源明细）。任何「基础值 + 一叠加成 → 当前值」的数值汇流都用它；效果系统的持续修饰器也直接产出它 |
 | **标签系统（GameplayTag System）** | UE GameplayTag 范式的层级标签：`GameplayTag`（`Status.Debuff.Mental`，持有后代即匹配祖先）、配置容器 `GameplayTagContainer`、运行时计数容器 `GameplayTagCountContainer`、标签要求 `GameplayTagRequirements`、咨询性注册表 + 标签表资产 + 编辑器标签树下拉；条件桥 `Condition.HasGameplayTag` / `Condition.GameplayTags` |
-| **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现，并可直接复用现成的比较符范式与判定上下文。引擎无关 Core 可上服务端 |
+| **条件系统（Condition System）** | 数据驱动的两级 AND/OR 条件：声明一个 `ConditionExpression` 字段即在 Inspector 内联配置；上层实现 `[ConditionEvaluator]` 判定器被自动发现，并可直接复用现成的比较符范式与判定上下文。引擎无关 Core 可上服务端；**1.12.0 起**附带所有上层系统共用的条件库 `ConditionDatabase`（条件条目 = 显示名 / 描述 / 图标 + 模板驱动的自定义属性 + 表达式）与 Condition Editor，条件可按 id 跨系统引用 |
 | **效果系统（Effect System）** | UE5 GAS `GameplayEffect` 范式的完整效果系统：`EffectDefinition`（时长策略 / 周期 / 叠加 / 标签 / 施加条件与概率 / 修饰器 / 各阶段执行 / 线索）+ 运行时 `EffectContainer`（施加管线、Tick、抑制、免疫、按标签移除、汇流、存档）；执行层仍是数据驱动的阶段组 + 每项可选条件门控，上层实现 `[EffectExecutor]` 执行器被自动发现。引擎无关 Core；**1.10.0 起**附带所有上层系统共用的效果库 `EffectDatabase`（效果条目 = 显示名 / 描述 / 图标 + 模板驱动的自定义属性 + GAS 定义；效果模板 / Gameplay 标签 / 枚举）与 Effect Editor，上层系统只保留效果 id 引用列表 + 跳转 |
 | **编辑器框架** | 三列布局页签基类、数据库窗口外壳基类、主列表面板、实体列表面板、工具窗口基类，均对数据库类型泛型化 |
 | **编辑器多语言** | 中 / English / 日本語 三语服务，以中文原文为键，缺译文自动回退 |
@@ -39,7 +39,7 @@
 | **编辑器入口与全局设置** | Ale Toolkit 欢迎窗口（`Tools > Ale Toolkit > Welcome`）：界面语言 / 枚举翻译 / 三个可选依赖宏开关 / 向导默认字体 / 本地化字体 + 通用工具入口 + 页脚「启动时自动显示」；其中向导字体等项目级设定存入 `ProjectSettings/AleToolkitSettings.asset`（随仓库入库、按 GUID 引用资源），语言 / 自动显示为每人偏好（EditorPrefs）；宏只由欢迎窗口显式开关，插件不会自动改写 PlayerSettings |
 | **通用工具窗口** | 对任意数据资产（`ScriptableObject`）遍历其全部 `AttributeValue` 批量处理：Addressable 迁移（Object ↔ GUID）与本地化 Key 生成，挂 `Tools > Ale Toolkit`，供上层插件复用 |
 
-> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**；**1.9.0 起新增层级标签系统（`Ale.GameplayTags`），效果系统补齐 GAS `GameplayEffect` 全貌（`EffectDefinition` + `EffectContainer`），属性修饰器抽成引擎无关的 `Ale.Modifier.Core`（⚠️ 命名空间改为 `Ale.Modifier`）**；**1.10.0 起新增所有上层系统共用的效果库 `EffectDatabase` 与 Effect Editor（效果条目带显示名 / 描述 / 图标与模板驱动的自定义属性；上层只保留效果 id 引用列表 + 跳转；⚠️ `Ale.Effect.Runtime` 新增依赖 `Ale.Toolkit.Runtime` / `Ale.GameplayTags.Runtime`）**；**1.11.0 起 Effect Editor 增设「Effect Executors」页——工程内全部 `[EffectExecutor]` 实现的目录（搜索 / 分类 / 参数 schema / 跳转源码 / 静默失效体检 / 配置引用交叉核对），原页签改名 Effect Database 并移至第二位；编辑器窗口外壳新增「本页签是否需要数据库」钩子与页签记忆**。完整变更见 [CHANGELOG](CHANGELOG.md)。
+> 上述模块已全部落位——1.1.0 起 TMP / Localization / Addressables 三个可选依赖支持层齐备、纯 toolkit 环境界面亦具三语；**1.2.0 起接管项目级全局设定（语言 / 宏）并提供可对任意数据资产工作的通用工具窗口**；**1.3.0 起新增通用对象池（GameObject 预制体池 + 纯 C# 类池）与轻量中央 Tween**；**1.4.0 起新增属性修饰器求值、数据库窗口外壳基类，以及两个独立子系统——条件系统（`Ale.Condition`）与效果系统（`Ale.Effect`）**；**1.5.0 起新增轻量展示文本值 `TextValue`（fallback + 可选原生本地化，`AttributeValue` 的 `Text` 类型的独立轻量版）**；**1.5.1 起为虚拟滚动列表新增通用单元格淡入淡出（`UiwListFadeCell` + `IUiwRecycleFadeCell` / `IUiwDiffCell`，`UiwVirtualListBase` 默认 hook 驱动）与 `ToolkitTween.FadeGraphic`**；**1.6.0 起中央 Tween 补齐 `SpriteRenderer` 淡入淡出、`Graphic` 整色过渡、`Transform` 位移 / 旋转 / 缩放、延时回调与「按目标 Kill」，可整体承接 DOTween 的常用单 tween 用法（仍不含 Sequence）**；**1.8.0 起条件系统把三样「每个宿主都得自己写一遍」的设施收进 Core——比较符范式 `ConditionCompare`、通用判定上下文 `ConditionContext` / `SubjectConditionContext`、幂等的 `ConditionRegistry.EnsureAutoRegistered()`**；**1.9.0 起新增层级标签系统（`Ale.GameplayTags`），效果系统补齐 GAS `GameplayEffect` 全貌（`EffectDefinition` + `EffectContainer`），属性修饰器抽成引擎无关的 `Ale.Modifier.Core`（⚠️ 命名空间改为 `Ale.Modifier`）**；**1.10.0 起新增所有上层系统共用的效果库 `EffectDatabase` 与 Effect Editor（效果条目带显示名 / 描述 / 图标与模板驱动的自定义属性；上层只保留效果 id 引用列表 + 跳转；⚠️ `Ale.Effect.Runtime` 新增依赖 `Ale.Toolkit.Runtime` / `Ale.GameplayTags.Runtime`）**；**1.11.0 起 Effect Editor 增设「Effect Executors」页——工程内全部 `[EffectExecutor]` 实现的目录（搜索 / 分类 / 参数 schema / 跳转源码 / 静默失效体检 / 配置引用交叉核对），原页签改名 Effect Database 并移至第二位；编辑器窗口外壳新增「本页签是否需要数据库」钩子与页签记忆**；**1.12.0 起条件系统补齐到与效果系统对称——新增共用条件库 `ConditionDatabase`（条件可按 id 跨系统引用，解析不到时 fail-closed）与两页签 Condition Editor（Condition Evaluators 看实现 / Condition Database 配数据），条件参数新增候选来源注入点 `ConditionDrawerHooks`；⚠️ `Ale.Condition.Runtime` 新增依赖 `Ale.Toolkit.Runtime`**。完整变更见 [CHANGELOG](CHANGELOG.md)。
 
 ---
 
@@ -59,8 +59,8 @@
 | `Ale.GameplayTags.Runtime` | 标签系统 · Unity 桥（`GameplayTagTable` 资产 + 启动登记 + `[GameplayTagField]`） | — |
 | `Ale.GameplayTags.Editor` | 标签系统 · 目录 / 标签树下拉 / 容器与要求绘制器 / 表 Inspector / 欢迎窗口 | — |
 | `Ale.Condition.Core` | 条件系统 · 引擎无关模型 / 判定引擎 / 注册与反射发现 / JSON，以及供宿主复用的比较符范式 `ConditionCompare` 与通用判定上下文 `ConditionContext`（`noEngineReferences`，可上服务端） | 引用 Newtonsoft |
-| `Ale.Condition.Runtime` | 条件系统 · Unity 桥（`ConditionAsset` + 启动自动注册） | — |
-| `Ale.Condition.Editor` | 条件系统 · 内联绘制器 / 目录 / 欢迎窗口 | — |
+| `Ale.Condition.Runtime` | 条件系统 · Unity 桥（`ConditionAsset` + 启动自动注册）与共用条件库 `ConditionDatabase` / 数据管理器 / 配置序列化（1.12.0 起） | 1.12.0 起引用 `Ale.Toolkit.Runtime` |
+| `Ale.Condition.Editor` | 条件系统 · 内联绘制器 / 目录 / 欢迎窗口 / 参数候选注入点，以及 Condition Editor 两页签（1.12.0 起） | 1.12.0 起引用 `Ale.Toolkit.Runtime` + `Ale.Toolkit.Editor` |
 | `Ale.Effect.Core` | 效果系统 · 引擎无关模型（`EffectDefinition` / `EffectExpression`）/ 运行时容器 `EffectContainer` / 执行运行器 / 注册与反射发现 / JSON（`noEngineReferences`） | 引用 `Ale.Condition.Core` + `Ale.GameplayTags.Core` + `Ale.Modifier.Core` + Newtonsoft |
 | `Ale.Effect.Runtime` | 效果系统 · Unity 桥：共用效果库 `EffectDatabase`（效果条目 / 模板 / Gameplay 标签 / 枚举）+ `EffectDataManager` + `EffectConfigSerializer`（JSON / 二进制）、`EffectAsset` / `EffectDefinitionAsset`、启动引导（清空 + 加法） | 引用 `Ale.Toolkit.Runtime` + `Ale.GameplayTags.Runtime`（1.10.0 起） |
 | `Ale.Effect.Editor` | 效果系统 · Effect Editor（效果 / 模板 / 标签 / 枚举）、效果目录 `EffectEditorCatalog`、宿主用引用列表绘制器 `EditorEffectRefListDrawer`、定义 / 幅度 / 修饰器 / 表达式绘制器、属性 id 目录 provider、欢迎窗口 | 引用 `Ale.Toolkit.Editor` + `Ale.GameplayTags.Editor`（1.10.0 起） |
@@ -295,6 +295,26 @@ bool okForHero = expr.Evaluate(new SubjectConditionContext(ctx, hero)).Passed;
 运行时 `ConditionRuntime` 于 `[RuntimeInitializeOnLoadMethod]` 把 `ConditionRegistry.Default` 反射填满并接缺键告警；服务端 / 测试可手动 `new ConditionRegistry()` + `AutoRegisterFromAssemblies()` 或逐个 `Register`。**编辑器工具在非播放态求值**时注册表是空的（那时 `ConditionRuntime` 还没跑），用幂等的 `ConditionRegistry.Default.EnsureAutoRegistered()` 兜一次即可。
 
 **内置判定器**：`Condition.AlwaysTrue`、`Condition.HasFlag`（`IConditionFlagSource`）、`Condition.NumberCompare`（`IConditionNumberSource`）。**JSON**：`ConditionJson.ToJson(expr)` / `FromJson(str)`（Newtonsoft；模型纯 POCO，可换序列化器、可入库存档）。**总览**：`Tools > Ale Toolkit > Condition System > Welcome`。
+
+**④ 条件库与 Condition Editor（1.12.0 起）**
+
+条件除了内联在宿主字段里，也可以配成**有 id 的具名条目**由多个系统共用——同一句「力量 ≥ 10 且拥有勇敢特质」不必在特质 / 职业 / 头衔 / 技能树里各配一遍。载体是 `ConditionDatabase`（`Create > Ale > Condition > Condition Database`）：三个顶层列表——**条件条目** `ConditionEntry`（`id` + 显示名 / 描述 / 图标三个 `AttributeValue` + 按模板 schema 的自定义属性 `values` + 内嵌 `expression`；显示字段可直接喂给「未满足时」的玩家提示 UI）、**条件模板** `ConditionTemplate`（`name` / `color` / 自定义属性 schema + `defaultExpression`，从模板创建时深拷贝作预设）、**枚举类型**。本库不持有 Gameplay 标签——标签归效果库统一声明。
+
+```csharp
+// 运行时：放在 Resources 下随启动自动登记（ConditionRuntime.AutoLoadFromResources，默认 true），或显式登记
+ConditionDataManager.Instance.Register(conditionDatabase);   // 幂等；NormalizeAll + 并入全局具名条件注册表
+bool ok = ConditionResolver.IsSatisfied("knight_ready", ctx); // 解析：上下文条件源 → 回落源 → ConditionDefinitionRegistry.Default
+ConditionEntry e = ConditionDataManager.Instance.GetEntry("knight_ready");
+string why = e.descriptionText.ResolveText();                 // 未满足时给玩家看的那句话
+```
+
+- ⚠️ **解析不到即判否（fail-closed）**：`ConditionResolver.Evaluate` 找不到 id 时返回不通过、把该 id 放进 `FailedKeys` 并告警。门控场景下「id 写错」应当锁住内容而不是放行，与 `ConditionEngine` 对未注册判定器键的处理一致。
+- 引导：`[SubsystemRegistration]` 清空注册表 → `[BeforeSceneLoad]` 只做加法（判定器 + `Resources`），宿主在 Awake 里 `Register` 的库稳定存活。
+- **Condition Editor**（`Tools > Ale Toolkit > Condition System > Condition Editor`，或资产 Inspector 的「在 Condition Editor 中编辑」）有两个页签，与 Effect Editor 结构对称：
+  - **Condition Evaluators**（第一页；内容来自**代码**，没有条件库也能用）：工程内全部 `IConditionEvaluator` 实现的目录，按分类分组、可按 键 / 显示名 / 类型全名 / 程序集 搜索、可「只看有问题」。右列给出实现类型 / 程序集 / 源码路径与「打开脚本」（定位到类声明行）、「在 Project 中定位」、「复制 Key」（双击行等同打开脚本），参数 schema，被哪些配置引用（点「跳转」定位过去），以及**静默失效体检**——漏打 `[ConditionEvaluator]`、特性里的键与 `Key` 属性不一致、重复键、空键、缺公开无参构造 / 实例化失败（抽象基类只作说明、不算问题）。顶部横幅列出「配置引用了但没有实现」的悬空键。引用来源覆盖条件库、`ConditionAsset`，以及**效果库里每条效果的施加条件与执行项门控**（由效果侧经 `ConditionEvaluatorIndex.RegisterUsageProvider` 贡献，保持依赖方向不反转）。
+  - **Condition Database**（第二页）：左列 条件模板 / 枚举类型，中列条件列表（模板过滤 / 搜索 / 从模板添加 / 快速添加），右列 ID 查重 + 名称 / 描述 / 图标 + 自定义属性 + 内联表达式 + 校验摘要（会当场报「未选择判定器」与「判定器 X 没有对应实现」）；查重阻断导出，导出 JSON / 二进制。`ConditionEditorWindow.Open(db, conditionId)` 定位到指定条件，`OpenEvaluators()` 切到第一页。
+- **宿主接入**（Inspector 一行代码）：`EditorConditionRefListDrawer.Draw(ctx, skill.unlockConditionRefs, drag, "解锁条件", "条件")`——目录菜单（按库分组）、拖拽重排、「打开」跳转、「未找到」标注（不阻断）、自由输入。
+- **参数候选注入**：判定器在 schema 里用 `catalogRef` 声明「这个字符串参数装的是哪一类 id」（如 `new ConditionParamDef("traitId", ConditionParamType.String, false, "特质ID", null, null, "Chronicle.Trait")`），宿主经 `ConditionDrawerHooks.RegisterProvider(IConditionParamCatalogProvider)` 为该目录供给候选，绘制器便把裸文本框换成按系统名分组的下拉（悬空值保留并标「（未知）」）。`catalogRef` 为空或无候选时行为与 1.11.0 完全一致。
 
 ### 效果系统 · Effect System
 

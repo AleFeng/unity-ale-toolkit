@@ -6,6 +6,43 @@
 
 > 由来：本包自 `com.ale.inventory` 1.8.0 拆分而来。原先埋在库存系统里的通用能力被抽出，使其可被更多插件复用（例如后续的角色系统）。拆分过程中**导出格式与序列化结构不变**，类型的命名空间由 `Ale.Inventory.*` 改为 `Ale.Toolkit.*`。
 
+## [1.12.0] - 2026-09-08
+
+**条件系统补齐到与效果系统对称：新增共用条件库 `ConditionDatabase` 与两页签 Condition Editor。** 条件系统自 1.8.0 起就停在「声明一个 `ConditionExpression` 字段、在 Inspector 内联配」的形态——条件没有 id、不能跨系统复用，同一句「力量 ≥ 10 且拥有勇敢特质」在特质 / 职业 / 头衔 / 技能树里各配一遍；判定器目录也比执行器目录弱一整代（只按特性扫、没有引用统计、没有静默失效诊断、不能跳源码）；参数里的 `attrId` / `traitId` / `titleId` 更是一律裸文本框，打错一个字静默返回 false——`ConditionEngine` 只对**未注册的判定器键**告警，对写错的**参数值**完全无声，而同一个属性 id 在效果编辑器里却是按系统名分组的下拉。本版把 1.10.0～1.11.0 给效果系统铺的那条路原样铺给条件系统：条件成为可按 id 引用的具名条目、Condition Editor 两页签（先看实现、再配数据）、参数候选可由宿主注入。本版新增 18 个测试（共 221）。
+
+### 破坏性变更
+
+- ⚠️ **`Ale.Condition.Runtime` 新增引用 `Ale.Toolkit.Runtime`**（条件库需要属性系统：`AttributeOwner` / `ConfigTemplateBase` / `AttributeValue` / `EnumType` / `ToolkitSingleton` / 序列化编解码）。性质与 1.10.0 给 `Ale.Effect.Runtime` 加同一依赖完全相同：只引用 `Ale.Condition.Core` 的服务端 / 纯 C# 消费方**不受影响**（Core 仍零依赖、`noEngineReferences`）；引用 `Ale.Condition.Runtime` 的宿主从此连带 toolkit 全家桶。`Ale.Condition.Editor` 另新增引用 `Ale.Toolkit.Runtime` / `Ale.Toolkit.Editor`（三列框架与界面多语言），`Ale.Effect.Editor` 新增引用 `Ale.Condition.Editor`（见下文「用法提供者」）——方向仍单向无环。
+- **运行时引导拆分**：`ConditionRuntime` 拆成 `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]` 清空（具名条件注册表 + 告警去重集）与 `[BeforeSceneLoad]` 只做加法（判定器自动注册 + 两条告警接线 + `Resources` 加载）。与 1.10.0 给 `EffectRuntime` 做的拆分同因：同一 LoadType 内跨程序集的回调顺序无保证，「清空」与「加法」混在一起会互相抹除。
+
+### 新增
+
+- **条件库 `ConditionDatabase`**（`Ale.Condition.Runtime`，`Runtime/Condition/Unity/Database/`；`Create > Ale > Condition > Condition Database`）：三个顶层列表——`enumTypes`（自定义属性的枚举字段用）、`conditionTemplates`、`conditions`；实现 `IEnumTypeSource` / `IConditionSchemaSource` / `IConditionDefinitionSource`；`GetEntry(id)` / `GetTemplate(name)` / `GetEnumType(name)`、`NormalizeAll` / `RebuildAllAttributes` / `AddEnumType` / `CloneFrom`；`Validate(out errors)`：枚举名 / 模板名 / 条件 id 重复、`templateRef` 悬空、表达式为空、**条件项未选择判定器**（空键在 `ConditionEngine` 恒判不通过，属半配置状态，以前完全无声）。本库**不持有 Gameplay 标签**——标签归 `EffectDatabase` 统一声明，条件侧只经两个标签判定器读取。
+  - **`ConditionTemplate : ConfigTemplateBase`**：`name` / `color` / `attributes`（自定义属性 schema）+ `defaultExpression`（从模板创建条件时深拷贝作预设）。
+  - **`ConditionEntry : AttributeOwner`**：`id` / `templateRef` / `displayText` / `descriptionText` / `iconValue`（`AttributeValue` Text / Text / Sprite）/ `values` / `expression`；`Normalize()` / `RebuildAttributes(IConditionSchemaSource)` / `ResolveDisplayName()` / `PlainName()` / `Clone()`。显示字段的用处是直接喂给「未满足时」的玩家提示 UI。
+  - 为什么要包这一层：`ConditionExpression` 是已发布的纯 POCO、有 JSON 往返格式与 34 个测试守着，**不动它**；具名与显示信息由外层条目承担。序列化深度只有 5 层（库 → 条目 → 表达式 → 组 → 项 → 参数），余量充足。
+- **按 id 引用的运行时链路**（`Ale.Condition.Core`）：`IConditionDefinitionSource` + `ConditionDefinitionRegistry`（`Default` / `AddSource` 幂等 / `RemoveSource` / `Register` / `Unregister` / `GetCondition` / `TryGet` / `Clear`）+ `ConditionResolver`（`Resolve` / `Evaluate` / `IsSatisfied`）。解析顺序：上下文的 `IConditionDefinitionSource` → 显式回落源 → 全局注册表。⚠️ **解析不到时 fail-closed**——返回不通过、把该 id 放进 `FailedKeys`、经 `MissingIdWarning` 告警；门控场景下 id 写错应当锁住内容而不是放行，与 `ConditionEngine` 对未注册判定器键的处理一致。
+- **`ConditionDataManager : ToolkitSingleton`**（`IConditionDefinitionSource` / `IEnumTypeSource` / `IConditionSchemaSource`）：`Register(db)`（幂等；`NormalizeAll`；首次登记时 `ConditionDefinitionRegistry.Default.AddSource(this)`）/ `Unregister` / `ClearDatabases` / `LoadFromBinary` / `LoadFromJson`；惰性索引 `GetEntry` / `GetTemplate` / `GetEnumType` / `GetAllConditions`。`ConditionRuntime.AutoLoadFromResources`（静态开关，默认 true）为真时启动自动 `Resources.LoadAll<ConditionDatabase>` 逐个登记。
+- **`ConditionConfigSerializer`**（命名空间 `Ale.Condition.Serialization`）：魔数 `CNDB`、`Version = 1`；JSON（`JsonUtility`，表达式直接内嵌）与二进制（表达式以 `ConditionJson` 串承载，属性值经 `ToolkitBinaryCodec` / `ToolkitDtoMapper`）的 `Export` / `Import` / `ImportInto` 往返。
+- **Condition Editor**（`Ale.Condition.Editor`，`Editor/Condition/Database/`；菜单 `Tools > Ale Toolkit > Condition System > Condition Editor`，priority 2002）：`EditorDatabaseWindowBase<ConditionDatabase>` 外壳 + 两个页签，与 Effect Editor 逐文件对称。
+  - **Condition Evaluators**（第一页；内容来自**代码**，没有条件库也能用）：工程内全部 `IConditionEvaluator` 实现的目录，按分类分组、可按 键 / 显示名 / 类型全名 / 程序集 搜索、可「只看有问题」；右列给出实现类型 / 程序集 / 源码路径与「打开脚本」（定位到类声明行）/「在 Project 中定位」/「复制 Key」（双击行等同打开脚本）、参数 schema、被哪些配置引用（可跳转）、诊断；顶部横幅列出「配置引用了但没有实现」的悬空键；底部速查给最小实现模板。
+  - **Condition Database**（第二页）：左列 条件模板 / 枚举类型，中列条件列表（模板过滤 / 搜索 / 从模板添加 = 克隆 `defaultExpression` + 按 schema 建属性 / 快速添加），右列 ID 查重 + 名称 / 描述 / 图标 + 自定义属性 + 内联表达式 + 校验摘要（**当场报「未选择判定器」与「判定器 X 没有对应实现」**——后者查编辑期目录，条件系统以前完全没有的保障）；查重阻断导出，导出 JSON / 二进制。`ConditionEditorWindow.Open(db, conditionId)` 定位到指定条件，`OpenEvaluators()` 切到第一页。
+- **`ConditionEvaluatorIndex`**：候选类型取 `TypeCache.GetTypesDerivedFrom<IConditionEvaluator>()` 与 `GetTypesWithAttribute<ConditionEvaluatorAttribute>()` 的并集，七种诊断标记 `EEvaluatorIssue` + `InformationalIssues`（抽象基类只作说明，不标红、不计入「只看有问题」）+ `HasProblem`；`Rows` / `Usages` / `DanglingKeys` / `Categories` / `DiscoveredCount` / `UsagesOf(key)`；纯函数 `BuildRows` / `CollectKeys` / `Filter` 可直接单测。
+  - **用法提供者**：索引直接扫 `ConditionDatabase`（条目 + 模板默认表达式）与 `ConditionAsset`；**效果系统里的条件用法**（每条效果的 `applicationCondition`、各执行项的 `gate`）由新增的 `Editor/Effect/EffectConditionUsageProvider` 经 `RegisterUsageProvider` 贡献。`ConditionKeyUsage` 自带 `Action Jump`，跳转回 Effect Editor 由效果侧自己完成——条件系统不必认识效果系统，依赖方向保持 `Ale.Effect.Editor → Ale.Condition.Editor`，无环。
+- **`ConditionEditorCatalog`**（工程内全部条件库的条目索引，`AssetPostprocessor` 失效重建）与 **`EditorConditionRefListDrawer`**（宿主 Inspector 的条件 id 引用列表：目录菜单 / 拖拽重排 / 「打开」跳转 / 「未找到」标注 / 自由输入）；`ConditionDatabase` 资产 Inspector。
+- **条件参数的候选来源注入点**：`ConditionParamDef` 新增可选 `catalogRef`（判定器自己声明「这个字符串参数装的是哪一类 id」，排在 `choices` 之后，既有位置参数调用点不受影响）+ `Editor/Condition/ConditionDrawerHooks`（`IConditionParamCatalogProvider { SystemName; CatalogRef; GetItems() }` / `ParamIdField` 整字段委托 / `RegisterProvider` / `CollectCandidates` / `DrawParamId`：委托 → 按系统名分组的下拉 → 文本框三级回落）。`ConditionExpressionDrawer` 的字符串参数（标量与数组两条路径）据此把裸文本框换成候选下拉；`catalogRef` 为空或该目录无候选时行为与 1.11.0 完全一致。
+- 测试：`ConditionDatabaseTests`（11：归一 / 深拷贝 / schema 对账 / 校验各分支 / JSON 与二进制往返 / 数据管理器幂等·跨库先注册先得·自动登记为全局源 / 注册表本地优先 / 解析三级顺序 / fail-closed）、`ConditionEditorIndexTests`（7：诊断标记与 `Discovered`、抽象基类只作说明、键收集、过滤、目录索引、候选提供者登记 / 合并 / 注销）；测试程序集新增引用 `Ale.Condition.Runtime` / `Ale.Condition.Editor`。
+
+### 变更
+
+- 条件系统欢迎窗口（`Tools > Ale Toolkit > Condition System > Welcome`）：更正「条件系统本身不需要独立的配置 EditorWindow」的旧说明，内联判定器清单精简为计数 + 「查看全部判定器」按钮，并加「打开条件编辑器 / 新建条件库」——与效果系统欢迎窗口现在的形状一致。
+
+### 说明
+
+- 两种用法并存、互不排斥：条件既可继续**内联**在宿主字段里（`ConditionExpression` 字段 + Inspector 绘制器，行为完全不变），也可配成**具名条目**由多个系统按 id 共用。宿主可按需分批迁移。
+- ⚠️ `ConditionCompare.Labels` 与 `GameplayTagMatchMode.Labels` **不进界面多语言表**——它们是通信格式（配置存索引、外部桥按标签反查），不是 UI 文案，有冻结断言测试守着。
+- `ConditionExpressionDrawer` 的文案仍为硬编码中文（与效果侧的定义 / 幅度 / 修饰器 / 表达式绘制器口径一致）；新增的 Condition Editor 走 toolkit 三语。
+
 ## [1.11.0] - 2026-09-08
 
 **Effect Editor 从「配效果库」扩成「先看实现、再配数据」的两页签窗口。** 1.10.0 把效果配置收拢进 `EffectDatabase` 之后，「这个工程里到底有哪些可用的效果实现」仍然只能在 Effect System 的 Welcome 窗口看到一份不能搜索、不能跳源码的两列清单；执行器键的正确性更是完全没有编辑期保障——`EffectDefinition.Validate` 只检查阶段名，键写错要进 Play 才在控制台看到一行「未注册的执行器键」。而两条发现通道（编辑期 `TypeCache` / 运行期反射）在重复键上行为**相反**（前者先到先得、后者后来覆盖），`[EffectExecutor("A")]` 里的那个字符串更是**从来没有被任何代码读过**（真正生效的是 `Key` 属性）——这些都会静默走偏。本版把 **Effect Executors** 页放到第一位：全工程执行器目录 + 源码跳转 + 静默失效体检 + 「配置 ↔ 实现」双向核对；原页签改名 **Effect Database** 并移至第二位，如实反映它是可选的补充数据层（效果库为空时第一页照样可用）。本版新增 5 个测试（共 203）。
