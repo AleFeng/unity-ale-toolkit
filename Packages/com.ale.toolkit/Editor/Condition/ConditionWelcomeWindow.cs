@@ -4,13 +4,11 @@ using UnityEngine;
 namespace Ale.Condition.Editor
 {
     /// <summary>
-    /// 条件系统的设置 / 概览窗口：说明用法、刷新判定器目录、列出当前发现的判定器（按 Category 分组）。
-    /// 条件系统本身<b>不需要独立的配置 EditorWindow</b>——条件在各字段处内联编辑；本窗口只作总览与设置入口。
+    /// 条件系统的概览 / 入口窗口：说明用法（内联字段 与 具名条件库两种用法），并给出通往
+    /// <see cref="ConditionEditorWindow"/> 两个页签的入口。判定器清单见 Condition Editor 的「Condition Evaluators」页。
     /// </summary>
     public class ConditionWelcomeWindow : EditorWindow
     {
-        private Vector2 _scroll;
-
         [MenuItem("Tools/Ale Toolkit/Condition System/Welcome", priority = 2001)]
         public static void Open()
         {
@@ -29,33 +27,32 @@ namespace Ale.Condition.Editor
                 "扩展条件 = 实现 IConditionEvaluator 并打上 [ConditionEvaluator(\"Ns.Key\")]。",
                 MessageType.Info);
 
-            EditorGUILayout.Space(4);
+            EditorGUILayout.Space(6);
+            EditorGUILayout.HelpBox(
+                "条件库（ConditionDatabase）：把条件配成有 id 的具名条目，多个系统按 id 共用同一份判断——" +
+                "条目自带显示名 / 描述 / 图标（可直接喂给「未满足时」的玩家提示 UI）与模板驱动的自定义属性。" +
+                "放在 Resources 下随启动自动注册，或由 ConditionDataManager.Register 显式注册；" +
+                "求值经 ConditionResolver.Evaluate(id, ctx)（解析不到即判否）。",
+                MessageType.None);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("打开条件编辑器", GUILayout.Height(26)))
+                    ConditionEditorWindow.Open();
+                if (GUILayout.Button("新建条件库", GUILayout.Width(110), GUILayout.Height(26)))
+                    ConditionEditorWindow.CreateDatabaseAsset();
+            }
+
+            EditorGUILayout.Space(6);
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField($"已发现判定器：{ConditionEvaluatorCatalog.All.Count}", EditorStyles.miniBoldLabel);
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("刷新目录", GUILayout.Width(80)))
-                    ConditionEvaluatorCatalog.Rebuild();
+                if (GUILayout.Button("查看全部判定器", GUILayout.Width(120), GUILayout.Height(22)))
+                    ConditionEditorWindow.OpenEvaluators();
             }
-
-            _scroll = EditorGUILayout.BeginScrollView(_scroll, EditorStyles.helpBox);
-            string lastCat = null;
-            foreach (var ev in ConditionEvaluatorCatalog.All)
-            {
-                string cat = string.IsNullOrEmpty(ev.Category) ? "其它" : ev.Category;
-                if (cat != lastCat)
-                {
-                    EditorGUILayout.Space(4);
-                    EditorGUILayout.LabelField(cat, EditorStyles.boldLabel);
-                    lastCat = cat;
-                }
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField(ev.DisplayName, GUILayout.Width(160));
-                    EditorGUILayout.LabelField(ev.Key, EditorStyles.miniLabel);
-                }
-            }
-            EditorGUILayout.EndScrollView();
+            EditorGUILayout.LabelField(
+                "（Condition Editor 的「Condition Evaluators」页：搜索 / 分类过滤 / 跳转源码 / 实现体检 / 配置引用交叉核对）",
+                EditorStyles.wordWrappedMiniLabel);
         }
     }
 }

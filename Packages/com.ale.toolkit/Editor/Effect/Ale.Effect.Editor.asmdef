@@ -10,7 +10,8 @@
         "Ale.GameplayTags.Editor",
         "Ale.Condition.Core",
         "Ale.GameplayTags.Core",
-        "Ale.Modifier.Core"
+        "Ale.Modifier.Core",
+        "Ale.Condition.Editor"
     ],
     "includePlatforms": [
         "Editor"

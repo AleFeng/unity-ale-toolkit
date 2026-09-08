@@ -3,7 +3,9 @@
     "rootNamespace": "Ale.Condition.Editor",
     "references": [
         "Ale.Condition.Core",
-        "Ale.Condition.Runtime"
+        "Ale.Condition.Runtime",
+        "Ale.Toolkit.Runtime",
+        "Ale.Toolkit.Editor"
     ],
     "includePlatforms": [
         "Editor"

@@ -15,7 +15,8 @@
         "Ale.GameplayTags.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Ale.Condition.Runtime"
+        "Ale.Condition.Runtime",
+        "Ale.Condition.Editor"
     ],
     "includePlatforms": [
         "Editor"
