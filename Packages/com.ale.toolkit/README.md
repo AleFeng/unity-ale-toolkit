@@ -425,7 +425,7 @@ EffectDataManager.Instance.LoadFromBinary(bytes);            // 或 EffectConfig
 - **三列页签** `EditorThreeColumnTab<TDb,TEntity>`：左列子页签 + 主列表、中列实体列表、右列上下文 Inspector。子类覆写 `LeftPanels` / `EntityNoun` / `EntityList` / `DrawEntityList` / `DrawEntityInspector` 等；`RequestSelect(entity)` 供外部定位（1.10.0 起；须在数据库设定之后调用，下一帧 Layout 激活右列 Inspector）。
 - **主列表面板** `EditorMasterListPanel<TDb,T>`（+ `IEditorMasterListPanel<TDb>`）、**实体列表面板** `EditorEntityListPanel<TDb,TEntity,TTemplate>`。
 - **工具窗口基类** `EditorToolWindowBase<TDb>`：内建「选数据库 + 逐帧时间预算步进 + 进度条 + 日志 + 取消 + 完成收尾」；子类覆写 `DrawOperations`（用 `RunSteps` 启动逐帧步骤）/ `OnRunComplete` / `OnRunFinished`。
-- 上下文 `IEditorContext` / `IEditorDbContext<TDb>`；辅助控件 `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles` / `EditorScriptLocator`（1.11.0 起：类型 → `MonoScript` 定位，可打开 IDE 到类声明行或在 Project 中高亮；对非 `MonoBehaviour` 的普通类同样有效）。
+- 上下文 `IEditorContext` / `IEditorDbContext<TDb>`；辅助控件 `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles` / `EditorScriptLocator`（1.11.0 起：类型 → `MonoScript` 定位，可打开 IDE 到类声明行或在 Project 中高亮；对非 `MonoBehaviour` 的普通类同样有效）。**可点击的列表行统一带鼠标悬停高亮**（`ToolkitEditorStyles.TrackMouseHover` / `DrawRowHover`，1.11.0 起；做在上述共用行组件里，宿主无需接线）。
 
 ### 编辑器多语言
 

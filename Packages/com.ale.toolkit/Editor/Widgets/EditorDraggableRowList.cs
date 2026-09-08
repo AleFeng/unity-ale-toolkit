@@ -48,6 +48,7 @@ namespace Ale.Toolkit.Editor
         {
             if (list == null || list.Count == 0) return;
 
+            ToolkitEditorStyles.TrackMouseHover(ctx);
             drag.BeginFrame();
 
             int removeIndex = -1;
@@ -56,6 +57,7 @@ namespace Ale.Toolkit.Editor
                 // 整行单行内容：左侧预留句柄列，句柄稍后按整行 Rect 垂直居中绘制，与右侧内容横向对齐。
                 Rect rowRect = EditorGUILayout.BeginHorizontal();
                 drag.RecordRow(i, rowRect);
+                ToolkitEditorStyles.DrawRowHover(rowRect);   // 先于行内容绘制，垫在底下
 
                 GUILayout.Space(EditorReorderableDrag.HandleWidth);
                 drawContent(i, list[i]);

@@ -46,6 +46,7 @@ namespace Ale.Effect.Editor
         public void OnGUI(Rect rect, IEditorDbContext<EffectDatabase> ctx)
         {
             EnsureStyles();
+            ToolkitEditorStyles.TrackMouseHover(ctx);
             var rows = EffectExecutorIndex.Rows;
             RebindSelection(rows);   // 目录重建后按键重新认领选中项
 
@@ -201,6 +202,7 @@ namespace Ale.Effect.Editor
 
             if (row == _selected)                     ToolkitEditorStyles.DrawRowBackground(rowRect, ToolkitEditorStyles.SelectedColor);
             else if (row.Issues != EExecutorIssue.None) ToolkitEditorStyles.DrawRowBackground(rowRect, IssueRowColor);
+            ToolkitEditorStyles.DrawRowHover(rowRect);
 
             float x     = rowRect.x + 6f;
             float right = rowRect.xMax - 6f;

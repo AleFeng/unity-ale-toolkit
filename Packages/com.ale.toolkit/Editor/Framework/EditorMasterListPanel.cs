@@ -112,6 +112,7 @@ namespace Ale.Toolkit.Editor
         public int DrawMasterList(IEditorDbContext<TDb> ctx, int selectedIndex)
         {
             _masterCtx = ctx;
+            ToolkitEditorStyles.TrackMouseHover(ctx);
             BeforeDrawList(ctx);
 
             var db   = ctx.Database;
@@ -204,6 +205,7 @@ namespace Ale.Toolkit.Editor
             {
                 if (active)
                     ToolkitEditorStyles.DrawRowBackground(rect, ToolkitEditorStyles.SelectedColor);
+                ToolkitEditorStyles.DrawRowHover(rect);
             };
 
             _masterList.drawElementCallback = (rect, index, _, _) =>

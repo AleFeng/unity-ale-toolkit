@@ -424,7 +424,7 @@ EffectDataManager.Instance.LoadFromBinary(bytes);            // または Effect
 - **三列タブ** `EditorThreeColumnTab<TDb,TEntity>`：左列サブタブ + マスターリスト、中列エンティティリスト、右列コンテキストインスペクター。`LeftPanels` / `EntityNoun` / `EntityList` / `DrawEntityList` / `DrawEntityInspector` などをオーバーライド。`RequestSelect(entity)` で外部から位置決めできます（1.10.0 から。データベース設定後に呼ぶこと。次の Layout フレームで右列インスペクターが有効化）。
 - **マスターリストパネル** `EditorMasterListPanel<TDb,T>`（+ `IEditorMasterListPanel<TDb>`）、**エンティティリストパネル** `EditorEntityListPanel<TDb,TEntity,TTemplate>`。
 - **ツールウィンドウ基底** `EditorToolWindowBase<TDb>`：「データベース選択 + フレームごとの時間予算ステップ + プログレスバー + ログ + キャンセル + 完了処理」を内蔵。`DrawOperations`（`RunSteps` でフレームごとのステップを開始）/ `OnRunComplete` / `OnRunFinished` をオーバーライド。
-- コンテキスト `IEditorContext` / `IEditorDbContext<TDb>`；補助コントロール `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles` / `EditorScriptLocator`（1.11.0 から：型 → `MonoScript` の解決。IDE をクラス宣言行で開いたり、Project でハイライトできます。`MonoBehaviour` を継承しない通常のクラスにも有効）。
+- コンテキスト `IEditorContext` / `IEditorDbContext<TDb>`；補助コントロール `EditorSearchableList` / `EditorDraggableRowList` / `EditorReorderableDrag` / `EditorListKeyboardNav` / `EditorFilterTabs` / `EditorIdScanner` / `ToolkitEditorStyles` / `EditorScriptLocator`（1.11.0 から：型 → `MonoScript` の解決。IDE をクラス宣言行で開いたり、Project でハイライトできます。`MonoBehaviour` を継承しない通常のクラスにも有効）。**クリックできるリスト行にはマウスホバーのハイライトが付きます**（`ToolkitEditorStyles.TrackMouseHover` / `DrawRowHover`、1.11.0 から。上記の共通行コンポーネント内で実装しているため、ホスト側の配線は不要）。
 
 ### エディター多言語
 

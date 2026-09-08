@@ -105,6 +105,8 @@ namespace Ale.Toolkit.Editor
         /// <summary>绘制列表，返回当前选中的实体引用。</summary>
         public TEntity DrawList(IEditorDbContext<TDb> ctx, TEntity selected)
         {
+            ToolkitEditorStyles.TrackMouseHover(ctx);
+
             var db        = ctx.Database;
             var entities  = Entities(db);
             var templates = Templates(db);
@@ -163,6 +165,7 @@ namespace Ale.Toolkit.Editor
                                   ToolkitEditorStyles.ErrorColor.b, 0.25f));
                 if (_drag.IsDragSource(i))
                     ToolkitEditorStyles.DrawRowBackground(fullRect, EditorReorderableDrag.DragSourceTint);
+                ToolkitEditorStyles.DrawRowHover(fullRect);
 
                 var delRect = new Rect(fullRect.xMax - DelBtnW, valRow.y + 2, DelBtnW - 2, ValRowH - 4);
                 if (GUI.Button(delRect, "✕", EditorStyles.miniButton))
