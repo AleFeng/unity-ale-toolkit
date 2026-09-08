@@ -2,7 +2,8 @@
     "name": "Ale.Condition.Runtime",
     "rootNamespace": "Ale.Condition",
     "references": [
-        "Ale.Condition.Core"
+        "Ale.Condition.Core",
+        "Ale.Toolkit.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
