@@ -169,6 +169,31 @@ namespace Ale.Toolkit.Tests
             var throwing = Row(rows, typeof(ThrowingExecutor));
             Assert.IsTrue((throwing.Issues & EExecutorIssue.ConstructionFailed) != 0, "实例化抛异常");
             Assert.IsFalse(throwing.Discovered);
+
+            Assert.IsTrue(noCtor.HasProblem && empty.HasProblem && throwing.HasProblem, "这三种都是真问题");
+        }
+
+        [Test]
+        public void BuildRows_AbstractBaseWithoutAttribute_IsInformationalNotProblem()
+        {
+            // 执行器基类（如 ChronicleExecutorBase）本就不该打 [EffectExecutor]——特性由派生类携带。
+            var rows = EffectExecutorIndex.BuildRows(new[]
+            {
+                (typeof(AbstractExecutor), (string)null, false),
+                (typeof(NoAttrExecutor),   (string)null, false),
+            });
+
+            var abs = Row(rows, typeof(AbstractExecutor));
+            Assert.AreEqual(EExecutorIssue.AbstractType, abs.Issues, "抽象基类只留说明性标记，不报「漏打特性」");
+            Assert.IsFalse(abs.HasProblem, "说明性标记不算需要修的问题");
+            Assert.IsFalse(abs.Discovered, "但它确实不会被发现");
+
+            var concrete = Row(rows, typeof(NoAttrExecutor));
+            Assert.IsTrue((concrete.Issues & EExecutorIssue.MissingAttribute) != 0, "非抽象类漏打特性仍是真问题");
+            Assert.IsTrue(concrete.HasProblem);
+
+            Assert.AreEqual(1, EffectExecutorIndex.Filter(rows, null, null, true).Count,
+                "「只看有问题」应筛掉抽象基类、只留漏打特性的那个");
         }
 
         [Test]

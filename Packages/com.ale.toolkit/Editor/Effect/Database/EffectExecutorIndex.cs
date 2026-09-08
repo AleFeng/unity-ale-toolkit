@@ -5,13 +5,20 @@ using UnityEngine;
 
 namespace Ale.Effect.Editor
 {
-    /// <summary>执行器实现的静默失效标记（这些情况两条发现通道都不会报错，只是「悄悄不生效」）。</summary>
+    /// <summary>
+    /// 执行器实现的诊断标记：多数是「静默失效」——两条发现通道都不会报错，只是悄悄不生效。
+    /// 其中 <see cref="AbstractType"/> 属于**说明性**标记（见 <see cref="EffectExecutorIndex.InformationalIssues"/>），
+    /// 不是需要修的问题。
+    /// </summary>
     [Flags]
     public enum EExecutorIssue
     {
         None = 0,
 
-        /// <summary>实现了 <see cref="IEffectExecutor"/> 却没打 <see cref="EffectExecutorAttribute"/>：两条通道都发现不了。</summary>
+        /// <summary>
+        /// **非抽象**类实现了 <see cref="IEffectExecutor"/> 却没打 <see cref="EffectExecutorAttribute"/>：两条通道都发现不了。
+        /// 抽象基类不算——特性本就该由派生类携带，基类打了也没用。
+        /// </summary>
         MissingAttribute = 1 << 0,
 
         /// <summary>特性里的键与 <see cref="IEffectExecutor.Key"/> 不一致：特性字符串<b>从不被读取</b>，实际生效的是 Key 属性。</summary>
@@ -23,7 +30,9 @@ namespace Ale.Effect.Editor
         /// <summary><see cref="IEffectExecutor.Key"/> 为空：会被目录与注册表一并跳过。</summary>
         EmptyKey = 1 << 3,
 
-        /// <summary>抽象类：不会被实例化（基类本身出现在这里是正常的）。</summary>
+        /// <summary>
+        /// 抽象基类：自身不参与发现，由派生类携带特性被注册。**说明性标记，不是问题**——执行器基类本就长这样。
+        /// </summary>
         AbstractType = 1 << 4,
 
         /// <summary>缺公开无参构造：两条通道都会跳过。</summary>
@@ -59,6 +68,12 @@ namespace Ale.Effect.Editor
 
         /// <summary>诊断标记。</summary>
         public EExecutorIssue Issues;
+
+        /// <summary>
+        /// 是否存在**真正需要修**的问题。抽象基类这类说明性标记
+        /// （<see cref="EffectExecutorIndex.InformationalIssues"/>）不算——面板据此决定是否标红 / 计入「只看有问题」。
+        /// </summary>
+        public bool HasProblem => (Issues & ~EffectExecutorIndex.InformationalIssues) != 0;
 
         /// <summary>是否会被 <see cref="EffectExecutorCatalog"/> / <c>EffectRegistry</c> 实际拾取。</summary>
         public bool Discovered;
@@ -106,6 +121,12 @@ namespace Ale.Effect.Editor
     {
         /// <summary>无分类时归入的分类名（与 <see cref="EffectExecutorCatalog"/> 的下拉分组一致）。</summary>
         public const string OtherCategory = "其它";
+
+        /// <summary>
+        /// 只作说明、并非问题的标记：抽象基类不参与发现是设计如此（`ChronicleExecutorBase` 一类），
+        /// 不该标红、也不该被「只看有问题」筛出来。
+        /// </summary>
+        public const EExecutorIssue InformationalIssues = EExecutorIssue.AbstractType;
 
         private static List<EffectExecutorRow> _rows;
         private static List<EffectKeyUsage>    _usages;
@@ -226,7 +247,7 @@ namespace Ale.Effect.Editor
             foreach (var r in rows)
             {
                 if (r == null) continue;
-                if (onlyIssues && r.Issues == EExecutorIssue.None) continue;
+                if (onlyIssues && !r.HasProblem) continue;
                 if (!string.IsNullOrEmpty(category) && !string.Equals(r.Category, category, StringComparison.Ordinal)) continue;
                 if (hasTerm && !Matches(r, term)) continue;
                 result.Add(r);
@@ -251,7 +272,8 @@ namespace Ale.Effect.Editor
                 Issues       = EExecutorIssue.None,
             };
 
-            if (!hasAttribute) row.Issues |= EExecutorIssue.MissingAttribute;
+            // 抽象基类不打特性是正常的（特性由派生类携带），不算漏打。
+            if (!hasAttribute && !type.IsAbstract) row.Issues |= EExecutorIssue.MissingAttribute;
 
             bool constructed = false;
             if (type.IsAbstract) row.Issues |= EExecutorIssue.AbstractType;

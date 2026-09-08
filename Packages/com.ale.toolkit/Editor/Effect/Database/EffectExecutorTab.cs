@@ -39,7 +39,7 @@ namespace Ale.Effect.Editor
         private EffectExecutorRow _selected;
         private Action  _pending;                // 延迟到本帧绘制结束后执行（跳转 / 打开脚本）
 
-        private static GUIStyle _subStyle, _rightMini, _titleStyle;
+        private static GUIStyle _subStyle, _rightMini, _titleStyle, _dimStyle;
 
         // ── IEditorSystemTab ──────────────────────────────────────────────────────
 
@@ -200,8 +200,8 @@ namespace Ale.Effect.Editor
         {
             var rowRect = GUILayoutUtility.GetRect(0, RowHeight, GUILayout.ExpandWidth(true));
 
-            if (row == _selected)                     ToolkitEditorStyles.DrawRowBackground(rowRect, ToolkitEditorStyles.SelectedColor);
-            else if (row.Issues != EExecutorIssue.None) ToolkitEditorStyles.DrawRowBackground(rowRect, IssueRowColor);
+            if (row == _selected)       ToolkitEditorStyles.DrawRowBackground(rowRect, ToolkitEditorStyles.SelectedColor);
+            else if (row.HasProblem)    ToolkitEditorStyles.DrawRowBackground(rowRect, IssueRowColor);
             ToolkitEditorStyles.DrawRowHover(rowRect);
 
             float x     = rowRect.x + 6f;
@@ -209,8 +209,11 @@ namespace Ale.Effect.Editor
             float nameW = Mathf.Clamp(rowRect.width * 0.42f, 90f, 190f);
             float badgeW = 46f;
 
-            string name = row.Issues != EExecutorIssue.None ? "⚠ " + row.DisplayName : row.DisplayName;
-            var nameStyle = row.Discovered ? EditorStyles.label : ToolkitEditorStyles.StatusError;
+            // 有真问题 → 红字 + ⚠；没问题但也不会被发现（抽象基类）→ 灰字；其余正常。
+            string name = row.HasProblem ? "⚠ " + row.DisplayName : row.DisplayName;
+            var nameStyle = row.HasProblem  ? ToolkitEditorStyles.StatusError
+                          : row.Discovered ? EditorStyles.label
+                                           : _dimStyle;
             GUI.Label(new Rect(x, rowRect.y + 3f, nameW, 16f), name, nameStyle);
 
             float keyX = x + nameW + 6f;
@@ -362,9 +365,10 @@ namespace Ale.Effect.Editor
             if (row.Issues == EExecutorIssue.None) return;
 
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField(Tr("诊断"), EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(row.HasProblem ? Tr("诊断") : Tr("说明"), EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(DescribeIssues(row),
-                row.Discovered ? MessageType.Warning : MessageType.Error);
+                !row.HasProblem ? MessageType.Info
+                                : row.Discovered ? MessageType.Warning : MessageType.Error);
         }
 
         /// <summary>把诊断标记译成人话（每条一行）。</summary>
@@ -382,7 +386,7 @@ namespace Ale.Effect.Editor
             if ((row.Issues & EExecutorIssue.EmptyKey) != 0)
                 lines.Add(Tr("Key 属性为空：目录与注册表都会跳过它。"));
             if ((row.Issues & EExecutorIssue.AbstractType) != 0)
-                lines.Add(Tr("抽象类，不会被实例化（作为执行器基类时属正常）。"));
+                lines.Add(Tr("抽象基类：自身不参与发现，由派生类打上 [EffectExecutor] 后被注册。这是执行器基类的正常形态，无需处理。"));
             if ((row.Issues & EExecutorIssue.NoDefaultCtor) != 0)
                 lines.Add(Tr("缺少公开无参构造：目录与注册表都会跳过它。"));
             if ((row.Issues & EExecutorIssue.ConstructionFailed) != 0)
@@ -448,6 +452,7 @@ namespace Ale.Effect.Editor
             };
             _rightMini = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleRight };
             _titleStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 12 };
+            _dimStyle = new GUIStyle(EditorStyles.label) { normal = { textColor = new Color(0.58f, 0.58f, 0.58f) } };
         }
 
         private const string Template =

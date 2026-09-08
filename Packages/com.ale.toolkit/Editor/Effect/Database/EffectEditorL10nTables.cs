@@ -152,9 +152,10 @@ namespace Ale.Effect.Editor
             Add("Key 属性为空：目录与注册表都会跳过它。",
                 "The Key property is empty: both the catalog and the registry skip it.",
                 "Key プロパティが空です。カタログもレジストリもスキップします。");
-            Add("抽象类，不会被实例化（作为执行器基类时属正常）。",
-                "Abstract class, never instantiated (normal for an executor base class).",
-                "抽象クラスのためインスタンス化されません（実行器の基底クラスなら正常です）。");
+            Add("抽象基类：自身不参与发现，由派生类打上 [EffectExecutor] 后被注册。这是执行器基类的正常形态，无需处理。",
+                "Abstract base class: it is not discovered itself; derived classes carry [EffectExecutor] and get registered. This is the normal shape of an executor base class — nothing to fix.",
+                "抽象基底クラス：それ自体は検出対象にならず、派生クラスが [EffectExecutor] を付けて登録されます。実行器の基底クラスとして正常な形であり、対応は不要です。");
+            Add("说明", "Note", "説明");
             Add("缺少公开无参构造：目录与注册表都会跳过它。",
                 "No public parameterless constructor: both the catalog and the registry skip it.",
                 "public な引数なしコンストラクタがありません。カタログもレジストリもスキップします。");
