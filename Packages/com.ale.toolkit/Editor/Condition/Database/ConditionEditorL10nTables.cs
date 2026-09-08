@@ -82,6 +82,9 @@ namespace Ale.Condition.Editor
                 "Abstract base class: it is not discovered itself; derived classes carry [ConditionEvaluator] and get registered. This is the normal shape of an evaluator base class — nothing to fix.",
                 "抽象基底クラス：それ自体は検出対象にならず、派生クラスが [ConditionEvaluator] を付けて登録されます。判定器の基底クラスとして正常な形であり、対応は不要です。");
             Add("新增判定器速查", "New Evaluator Cheat Sheet", "判定器の追加ガイド");
+            Add("宿主的内联条件要进上面的「被引用 / 悬空键」，写一个用法提供者即可：ConditionEvaluatorIndex.RegisterUsageProvider + ConditionUsageCollector。",
+                "To get a host's inline conditions into the references / dangling keys above, write a usage provider: ConditionEvaluatorIndex.RegisterUsageProvider + ConditionUsageCollector.",
+                "ホストのインライン条件を上の「参照 / 宙に浮いたキー」に載せるには、用法プロバイダを書きます：ConditionEvaluatorIndex.RegisterUsageProvider + ConditionUsageCollector。");
             Add("判定器只读不写：从上下文取读侧服务，返回 true / false。写侧的对偶是效果系统的 [EffectExecutor] 执行器。",
                 "Evaluators only read, never write: pull a read-side service from the context and return true / false. Their write-side dual is the effect system's [EffectExecutor].",
                 "判定器は読み取り専用です：コンテキストから読み取り側サービスを取得し、true / false を返します。書き込み側の対偶はエフェクトシステムの [EffectExecutor] です。");

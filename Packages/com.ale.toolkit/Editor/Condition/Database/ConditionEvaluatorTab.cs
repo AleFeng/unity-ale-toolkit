@@ -399,6 +399,9 @@ namespace Ale.Condition.Editor
             EditorGUILayout.LabelField(
                 Tr("判定器只读不写：从上下文取读侧服务，返回 true / false。写侧的对偶是效果系统的 [EffectExecutor] 执行器。"),
                 EditorStyles.wordWrappedMiniLabel);
+            EditorGUILayout.LabelField(
+                Tr("宿主的内联条件要进上面的「被引用 / 悬空键」，写一个用法提供者即可：ConditionEvaluatorIndex.RegisterUsageProvider + ConditionUsageCollector。"),
+                EditorStyles.wordWrappedMiniLabel);
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(Tr("最小实现模板"), EditorStyles.miniBoldLabel);

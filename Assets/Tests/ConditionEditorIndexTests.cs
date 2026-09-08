@@ -310,6 +310,44 @@ namespace Ale.Toolkit.Tests
                 "分类与「只看有问题」叠加");
         }
 
+        // ── 用法收集助手 ──────────────────────────────────────────────────────────
+
+        [Test]
+        public void UsageCollector_FormatsLocationUniformly_AndBuildsRecords()
+        {
+            // 位置文案是各宿主提供者共用的格式，锁死它正是把这个助手下沉到 toolkit 的目的。
+            Assert.AreEqual("组1 第1项", ConditionUsageCollector.Where(0, 0), "下标 0 起、显示 1 起");
+            Assert.AreEqual("组2 第3项", ConditionUsageCollector.Where(1, 2));
+            Assert.AreEqual("获得条件 · 组1 第1项", ConditionUsageCollector.Where("获得条件", 0, 0), "带前缀时以 · 相连");
+            Assert.AreEqual("组2 第3项", ConditionUsageCollector.Where(null, 1, 2), "前缀为空时只留后半");
+
+            var expr = new ConditionExpression();
+            var group = new ConditionGroup();
+            group.items.Add(new ConditionItem("Test.Good"));
+            group.items.Add(new ConditionItem(string.Empty));   // 空键跳过
+            group.items.Add(new ConditionItem("Test.Other"));
+            expr.groups.Add(group);
+
+            var db = NewDb("Host");
+            bool jumped = false;
+            var into = new List<ConditionKeyUsage>();
+            ConditionUsageCollector.Collect(into, expr, db, "trait_brave", "获得条件", () => jumped = true);
+
+            Assert.AreEqual(2, into.Count, "空键不入表");
+            Assert.AreEqual("Test.Good", into[0].Key);
+            Assert.AreSame(db, into[0].Asset);
+            Assert.AreEqual("trait_brave", into[0].OwnerId);
+            Assert.AreEqual("获得条件 · 组1 第1项", into[0].Location);
+            Assert.AreEqual("获得条件 · 组1 第3项", into[1].Location, "下标取项在组内的原始位置");
+            into[0].Jump();
+            Assert.IsTrue(jumped, "跳转回调原样带上");
+
+            ConditionUsageCollector.Collect(null, expr, db, "x", "y", null);   // 目标为 null 不应抛
+            var empty = new List<ConditionKeyUsage>();
+            ConditionUsageCollector.Collect(empty, null, db, "x", "y", null);
+            Assert.AreEqual(0, empty.Count, "表达式为空时不加任何记录");
+        }
+
         // ── 条件目录 ──────────────────────────────────────────────────────────────
 
         [Test]

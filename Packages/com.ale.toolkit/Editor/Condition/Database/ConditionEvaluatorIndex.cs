@@ -391,7 +391,7 @@ namespace Ale.Condition.Editor
                         Key      = key,
                         Asset    = db,
                         OwnerId  = owner.id,
-                        Location = Where(gi, ii),
+                        Location = ConditionUsageCollector.Where(gi, ii),
                         Jump     = () => ConditionEditorWindow.Open(db, owner.id),
                     }));
                 }
@@ -405,7 +405,7 @@ namespace Ale.Condition.Editor
                         Key      = key,
                         Asset    = db,
                         OwnerId  = tmplName,
-                        Location = "模板默认表达式 · " + Where(gi, ii),
+                        Location = ConditionUsageCollector.Where("模板默认表达式", gi, ii),
                         Jump     = () => ConditionEditorWindow.Open(db),
                     }));
                 }
@@ -420,7 +420,7 @@ namespace Ale.Condition.Editor
                 {
                     Key      = key,
                     Asset    = target,
-                    Location = Where(gi, ii),
+                    Location = ConditionUsageCollector.Where(gi, ii),
                     Jump     = () => { Selection.activeObject = target; EditorGUIUtility.PingObject(target); },
                 }));
             }
@@ -451,8 +451,6 @@ namespace Ale.Condition.Editor
             foreach (var kv in countByKey) if (!known.Contains(kv.Key)) _dangling.Add(kv.Key);
             _dangling.Sort(StringComparer.Ordinal);
         }
-
-        private static string Where(int groupIndex, int itemIndex) => $"组{groupIndex + 1} 第{itemIndex + 1}项";
 
         private static void AddCandidate(Type t, HashSet<Type> seen, List<(Type, string, bool)> into)
         {
