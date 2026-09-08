@@ -126,11 +126,59 @@ namespace Ale.Toolkit.Tests
             return db;
         }
 
+        /// <summary>按目录供给固定候选的假提供者。</summary>
+        private sealed class Provider : IConditionParamCatalogProvider
+        {
+            private readonly List<(string id, string display)> _items;
+            public Provider(string system, string catalogRef, params (string id, string display)[] items)
+            {
+                SystemName = system;
+                CatalogRef = catalogRef;
+                _items = new List<(string, string)>(items);
+            }
+            public string SystemName { get; }
+            public string CatalogRef { get; }
+            public IEnumerable<(string id, string display)> GetItems() => _items;
+        }
+
         [TearDown]
         public void Cleanup()
         {
+            ConditionDrawerHooks.ClearProviders();
             foreach (var o in _created) if (o) UnityEngine.Object.DestroyImmediate(o);
             _created.Clear();
+        }
+
+        // ── 参数候选注入点 ────────────────────────────────────────────────────────
+
+        [Test]
+        public void DrawerHooks_Providers_Register_AggregateByCatalog_Unregister()
+        {
+            var chronicle = new Provider("Chronicle", "Test.Thing", ("brave", "勇敢"), ("genius", "天才"));
+            var other     = new Provider("Other",     "Test.Thing", ("brave", "Brave (dup)"), ("shy", "Shy"));
+            var elsewhere = new Provider("Other",     "Test.Elsewhere", ("x", "X"));
+
+            ConditionDrawerHooks.RegisterProvider(chronicle);
+            ConditionDrawerHooks.RegisterProvider(chronicle);   // 幂等
+            ConditionDrawerHooks.RegisterProvider(other);
+            ConditionDrawerHooks.RegisterProvider(elsewhere);
+            Assert.AreEqual(3, ConditionDrawerHooks.Providers.Count, "重复登记被忽略");
+
+            var items = ConditionDrawerHooks.CollectCandidates("Test.Thing");
+            Assert.AreEqual(3, items.Count, "同目录合并、同 id 先登记者优先");
+            Assert.AreEqual("brave", items[0].id);
+            Assert.AreEqual("勇敢", items[0].display, "先登记者的显示名胜出");
+            Assert.AreEqual("Chronicle", items[0].system);
+            Assert.AreEqual("shy", items[2].id);
+
+            Assert.AreEqual(1, ConditionDrawerHooks.CollectCandidates("Test.Elsewhere").Count, "按目录隔离");
+            Assert.AreEqual(0, ConditionDrawerHooks.CollectCandidates("No.Such").Count, "未知目录无候选（绘制器退化为文本框）");
+            Assert.AreEqual(0, ConditionDrawerHooks.CollectCandidates(null).Count, "空目录无候选");
+
+            Assert.IsTrue(ConditionDrawerHooks.UnregisterProvider(chronicle));
+            Assert.IsFalse(ConditionDrawerHooks.UnregisterProvider(chronicle), "重复注销返回 false");
+            Assert.AreEqual("Brave (dup)", ConditionDrawerHooks.CollectCandidates("Test.Thing")[0].display,
+                "注销后由剩下的提供者接手");
         }
 
         // ── 诊断 ──────────────────────────────────────────────────────────────────

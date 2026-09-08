@@ -26,8 +26,16 @@ namespace Ale.Condition
         /// </summary>
         public readonly string[] choices;
 
+        /// <summary>
+        /// 可选：<b>候选目录引用</b>（如 <c>"Chronicle.Trait"</c>）。判定器以此声明「这个字符串参数装的是哪一类 id」，
+        /// 宿主经编辑器的 <c>ConditionDrawerHooks.RegisterProvider</c> 为该目录供给候选，绘制器便把裸文本框换成分组下拉。
+        /// <para>与 <see cref="choices"/> 的区别：<see cref="choices"/> 是判定器代码里写死的固定选项（存<b>索引</b>），
+        /// 本字段指向<b>工程数据</b>里的动态候选（存 id 本身）。为空 = 保持文本框，行为与 1.11.0 一致。</para>
+        /// </summary>
+        public readonly string catalogRef;
+
         public ConditionParamDef(string id, ConditionParamType type, bool isArray = false,
-            string label = null, string enumTypeRef = null, string[] choices = null)
+            string label = null, string enumTypeRef = null, string[] choices = null, string catalogRef = null)
         {
             this.id          = id;
             this.type        = type;
@@ -35,6 +43,7 @@ namespace Ale.Condition
             this.label       = string.IsNullOrEmpty(label) ? id : label;
             this.enumTypeRef = enumTypeRef;
             this.choices     = choices;
+            this.catalogRef  = catalogRef;
         }
     }
 }

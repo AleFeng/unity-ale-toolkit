@@ -178,7 +178,7 @@ namespace Ale.Condition.Editor
             {
                 var r = row(x);
                 EditorGUI.LabelField(new Rect(r.x, r.y, labelW, LH), label);
-                DrawScalarField(new Rect(r.x + labelW, r.y, r.width - labelW, LH), pProp, type, 0);
+                DrawScalarField(new Rect(r.x + labelW, r.y, r.width - labelW, LH), pProp, type, 0, def);
             }
             else
             {
@@ -193,12 +193,12 @@ namespace Ale.Condition.Editor
                 {
                     var er = row(x + Indent);
                     EditorGUI.LabelField(new Rect(er.x, er.y, 24f, LH), i.ToString());
-                    DrawScalarField(new Rect(er.x + 26f, er.y, er.width - 26f, LH), pProp, type, i);
+                    DrawScalarField(new Rect(er.x + 26f, er.y, er.width - 26f, LH), pProp, type, i, def);
                 }
             }
         }
 
-        private static void DrawScalarField(Rect r, SerializedProperty pProp, ConditionParamType type, int index)
+        private static void DrawScalarField(Rect r, SerializedProperty pProp, ConditionParamType type, int index, ConditionParamDef def)
         {
             switch (type)
             {
@@ -206,7 +206,8 @@ namespace Ale.Condition.Editor
                 {
                     var arr = pProp.FindPropertyRelative("strings"); Ensure(arr, index + 1);
                     var el = arr.GetArrayElementAtIndex(index);
-                    el.stringValue = EditorGUI.TextField(r, el.stringValue);
+                    // schema 声明了 catalogRef 时换成宿主供给的候选下拉；否则退化为原来的文本框。
+                    el.stringValue = ConditionDrawerHooks.DrawParamId(r, def?.catalogRef, el.stringValue);
                     break;
                 }
                 case ConditionParamType.Float:
